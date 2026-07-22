@@ -1,8 +1,11 @@
 import { motion } from 'framer-motion';
+import { useUI } from '../context/UIContext';
 import Button from './Button';
 import './components.css';
 
 export default function Footer() {
+  const { openContact } = useUI();
+
   return (
     <motion.footer
       className="footer"
@@ -15,7 +18,7 @@ export default function Footer() {
         <div>
           <h3 className="footer__heading">Services</h3>
           <p className="footer__text">
-            Professional photo editing, video editing, and software solutions tailored for your business.
+            Photo editing, video editing, software development, and digital marketing — delivered with precision and professionalism.
           </p>
           <div className="footer__socials">
             {['f', 'in', 'ig', 'wa'].map((icon) => (
@@ -29,20 +32,17 @@ export default function Footer() {
         <div>
           <h3 className="footer__heading">Support</h3>
           <p className="footer__text">aszentech@gmail.com</p>
+          <p className="footer__text">Mon – Fri, 9 AM – 6 PM IST</p>
         </div>
 
         <div>
           <h3 className="footer__heading">Contact</h3>
-          <input
-            type="email"
-            className="footer__input"
-            placeholder="Your Email Address"
-          />
-          <Button>Submit Your Inquiry</Button>
+          <p className="footer__text">Have a project in mind? Reach out and our team will respond within 24 hours.</p>
+          <Button onClick={() => openContact()}>Get In Touch</Button>
         </div>
       </div>
 
-      <p className="footer__copyright">© 2025. All rights reserved.</p>
+      <p className="footer__copyright">© 2025 ASZEN Technologies Pvt. Ltd. All rights reserved.</p>
     </motion.footer>
   );
 }
