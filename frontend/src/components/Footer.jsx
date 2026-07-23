@@ -32,7 +32,7 @@ export default function Footer() {
         <div>
           <h3 className="footer__heading">Support</h3>
           <p className="footer__text">aszentech@gmail.com</p>
-          <p className="footer__text">Mon – Fri, 9 AM – 6 PM IST</p>
+          <p className="footer__text">Mon – Sat, 9 AM – 7 PM IST</p>
         </div>
 
         <div>

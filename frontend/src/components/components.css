@@ -470,15 +470,11 @@
 }
 
 /* =========================================================
-   HERO & FULL-HEIGHT VIDEO WRAPPER
+   HERO & FULL-HEIGHT VIDEO WRAPPER (FIXED)
    ========================================================= */
 .hero-section-wrapper {
   position: relative;
   width: 100%;
-  min-height: 100vh;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
 }
 
 .hero__video-wrap {
@@ -505,13 +501,20 @@
   z-index: 1;
 }
 
+/* 1. Strictly bound Hero content to exact viewport height without forcing overflow */
 .hero__content {
   position: relative;
   z-index: 2;
+  height: 100vh; /* Changed from min-height: 100vh */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
   text-align: center;
-  padding: 10rem 1.5rem 3rem;
+  padding: 0 1.5rem; /* Removed top/bottom padding overflow */
   max-width: 900px;
   margin: 0 auto;
+  box-sizing: border-box;
 }
 
 .hero__quote {
@@ -533,16 +536,20 @@
   font-size: 1rem;
 }
 
+/* 2. Position cards directly below the 100vh mark */
 .home-cards {
   position: relative;
   z-index: 2;
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 1.5rem;
-  padding: 2rem 2.5rem 5rem;
+  display: flex;
+  justify-content: center;
+  gap: 2rem;
+  padding: 6rem 2.5rem;
+  margin-top: 0; /* Removed margin-top pull */
   max-width: 1200px;
-  margin: 0 auto;
+  margin-left: auto;
+  margin-right: auto;
   width: 100%;
+  box-sizing: border-box;
 }
 
 .home-card {
@@ -1244,6 +1251,7 @@
   justify-content: center;
   gap: 0.1rem;
   margin-bottom: 0.75rem;
+  overflow: visible;
 }
 
 .stat-card__value {
@@ -1252,14 +1260,16 @@
   background: linear-gradient(to top, var(--color-gold) 50%, transparent 50%);
   -webkit-background-clip: text;
   background-clip: text;
-  color: transparent;
-  line-height: 1;
+  color: var(--color-gold);
+  line-height: 1.2;
+  display: inline-block;
 }
 
 .stat-card__suffix {
   font-size: 1.5rem;
   font-weight: 700;
   color: var(--color-gold);
+  line-height: 1.2;
 }
 
 .stat-card__label {

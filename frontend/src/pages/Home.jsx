@@ -79,7 +79,7 @@ export default function Home() {
               standards of quality, speed, and reliability.
             </p>
             <div className="about-highlights">
-              {['Photo & Video Editing', 'Software Development', 'Digital Marketing', 'BPO Services'].map(
+              {['Photo & Video Editing', 'Software Development', 'Digital Marketing'].map(
                 (item) => (
                   <span key={item} className="about-highlight">
                     {item}
