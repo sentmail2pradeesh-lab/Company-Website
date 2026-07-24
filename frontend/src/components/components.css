@@ -260,35 +260,6 @@
   padding-bottom: 4px;
 }
 
-@media (max-width: 768px) {
-  .navbar {
-    padding: 1rem 1.25rem;
-  }
-
-  .navbar__menu-btn {
-    display: block;
-  }
-
-  .navbar__links {
-    position: fixed;
-    top: 0;
-    right: 0;
-    height: 100vh;
-    width: 280px;
-    background: rgba(0, 0, 0, 0.97);
-    flex-direction: column;
-    justify-content: center;
-    gap: 2rem;
-    transform: translateX(100%);
-    transition: transform var(--transition);
-    padding: 2rem;
-  }
-
-  .navbar__links--open {
-    transform: translateX(0);
-  }
-}
-
 /* =========================================================
    LOGIN MODAL / POPUP
    ========================================================= */
@@ -376,7 +347,7 @@
   color: white;
   padding: 0 18px;
   font-size: 15px;
-  transition: .3s;
+  transition: 0.3s;
 }
 
 .login-popup__form input::placeholder {
@@ -386,7 +357,7 @@
 .login-popup__form input:focus {
   outline: none;
   border-color: #991b1b;
-  box-shadow: 0 0 18px rgba(153, 27, 27, .35);
+  box-shadow: 0 0 18px rgba(153, 27, 27, 0.35);
 }
 
 .login-options {
@@ -434,7 +405,7 @@
   font-size: 18px;
   font-weight: 600;
   cursor: pointer;
-  transition: .3s;
+  transition: 0.3s;
 }
 
 .login-popup button[type="submit"]:hover {
@@ -476,16 +447,8 @@
   cursor: pointer;
 }
 
-@media(max-width:992px) {
-  .login-popup {
-    width: 92%;
-    right: 4%;
-    left: 4%;
-  }
-}
-
 /* =========================================================
-   HERO & FULL-HEIGHT VIDEO WRAPPER (FIXED)
+   HERO & FULL-HEIGHT VIDEO WRAPPER
    ========================================================= */
 .hero-section-wrapper {
   position: relative;
@@ -518,17 +481,16 @@
   z-index: 1;
 }
 
-/* 1. Strictly bound Hero content to exact viewport height without forcing overflow */
 .hero__content {
   position: relative;
   z-index: 2;
-  height: 100vh; /* Changed from min-height: 100vh */
+  height: 100vh;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 0 1.5rem; /* Removed top/bottom padding overflow */
+  padding: 0 1.5rem;
   max-width: 900px;
   margin: 0 auto;
   box-sizing: border-box;
@@ -553,7 +515,9 @@
   font-size: 1rem;
 }
 
-/* Home services — below the fold */
+/* =========================================================
+   HOME SERVICES & 4-CARD SINGLE ROW
+   ========================================================= */
 .home-services {
   background: #0a0a0a;
   padding: 5rem 0 4rem;
@@ -596,14 +560,21 @@
   grid-template-columns: repeat(4, 1fr);
   gap: 1.5rem;
   padding: 0 2.5rem;
-  max-width: 1200px;
+  max-width: 1400px;
   margin: 0 auto;
   width: 100%;
   box-sizing: border-box;
 }
 
+.home-cards > div {
+  width: 100%;
+  min-width: 0; /* Prevents grid item overflow */
+}
+
 .home-card {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
   border-radius: var(--radius-md);
   overflow: hidden;
   background: rgba(20, 20, 20, 0.85);
@@ -725,6 +696,14 @@
   color: var(--color-gray-300);
 }
 
+.about-image-wrap {
+  position: relative;
+  width: 100%;
+  border-radius: 28px;
+  overflow: hidden;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
+}
+
 .about-image-accent {
   position: absolute;
   top: -12px;
@@ -735,10 +714,6 @@
   border-right: 3px solid var(--color-red);
   border-radius: 0 12px 0 0;
   pointer-events: none;
-}
-
-.about-image-wrap {
-  position: relative;
 }
 
 .about-text {
@@ -752,13 +727,6 @@
   margin-bottom: 0;
 }
 
-.about-image-wrap {
-  width: 100%;
-  border-radius: 28px;
-  overflow: hidden;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.6);
-}
-
 .about-image {
   width: 100%;
   height: 100%;
@@ -766,17 +734,6 @@
   object-fit: cover;
   display: block;
   border-radius: 28px;
-}
-
-@media (max-width: 900px) {
-  .about-container {
-    grid-template-columns: 1fr;
-    gap: 2.5rem;
-  }
-
-  .about-section {
-    padding: 3.5rem 1.5rem;
-  }
 }
 
 /* =========================================================
@@ -831,6 +788,13 @@
   font-size: 0.9rem;
   color: var(--color-gray-300);
   line-height: 1.6;
+}
+
+.blog-card__btn {
+  margin-top: 1rem;
+  padding: 0.6rem 1.5rem;
+  font-size: 0.85rem;
+  display: inline-flex;
 }
 
 /* =========================================================
@@ -937,28 +901,6 @@
   text-transform: uppercase;
 }
 
-@media (max-width: 900px) {
-  .service-card__grid,
-  .service-card__grid--reverse {
-    grid-template-columns: 1fr;
-    gap: 1.5rem;
-  }
-
-  .service-card__grid--reverse .before-after {
-    order: 0;
-  }
-
-  .service-card {
-    padding: 1.5rem;
-  }
-}
-
-@media (max-width: 500px) {
-  .before-after {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* =========================================================
    FOOTER STYLES
    ========================================================= */
@@ -1034,24 +976,6 @@
   text-align: center;
   font-size: 0.85rem;
   color: var(--color-gray-500);
-}
-
-@media (max-width: 768px) {
-  .footer__grid {
-    grid-template-columns: 1fr;
-    gap: 2rem;
-  }
-
-  .home-cards {
-    grid-template-columns: 1fr;
-  }
-
-  .navbar__dropdown-menu {
-    position: static;
-    transform: none;
-    margin-top: 0.5rem;
-    box-shadow: none;
-  }
 }
 
 /* =========================================================
@@ -1519,13 +1443,9 @@
   margin-bottom: 1.25rem;
 }
 
-.blog-card__btn {
-  margin-top: 1rem;
-  padding: 0.6rem 1.5rem;
-  font-size: 0.85rem;
-  display: inline-flex;
-}
-
+/* =========================================================
+   MEDIA QUERIES / RESPONSIVENESS
+   ========================================================= */
 @media (max-width: 1100px) {
   .home-cards {
     grid-template-columns: repeat(2, 1fr);
@@ -1536,7 +1456,38 @@
   }
 }
 
+@media (max-width: 992px) {
+  .login-popup {
+    width: 92%;
+    right: 4%;
+    left: 4%;
+  }
+}
+
 @media (max-width: 900px) {
+  .about-container {
+    grid-template-columns: 1fr;
+    gap: 2.5rem;
+  }
+
+  .about-section {
+    padding: 3.5rem 1.5rem;
+  }
+
+  .service-card__grid,
+  .service-card__grid--reverse {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+
+  .service-card__grid--reverse .before-after {
+    order: 0;
+  }
+
+  .service-card {
+    padding: 1.5rem;
+  }
+
   .service-hero__inner,
   .services-list-header__inner {
     grid-template-columns: 1fr;
@@ -1545,6 +1496,47 @@
 
   .stats-section__grid {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .navbar {
+    padding: 1rem 1.25rem;
+  }
+
+  .navbar__menu-btn {
+    display: block;
+  }
+
+  .navbar__links {
+    position: fixed;
+    top: 0;
+    right: 0;
+    height: 100vh;
+    width: 280px;
+    background: rgba(0, 0, 0, 0.97);
+    flex-direction: column;
+    justify-content: center;
+    gap: 2rem;
+    transform: translateX(100%);
+    transition: transform var(--transition);
+    padding: 2rem;
+  }
+
+  .navbar__links--open {
+    transform: translateX(0);
+  }
+
+  .footer__grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .navbar__dropdown-menu {
+    position: static;
+    transform: none;
+    margin-top: 0.5rem;
+    box-shadow: none;
   }
 }
 
@@ -1559,6 +1551,12 @@
   }
 
   .stats-section__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 500px) {
+  .before-after {
     grid-template-columns: 1fr;
   }
 }
