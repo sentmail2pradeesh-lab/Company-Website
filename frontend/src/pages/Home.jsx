@@ -6,7 +6,7 @@ import Footer from '../components/Footer';
 
 const serviceCards = [
   {
-    image: 'https://images.unsplash.com/photo-1545239351-1141bd82e8e6?w=600&q=80',
+    image: 'https://images.unsplash.com/photo-1542744094-3a31b272c490?w=600&q=80',
     caption: 'Professional photo editing to enhance your images and elevate your brand.',
     link: '/photo-editing',
     title: 'Photo Editing',
@@ -19,9 +19,15 @@ const serviceCards = [
   },
   {
     image: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=600&q=80',
-    caption: 'Innovative software solutions and digital marketing that drive measurable growth.',
+    caption: 'Data-driven campaigns that grow your brand, generate leads, and maximize ROI.',
+    link: '/digital-marketing',
+    title: 'Digital Marketing',
+  },
+  {
+    image: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=600&q=80',
+    caption: 'Custom software solutions built to scale with your business needs.',
     link: '/software-development',
-    title: 'Software & Marketing',
+    title: 'Software Development',
   },
 ];
 
@@ -32,15 +38,31 @@ export default function Home() {
 
       <div className="hero-section-wrapper">
         <Hero />
+      </div>
 
-        <section id="services" className="home-cards">
+      <section id="services" className="home-services">
+        <motion.div
+          className="home-services__header"
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+        >
+          <span className="home-services__badge">What We Offer</span>
+          <h2 className="home-services__title">Our Core Services</h2>
+          <p className="home-services__subtitle">
+            End-to-end digital solutions crafted with precision for businesses worldwide.
+          </p>
+        </motion.div>
+
+        <div className="home-cards">
           {serviceCards.map((card, i) => (
             <motion.div
               key={card.title}
               initial={{ opacity: 0, y: 60 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: i * 0.15 }}
+              transition={{ duration: 0.6, delay: i * 0.12 }}
             >
               <Link to={card.link} className="home-card">
                 <div className="home-card__image">
@@ -53,8 +75,8 @@ export default function Home() {
               </Link>
             </motion.div>
           ))}
-        </section>
-      </div>
+        </div>
+      </section>
 
       <section id="about" className="about-section">
         <div className="about-container">
@@ -69,9 +91,9 @@ export default function Home() {
             <h2 className="about-title">Transforming Businesses Through Technology & Creativity</h2>
             <p className="about-text">
               ASZEN Technologies Pvt. Ltd. is a full-service digital solutions company specializing
-              in photo editing, video production, software development, and digital marketing.
-              We partner with real estate agencies, e-commerce brands, and enterprises worldwide
-              to deliver high-quality, scalable services.
+              in photo editing, video production, software development, and digital marketing. We
+              partner with real estate agencies, e-commerce brands, and enterprises worldwide to
+              deliver high-quality, scalable services.
             </p>
             <p className="about-text">
               With a dedicated team of editors, developers, and marketing strategists, we combine

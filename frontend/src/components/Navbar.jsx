@@ -51,6 +51,14 @@ export default function Navbar({ transparent = false }) {
 
   const isSolid = !transparent || scrolled;
 
+  const handleNavClick = () => {
+    window.scrollTo({ top: 0, behavior: 'instant' });
+  };
+
+  const handleLogoClick = () => {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   return (
     <motion.nav
       className={`navbar ${isSolid ? 'navbar--solid' : 'navbar--transparent'}`}
@@ -58,7 +66,7 @@ export default function Navbar({ transparent = false }) {
       animate={{ y: 0, opacity: 1 }}
       transition={{ duration: 0.6, ease: 'easeOut' }}
     >
-      <Link to="/" className="navbar__logo">
+      <Link to="/" className="navbar__logo" onClick={handleLogoClick}>
         <span className="navbar__logo-main">
           <span>A</span>SZEN
         </span>
@@ -80,6 +88,7 @@ export default function Navbar({ transparent = false }) {
             <Link
               to={link.path}
               className={`navbar__link ${pathname === link.path ? 'navbar__link--active' : ''}`}
+              onClick={handleNavClick}
             >
               {link.label}
             </Link>
@@ -118,7 +127,10 @@ export default function Navbar({ transparent = false }) {
                     <Link
                       to={item.path}
                       className={`navbar__dropdown-item ${pathname === item.path ? 'navbar__dropdown-item--active' : ''}`}
-                      onClick={() => setDropdownOpen(false)}
+                      onClick={() => {
+                        setDropdownOpen(false);
+                        handleNavClick();
+                      }}
                     >
                       {item.label}
                     </Link>

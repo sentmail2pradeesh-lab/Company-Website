@@ -1,8 +1,8 @@
 import { motion } from 'framer-motion';
 
-export default function BeforeAfter({ before, after }) {
+export default function BeforeAfter({ before, after, compact = false }) {
   return (
-    <div className="before-after">
+    <div className={`before-after ${compact ? 'before-after--compact' : ''}`}>
       {[
         { src: before, label: 'Before' },
         { src: after, label: 'After' },

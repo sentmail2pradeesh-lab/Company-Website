@@ -51,7 +51,8 @@ export default function Hero() {
           &ldquo;Crafting Software Solutions with Precision&rdquo;
         </motion.h1>
         <motion.p className="hero__subtitle" variants={itemVariants}>
-          Transform your business globally with our photo editing, video production, software, and digital marketing services
+          Transform your business globally with our photo editing, video production, software, and
+          digital marketing services
         </motion.p>
         <motion.div variants={itemVariants}>
           <Button variant="ghost" className="hero__cta" onClick={scrollToServices}>

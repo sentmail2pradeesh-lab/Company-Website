@@ -4,7 +4,7 @@ export const photoEditing = {
   headline: 'Professional Photo Editing That Elevates Every Image',
   description:
     'ASZEN Technologies delivers world-class photo editing for real estate, e-commerce, and corporate brands. From single-image retouching to HDR blending and virtual staging, our expert editors transform raw photos into polished, market-ready visuals — on time and at scale.',
-  heroImage: 'https://images.unsplash.com/photo-1545239351-1141bd82e8e6?w=900&q=80',
+  heroImage: 'https://images.unsplash.com/photo-1542744094-3a31b272c490?w=900&q=80',
   stats: [
     { value: 10, suffix: '+', label: 'Years of Experience' },
     { value: 500, suffix: '+', label: 'Satisfied Clients' },
