@@ -11,6 +11,7 @@ import DigitalMarketing from './pages/DigitalMarketing';
 import SoftwareDevelopment from './pages/SoftwareDevelopment';
 import Blogs from './pages/Blogs';
 import BlogDetail from './pages/BlogDetail';
+import Contact from './pages/Contact';
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
             <Route path="/software-development" element={<SoftwareDevelopment />} />
             <Route path="/blogs" element={<Blogs />} />
             <Route path="/blogs/:id" element={<BlogDetail />} />
+            <Route path="/contact" element={<Contact />} />
           </Routes>
           <LoginPopup />
           <ContactPopup />

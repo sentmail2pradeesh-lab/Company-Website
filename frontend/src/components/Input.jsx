@@ -1,3 +1,5 @@
+import Icon from './ui/Icon';
+
 export default function Input({
   label,
   type = 'text',
@@ -7,11 +9,12 @@ export default function Input({
   placeholder,
   required,
   error,
+  className = '',
 }) {
   return (
-    <div className="input-group">
+    <div className={`flex flex-col gap-1.5 ${className}`}>
       {label && (
-        <label htmlFor={name} className="input-group__label">
+        <label htmlFor={name} className="text-sm font-medium text-ink">
           {label}
         </label>
       )}
@@ -23,9 +26,19 @@ export default function Input({
         onChange={onChange}
         placeholder={placeholder}
         required={required}
-        className={`input-group__field ${error ? 'input-group__field--error' : ''}`}
+        className={[
+          'w-full rounded-xl border bg-white px-4 py-3 text-sm text-ink placeholder:text-mist/60',
+          'transition-all duration-200 outline-none',
+          'focus:border-royal focus:ring-2 focus:ring-royal/15',
+          error ? 'border-red-400' : 'border-line hover:border-slate/30',
+        ].join(' ')}
       />
-      {error && <span className="input-group__error">{error}</span>}
+      {error && (
+        <p className="flex items-center gap-1 text-xs text-red-500 mt-0.5">
+          <Icon name="close" className="w-3 h-3" />
+          {error}
+        </p>
+      )}
     </div>
   );
 }

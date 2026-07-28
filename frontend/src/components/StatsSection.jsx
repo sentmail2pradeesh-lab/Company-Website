@@ -1,68 +1,66 @@
-import { useEffect, useRef, useState } from 'react';
-import { motion, useInView } from 'framer-motion';
+import { motion } from 'framer-motion';
+import { useCountUp, fadeUp, viewportOnce } from '../lib/motion';
+import Icon from './ui/Icon';
 
-function AnimatedStat({ value, suffix, label, delay }) {
-  const ref = useRef(null);
-  const isInView = useInView(ref, { once: true, margin: '-50px' });
-  const [count, setCount] = useState(0);
-
-  useEffect(() => {
-    if (!isInView) return;
-
-    let start = 0;
-    const duration = 1800;
-    const step = Math.max(1, Math.floor(value / 60));
-    const timer = setInterval(() => {
-      start += step;
-      if (start >= value) {
-        setCount(value);
-        clearInterval(timer);
-      } else {
-        setCount(start);
-      }
-    }, duration / (value / step));
-
-    return () => clearInterval(timer);
-  }, [isInView, value]);
+function Stat({ stat, index }) {
+  const [ref, value] = useCountUp(stat.value, { duration: 2, decimals: stat.decimals || 0 });
 
   return (
     <motion.div
       ref={ref}
-      className="stat-card"
-      initial={{ opacity: 0, y: 30 }}
-      whileInView={{ opacity: 1, y: 0 }}
-      viewport={{ once: true }}
-      transition={{ duration: 0.5, delay }}
+      variants={fadeUp}
+      className="relative text-center"
     >
-      <div className="stat-card__number">
-        <span className="stat-card__value">{count}</span>
-        <span className="stat-card__suffix">{suffix}</span>
+      <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-white/85 backdrop-blur-sm text-royal shadow-card border border-white">
+        <Icon name={stat.icon} className="w-6 h-6" />
+      </span>
+      <div className="font-display text-4xl md:text-5xl font-extrabold tracking-tight text-ink">
+        {value}
+        <span className="text-gradient-brand">{stat.suffix}</span>
       </div>
-      <p className="stat-card__label">{label}</p>
+      <p className="mt-2 text-sm md:text-base text-slate font-medium">{stat.label}</p>
     </motion.div>
   );
 }
 
-export default function StatsSection({ stats, intro }) {
+export default function StatsSection({ stats, intro, compact = false }) {
+  const data = stats;
+
   return (
-    <section className="stats-section">
-      <div className="stats-section__inner">
-        {intro && (
-          <motion.p
-            className="stats-section__intro"
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-          >
-            {intro}
-          </motion.p>
-        )}
-        <div className="stats-section__grid">
-          {stats.map((stat, i) => (
-            <AnimatedStat key={stat.label} {...stat} delay={i * 0.1} />
-          ))}
-        </div>
+    <section className={compact ? 'py-0' : 'py-16 lg:py-24'}>
+      <div className="mx-auto max-w-7xl px-6">
+        <motion.div
+          variants={fadeUp}
+          initial="hidden"
+          whileInView="show"
+          viewport={viewportOnce}
+          className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-sky-soft via-white to-emerald-soft border border-line px-6 py-12 md:px-12 md:py-16 shadow-card"
+        >
+          <div className="absolute -top-16 -right-16 w-64 h-64 blob-royal opacity-60" />
+          <div className="absolute -bottom-16 -left-16 w-64 h-64 blob-emerald opacity-60" />
+
+          <div className="relative">
+            {intro && (
+              <motion.p
+                variants={fadeUp}
+                className="mx-auto mb-10 max-w-2xl text-center text-base md:text-lg text-slate"
+              >
+                {intro}
+              </motion.p>
+            )}
+            <motion.div
+              variants={fadeUp}
+              initial="hidden"
+              whileInView="show"
+              viewport={viewportOnce}
+              className="grid grid-cols-2 gap-8 md:grid-cols-4"
+            >
+              {data.map((s, i) => (
+                <Stat key={s.label} stat={s} index={i} />
+              ))}
+            </motion.div>
+          </div>
+        </motion.div>
       </div>
     </section>
   );

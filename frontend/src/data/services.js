@@ -3,25 +3,25 @@ export const photoEditing = {
   title: 'Photo Editing Services',
   headline: 'Professional Photo Editing That Elevates Every Image',
   description:
-    'ASZEN Technologies delivers world-class photo editing for real estate, e-commerce, and corporate brands. From single-image retouching to HDR blending and virtual staging, our expert editors transform raw photos into polished, market-ready visuals — on time and at scale.',
+    'Vista Editz Pvt. Ltd. delivers world-class photo editing for real estate, e-commerce, and corporate brands. From single-image retouching to HDR blending and virtual staging, our expert editors transform raw photos into polished, market-ready visuals — on time and at scale.',
   heroImage: 'https://images.unsplash.com/photo-1542744094-3a31b272c490?w=900&q=80',
   stats: [
-    { value: 10, suffix: '+', label: 'Years of Experience' },
-    { value: 500, suffix: '+', label: 'Satisfied Clients' },
-    { value: 2, suffix: 'M+', label: 'Images Edited' },
-    { value: 1000, suffix: '+', label: 'Projects Delivered' },
+    { value: 10, suffix: '+', label: 'Years of Experience', icon: 'medal' },
+    { value: 500, suffix: '+', label: 'Satisfied Clients', icon: 'smile' },
+    { value: 2, suffix: 'M+', label: 'Images Edited', icon: 'image' },
+    { value: 1000, suffix: '+', label: 'Projects Delivered', icon: 'shield' },
   ],
   services: [
     {
-      title: 'Single Image Editing',
-      text: 'Enhance colors, adjust lighting, remove imperfections, and optimize every detail. Ideal for real estate listings, product catalogs, and professional portfolios.',
+      title: 'HDR Photo Blending',
+      text: 'Combine multiple exposures for perfectly balanced images with rich detail in shadows and highlights — essential for architectural and interior photography.',
       before: 'https://images.unsplash.com/photo-1556909114-f6e7ad7d7046?w=500&q=80',
       after: 'https://images.unsplash.com/photo-1556911220-bff31c812dba?w=500&q=80',
       reverse: false,
     },
     {
-      title: 'HDR Photo Blending',
-      text: 'Combine multiple exposures for perfectly balanced images with rich detail in shadows and highlights — essential for architectural and interior photography.',
+      title: 'Sky Replacement',
+      text: 'Transform any sky into a dramatic, branded atmosphere. Perfect for exterior shots that need an extra touch of visual appeal.',
       before: 'https://images.unsplash.com/photo-1524758631624-e2822e304c36?w=500&q=80',
       after: 'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?w=500&q=80',
       reverse: true,
@@ -62,13 +62,13 @@ export const videoEditing = {
   title: 'Video Editing Services',
   headline: 'Cinematic Video Editing for Every Platform',
   description:
-    'From real estate walkthroughs to corporate promos and social media content, ASZEN Technologies crafts compelling video narratives. Our editors combine technical precision with creative storytelling to deliver broadcast-quality results.',
+    'From real estate walkthroughs to corporate promos and social media content, Vista Edits crafts compelling video narratives. Our editors combine technical precision with creative storytelling to deliver broadcast-quality results.',
   heroImage: 'https://images.unsplash.com/photo-1574717024653-61fd2cf4d44d?w=900&q=80',
   stats: [
-    { value: 8, suffix: '+', label: 'Years of Experience' },
-    { value: 300, suffix: '+', label: 'Satisfied Clients' },
-    { value: 500, suffix: '+', label: 'Videos Produced' },
-    { value: 50, suffix: '+', label: '4K Projects' },
+    { value: 8, suffix: '+', label: 'Years of Experience', icon: 'medal' },
+    { value: 300, suffix: '+', label: 'Satisfied Clients', icon: 'smile' },
+    { value: 500, suffix: '+', label: 'Videos Produced', icon: 'film' },
+    { value: 50, suffix: '+', label: '4K Projects', icon: 'star' },
   ],
   services: [
     {
@@ -121,13 +121,13 @@ export const digitalMarketing = {
   title: 'Digital Marketing Services',
   headline: 'Data-Driven Digital Marketing That Grows Your Brand',
   description:
-    'ASZEN Technologies helps businesses reach the right audience, generate qualified leads, and maximize ROI. Our digital marketing team combines strategy, creative content, and analytics to deliver measurable growth across every channel.',
+    'Vista Edits helps businesses reach the right audience, generate qualified leads, and maximize ROI. Our digital marketing team combines strategy, creative content, and analytics to deliver measurable growth across every channel.',
   heroImage: 'https://images.unsplash.com/photo-1460925895917-afdab827c52f?w=900&q=80',
   stats: [
-    { value: 7, suffix: '+', label: 'Years of Experience' },
-    { value: 250, suffix: '+', label: 'Campaigns Managed' },
-    { value: 180, suffix: '+', label: 'Satisfied Clients' },
-    { value: 3, suffix: 'x', label: 'Avg. ROI Increase' },
+    { value: 7, suffix: '+', label: 'Years of Experience', icon: 'medal' },
+    { value: 250, suffix: '+', label: 'Campaigns Managed', icon: 'chart' },
+    { value: 180, suffix: '+', label: 'Satisfied Clients', icon: 'smile' },
+    { value: 3, suffix: 'x', label: 'Avg. ROI Increase', icon: 'star' },
   ],
   services: [
     {
@@ -174,13 +174,13 @@ export const softwareDevelopment = {
   title: 'Software Development Services',
   headline: 'Custom Software Solutions Built for Scale',
   description:
-    'ASZEN Technologies designs and develops robust, scalable software tailored to your business needs. From web applications and mobile apps to enterprise systems and API integrations, we deliver solutions that drive efficiency and growth.',
+    'Vista Edits designs and develops robust, scalable software tailored to your business needs. From web applications and mobile apps to enterprise systems and API integrations, we deliver solutions that drive efficiency and growth.',
   heroImage: 'https://images.unsplash.com/photo-1498050108023-c5249f4df085?w=900&q=80',
   stats: [
-    { value: 12, suffix: '+', label: 'Years of Experience' },
-    { value: 150, suffix: '+', label: 'Projects Delivered' },
-    { value: 80, suffix: '+', label: 'Satisfied Clients' },
-    { value: 25, suffix: '+', label: 'Tech Stack Experts' },
+    { value: 12, suffix: '+', label: 'Years of Experience', icon: 'medal' },
+    { value: 150, suffix: '+', label: 'Projects Delivered', icon: 'shield' },
+    { value: 80, suffix: '+', label: 'Satisfied Clients', icon: 'smile' },
+    { value: 25, suffix: '+', label: 'Tech Stack Experts', icon: 'code' },
   ],
   services: [
     {
