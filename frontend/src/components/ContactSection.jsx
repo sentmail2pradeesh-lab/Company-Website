@@ -31,7 +31,7 @@ export default function ContactSection() {
   ];
 
   return (
-    <section id="contact" className="py-20 lg:py-32 bg-cream">
+    <section id="contact" className="py-24 lg:py-36 bg-gradient-to-b from-slate-100/70 via-indigo-50/40 to-slate-100 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading
           badge="Contact"
@@ -46,37 +46,37 @@ export default function ContactSection() {
           initial="hidden"
           whileInView="show"
           viewport={viewportOnce}
-          className="mt-14 grid gap-8 lg:grid-cols-5"
+          className="mt-16 grid gap-8 lg:grid-cols-5"
         >
           {/* Left info */}
           <motion.div variants={fadeUp} className="lg:col-span-2">
-            <div className="rounded-3xl border border-line bg-white p-7 shadow-card h-full flex flex-col justify-between">
-              <div className="space-y-5">
+            <div className="rounded-[2.5rem] border border-line bg-obsidian-card p-8 shadow-float glass-card backdrop-blur-2xl h-full flex flex-col justify-between">
+              <div className="space-y-6">
                 {infoItems.map((item) => (
                   <div key={item.label} className="flex items-start gap-4">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-royal-50 text-royal">
+                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                       <Icon name={item.icon} className="w-5 h-5" />
                     </span>
                     <div>
-                      <p className="text-xs font-semibold uppercase tracking-wider text-mist">{item.label}</p>
+                      <p className="text-xs font-bold uppercase tracking-wider text-mist">{item.label}</p>
                       {item.href ? (
-                        <a href={item.href} className="text-sm font-medium text-ink hover:text-royal transition-colors">{item.value}</a>
+                        <a href={item.href} className="text-base font-bold text-ink hover:text-cyan-400 transition-colors">{item.value}</a>
                       ) : (
-                        <p className="text-sm font-medium text-ink">{item.value}</p>
+                        <p className="text-base font-bold text-ink">{item.value}</p>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-8 pt-6 border-t border-line">
-                <p className="text-xs font-semibold uppercase tracking-wider text-mist mb-3">Follow us</p>
-                <div className="flex gap-2">
+              <div className="mt-10 pt-6 border-t border-line">
+                <p className="text-xs font-bold uppercase tracking-wider text-mist mb-4">Follow us</p>
+                <div className="flex gap-2.5">
                   {COMPANY.socials.map((s) => (
                     <a
                       key={s.name}
                       href={s.href}
                       aria-label={s.name}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-cream text-mist hover:bg-royal-50 hover:text-royal transition-colors"
+                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-500/10 text-mist hover:bg-cyan-500/20 hover:text-cyan-400 hover:border-cyan-500/30 border border-line transition-all"
                     >
                       <Icon name={s.icon} className="w-4.5 h-4.5" />
                     </a>
@@ -88,53 +88,53 @@ export default function ContactSection() {
 
           {/* Right form */}
           <motion.div variants={fadeUp} className="lg:col-span-3">
-            <div className="rounded-3xl border border-line bg-white p-7 md:p-9 shadow-card">
+            <div className="rounded-[2.5rem] border border-line bg-obsidian-card p-8 md:p-10 shadow-float glass-card backdrop-blur-2xl">
               {submitted ? (
                 <motion.div
                   className="flex flex-col items-center justify-center py-16 text-center"
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-soft text-emerald mb-5">
-                    <Icon name="shield" className="w-8 h-8" />
+                  <div className="flex h-20 w-20 items-center justify-center rounded-full bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 mb-6 shadow-emerald">
+                    <Icon name="shield" className="w-10 h-10" />
                   </div>
-                  <h3 className="text-xl font-bold font-display text-ink">Thank you!</h3>
-                  <p className="mt-2 text-mist max-w-sm">We've received your inquiry. Our team will get back to you within 24 hours.</p>
-                  <Button variant="outline" className="mt-6" onClick={() => { setSubmitted(false); setForm({ name: '', email: '', service: '', message: '' }); }}>
+                  <h3 className="text-2xl font-bold font-display text-ink">Thank you!</h3>
+                  <p className="mt-3 text-mist max-w-sm font-normal">We've received your inquiry. Our team will get back to you within 24 hours.</p>
+                  <Button variant="outline" className="mt-8" onClick={() => { setSubmitted(false); setForm({ name: '', email: '', service: '', message: '' }); }}>
                     Send another
                   </Button>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-5">
-                  <div className="grid gap-5 sm:grid-cols-2">
+                <form onSubmit={handleSubmit} className="space-y-6">
+                  <div className="grid gap-6 sm:grid-cols-2">
                     <Input label="Full Name" name="name" value={form.name} onChange={ch} placeholder="John Doe" required />
                     <Input label="Email" type="email" name="email" value={form.email} onChange={ch} placeholder="you@company.com" required />
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="svc" className="text-sm font-medium text-ink">Service Interested In</label>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="svc" className="text-xs font-bold text-mist uppercase tracking-wider">Service Interested In</label>
                     <select
                       id="svc"
                       name="service"
                       value={form.service}
                       onChange={ch}
                       required
-                      className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink outline-none focus:border-royal focus:ring-2 focus:ring-royal/15 transition-all"
+                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all cursor-pointer"
                     >
-                      <option value="">Select a service</option>
-                      {serviceOptions.map((o) => <option key={o} value={o}>{o}</option>)}
+                      <option value="" className="bg-obsidian-card text-mist">Select a service</option>
+                      {serviceOptions.map((o) => <option key={o} value={o} className="bg-obsidian-card text-ink">{o}</option>)}
                     </select>
                   </div>
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="msg" className="text-sm font-medium text-ink">Message</label>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="msg" className="text-xs font-bold text-mist uppercase tracking-wider">Message</label>
                     <textarea
                       id="msg" name="message" value={form.message} onChange={ch}
                       placeholder="Tell us about your project…"
                       rows={5}
                       required
-                      className="w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-mist/60 outline-none focus:border-royal focus:ring-2 focus:ring-royal/15 transition-all resize-none"
+                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all resize-none"
                     />
                   </div>
-                  <Button type="submit" disabled={loading} iconRight="arrowRight" className="w-full">
+                  <Button type="submit" disabled={loading} variant="primary" iconRight="arrowRight" className="w-full">
                     {loading ? 'Sending…' : 'Send Inquiry'}
                   </Button>
                 </form>

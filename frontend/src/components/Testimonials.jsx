@@ -16,16 +16,16 @@ function Stars({ n }) {
 
 function Card({ t }) {
   return (
-    <figure className="relative w-[340px] md:w-[400px] shrink-0 mx-2.5 rounded-3xl bg-white border border-line p-6 shadow-card">
-      <span className="absolute top-4 right-5 font-display text-6xl leading-none text-cloud select-none">”</span>
+    <figure className="relative w-[340px] md:w-[400px] shrink-0 mx-2.5 rounded-3xl bg-obsidian-card border border-line p-6 shadow-card">
+      <span className="absolute top-4 right-5 font-display text-6xl leading-none text-slate-300/30 select-none">”</span>
       <Stars n={t.rating} />
-      <blockquote className="mt-3 text-sm md:text-[0.95rem] text-slate leading-relaxed relative z-10">
+      <blockquote className="mt-3 text-sm md:text-[0.95rem] text-ink leading-relaxed relative z-10 font-medium">
         “{t.quote}”
       </blockquote>
       <figcaption className="mt-5 flex items-center gap-3">
         <img src={t.avatar} alt={t.name} loading="lazy" className="h-11 w-11 rounded-full object-cover border border-line" />
         <div>
-          <p className="text-sm font-semibold text-ink">{t.name}</p>
+          <p className="text-sm font-bold text-ink">{t.name}</p>
           <p className="text-xs text-mist">{t.role}</p>
         </div>
       </figcaption>
@@ -38,7 +38,7 @@ export default function Testimonials() {
   const rowB = [...TESTIMONIALS.slice().reverse(), ...TESTIMONIALS.slice().reverse()];
 
   return (
-    <section className="py-20 lg:py-32 bg-cream relative overflow-hidden">
+    <section className="py-20 lg:py-32 bg-gradient-to-br from-purple-50/70 via-indigo-50/40 to-slate-50 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading
           badge="Testimonials"

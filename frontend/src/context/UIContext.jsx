@@ -1,10 +1,29 @@
-import { createContext, useContext, useState, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback } from 'react';
 
 const UIContext = createContext(null);
 
 export function UIProvider({ children }) {
   const [isContactOpen, setIsContactOpen] = useState(false);
   const [contactService, setContactService] = useState('');
+  const [theme, setTheme] = useState(() => {
+    return localStorage.getItem('ve_theme') || 'dark';
+  });
+
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'dark') {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    } else {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    }
+    localStorage.setItem('ve_theme', theme);
+  }, [theme]);
+
+  const toggleTheme = useCallback(() => {
+    setTheme((prev) => (prev === 'dark' ? 'light' : 'dark'));
+  }, []);
 
   const openContact = useCallback((service = '') => {
     setContactService(service);
@@ -18,7 +37,14 @@ export function UIProvider({ children }) {
 
   return (
     <UIContext.Provider
-      value={{ isContactOpen, contactService, openContact, closeContact }}
+      value={{
+        isContactOpen,
+        contactService,
+        openContact,
+        closeContact,
+        theme,
+        toggleTheme,
+      }}
     >
       {children}
     </UIContext.Provider>

@@ -7,15 +7,15 @@ import { FAQS } from '../lib/data';
 
 function Item({ q, a, isOpen, onClick, index }) {
   return (
-    <div className="overflow-hidden rounded-2xl border border-line bg-white shadow-card">
+    <div className="overflow-hidden rounded-2xl border border-line bg-obsidian-card shadow-card">
       <button
         onClick={onClick}
-        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left"
+        className="flex w-full items-center justify-between gap-4 px-5 py-4 text-left cursor-pointer"
         aria-expanded={isOpen}
       >
         <span className="flex items-center gap-3">
           <span className="font-display text-xs font-bold text-royal">{String(index + 1).padStart(2, '0')}</span>
-          <span className="font-semibold font-display text-ink text-base">{q}</span>
+          <span className="font-bold font-display text-ink text-base">{q}</span>
         </span>
         <span className={`flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-royal-50 text-royal transition-transform duration-300 ${isOpen ? 'rotate-45' : ''}`}>
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none">
@@ -32,7 +32,7 @@ function Item({ q, a, isOpen, onClick, index }) {
             transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
             className="overflow-hidden"
           >
-            <p className="px-5 pb-5 pl-12 text-sm text-mist leading-relaxed">{a}</p>
+            <p className="px-5 pb-5 pl-12 text-sm text-mist leading-relaxed font-normal">{a}</p>
           </motion.div>
         )}
       </AnimatePresence>
@@ -44,7 +44,7 @@ export default function FAQ() {
   const [open, setOpen] = useState(0);
 
   return (
-    <section className="py-20 lg:py-32 bg-cream">
+    <section className="py-20 lg:py-32 bg-gradient-to-b from-cyan-50/30 via-slate-50 to-emerald-50/20 dark:from-obsidian dark:via-obsidian dark:to-obsidian transition-colors">
       <div className="mx-auto max-w-7xl px-6 grid gap-10 lg:grid-cols-[0.85fr_1.15fr] lg:gap-16">
         {/* Left sticky */}
         <div className="lg:sticky lg:top-28 self-start">

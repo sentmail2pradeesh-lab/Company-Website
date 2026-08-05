@@ -6,9 +6,11 @@ import Button from './ui/Button';
 import Icon from './ui/Icon';
 import { NAV_LINKS, SERVICES } from '../lib/data';
 import { useAuth } from '../context/AuthContext';
+import { useUI } from '../context/UIContext';
 
 export default function Navbar() {
   const { openLogin, user, logout } = useAuth();
+  const { theme, toggleTheme } = useUI();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const [solid, setSolid] = useState(false);
@@ -17,7 +19,7 @@ export default function Navbar() {
   const dropRef = useRef(null);
 
   useEffect(() => {
-    const onScroll = () => setSolid(window.scrollY > 40);
+    const onScroll = () => setSolid(window.scrollY > 20);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -46,39 +48,46 @@ export default function Navbar() {
   };
 
   const linkCls = (href) => [
-    'relative text-sm font-medium transition-colors duration-200',
-    isActive(href) ? 'text-royal' : 'text-slate hover:text-ink',
+    'relative text-[14px] font-bold tracking-tight transition-colors duration-200',
+    isActive(href) ? 'text-indigo-500 dark:text-cyan-400 font-extrabold' : 'text-slate-600 dark:text-slate-300 hover:text-indigo-600 dark:hover:text-white',
   ].join(' ');
 
   return (
-    <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 ${
-        solid
-          ? 'bg-white/75 backdrop-blur-xl border-b border-line shadow-[0_1px_12px_rgba(30,58,138,0.06)]'
-          : 'bg-transparent'
-      }`}
-    >
-      <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 h-16 lg:h-[72px]" aria-label="Main navigation">
+    <header className="fixed top-0 left-0 right-0 z-50 px-4 pt-3.5 pointer-events-none">
+      <nav
+        className={`pointer-events-auto mx-auto max-w-6xl flex items-center justify-between px-5 h-14 lg:h-[60px] rounded-full transition-all duration-300 border ${
+          solid
+            ? 'glass-card shadow-float border-line'
+            : 'bg-obsidian-card/85 backdrop-blur-xl border-line shadow-card'
+        }`}
+        aria-label="Main navigation"
+      >
         <Logo className="relative z-50" />
 
         {/* Desktop links */}
-        <ul className="hidden lg:flex items-center gap-1">
+        <ul className="hidden lg:flex items-center gap-1.5">
           {NAV_LINKS.map((l) => (
             <li key={l.label} className="relative" ref={l.dropdown === 'services' ? dropRef : undefined}>
               {l.dropdown ? (
                 <button
                   onClick={() => setDropdown((v) => !v)}
                   onBlur={() => setTimeout(() => setDropdown(false), 150)}
-                  className={`${linkCls(l.href)} flex items-center gap-1 px-3 py-2 rounded-lg cursor-pointer`}
+                  className={`${linkCls(l.href)} flex items-center gap-1 px-3.5 py-1.5 rounded-full cursor-pointer hover:bg-slate-500/10 transition-all`}
                   aria-expanded={dropdown}
                   aria-haspopup="true"
                 >
                   {l.label}
-                  <Icon name="chevronDown" className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdown ? 'rotate-180' : ''}`} />
+                  <Icon name="chevronDown" className={`w-3.5 h-3.5 transition-transform duration-200 ${dropdown ? 'rotate-180 text-cyan-400' : 'text-slate-400'}`} />
                 </button>
               ) : (
-                <Link to={l.href} className={`${linkCls(l.href)} px-3 py-2 rounded-lg`}>
+                <Link to={l.href} className={`${linkCls(l.href)} px-3.5 py-1.5 rounded-full hover:bg-slate-500/10 transition-all`}>
                   {l.label}
+                  {isActive(l.href) && (
+                    <motion.span
+                      layoutId="nav-pill"
+                      className="absolute bottom-0 left-3 right-3 h-0.5 rounded-full bg-gradient-to-r from-pink-500 via-purple-500 via-cyan-400 to-emerald-400 shadow-[0_0_12px_rgba(236,72,153,0.8)]"
+                    />
+                  )}
                 </Link>
               )}
 
@@ -86,30 +95,30 @@ export default function Navbar() {
                 <AnimatePresence>
                   {dropdown && (
                     <motion.div
-                      initial={{ opacity: 0, y: 8, scale: 0.97 }}
+                      initial={{ opacity: 0, y: 10, scale: 0.96 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      exit={{ opacity: 0, y: 8, scale: 0.97 }}
+                      exit={{ opacity: 0, y: 10, scale: 0.96 }}
                       transition={{ duration: 0.2 }}
-                      className="absolute top-full left-1/2 -translate-x-1/2 mt-2 w-[520px] rounded-2xl border border-line bg-white p-2 shadow-float z-50"
+                      className="absolute top-full left-1/2 -translate-x-1/2 mt-3 w-[540px] rounded-3xl border border-line bg-obsidian-card/95 backdrop-blur-2xl p-3 shadow-float z-50"
                     >
-                      <div className="grid grid-cols-2 gap-1">
+                      <div className="grid grid-cols-2 gap-2">
                         {SERVICES.map((s) => (
                           <Link
                             key={s.slug}
                             to={s.route}
-                            className="group flex items-start gap-3 rounded-xl p-3 transition-colors hover:bg-cloud"
+                            className="group flex items-start gap-3.5 rounded-2xl p-3 transition-all hover:bg-slate-500/10 border border-transparent hover:border-line"
                           >
-                            <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${
+                            <span className={`mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-xl backdrop-blur-md shadow-card ${
                               s.color === 'emerald'
-                                ? 'bg-emerald-soft text-emerald'
+                                ? 'bg-emerald-500/15 text-emerald-400 border border-emerald-500/30'
                                 : s.color === 'sky'
-                                ? 'bg-sky-soft text-sky'
-                                : 'bg-royal-50 text-royal'
+                                ? 'bg-cyan-500/15 text-cyan-400 border border-cyan-500/30'
+                                : 'bg-indigo-500/15 text-indigo-400 border border-indigo-500/30'
                             }`}>
                               <Icon name={s.icon} className="w-4 h-4" />
                             </span>
                             <div>
-                              <p className="text-sm font-semibold text-ink group-hover:text-royal transition-colors">
+                              <p className="text-sm font-bold text-ink group-hover:text-cyan-400 transition-colors">
                                 {s.name}
                               </p>
                               <p className="mt-0.5 text-xs text-mist leading-relaxed line-clamp-2">
@@ -127,44 +136,65 @@ export default function Navbar() {
           ))}
         </ul>
 
-        <div className="hidden lg:flex items-center gap-3">
+        {/* Desktop Actions & Theme Toggle */}
+        <div className="hidden lg:flex items-center gap-2.5">
+          <motion.button
+            whileTap={{ rotate: 180, scale: 0.85 }}
+            onClick={toggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500/10 hover:bg-slate-500/20 text-ink border border-line transition-all cursor-pointer"
+            aria-label="Toggle Light/Dark Theme"
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="w-4 h-4 text-cyan-400" />
+          </motion.button>
+
           {user ? (
             <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
           ) : (
             <Button variant="ghost" size="sm" onClick={openLogin}>Login</Button>
           )}
-          <Button size="sm" onClick={() => navigate('/contact')}>
+          <Button size="sm" variant="primary" onClick={() => navigate('/contact')}>
             Get Started
           </Button>
         </div>
 
-        <button
-          className="relative z-50 lg:hidden flex h-10 w-10 items-center justify-center rounded-xl hover:bg-cloud transition-colors"
-          onClick={() => setMobile((v) => !v)}
-          aria-label={mobile ? 'Close menu' : 'Open menu'}
-        >
-          <Icon name={mobile ? 'close' : 'menu'} className="w-6 h-6 text-ink" />
-        </button>
+        {/* Mobile controls */}
+        <div className="flex lg:hidden items-center gap-2">
+          <button
+            onClick={toggleTheme}
+            className="flex h-9 w-9 items-center justify-center rounded-full bg-slate-500/10 text-ink border border-line"
+            aria-label="Toggle Light/Dark Theme"
+          >
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="w-4 h-4 text-cyan-400" />
+          </button>
+          <button
+            className="relative z-50 flex h-9 w-9 items-center justify-center rounded-full bg-slate-500/10 border border-line transition-colors"
+            onClick={() => setMobile((v) => !v)}
+            aria-label={mobile ? 'Close menu' : 'Open menu'}
+          >
+            <Icon name={mobile ? 'close' : 'menu'} className="w-5 h-5 text-ink" />
+          </button>
+        </div>
       </nav>
 
+      {/* Mobile Drawer */}
       <AnimatePresence>
         {mobile && (
           <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-white lg:hidden"
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="fixed inset-0 z-40 bg-obsidian/95 backdrop-blur-2xl lg:hidden pointer-events-auto"
           >
-            <div className="flex flex-col pt-24 px-6 gap-1 overflow-y-auto h-full pb-12">
+            <div className="flex flex-col pt-24 px-6 gap-2 overflow-y-auto h-full pb-12">
               {NAV_LINKS.map((l, i) => (
                 l.dropdown ? (
                   <div key={l.label}>
                     <button
                       onClick={() => setDropdown((v) => !v)}
-                      className="w-full flex items-center justify-between px-4 py-3.5 text-left text-lg font-semibold text-ink rounded-xl hover:bg-cloud transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-3 text-left text-base font-bold text-ink rounded-2xl bg-slate-500/10 border border-line transition-colors"
                     >
                       {l.label}
-                      <Icon name="chevronDown" className={`w-4 h-4 text-mist transition-transform ${dropdown ? 'rotate-180' : ''}`} />
+                      <Icon name="chevronDown" className={`w-4 h-4 text-cyan-400 transition-transform ${dropdown ? 'rotate-180' : ''}`} />
                     </button>
                     <AnimatePresence>
                       {dropdown && (
@@ -172,15 +202,15 @@ export default function Navbar() {
                           initial={{ height: 0, opacity: 0 }}
                           animate={{ height: 'auto', opacity: 1 }}
                           exit={{ height: 0, opacity: 0 }}
-                          className="overflow-hidden"
+                          className="overflow-hidden mt-2 space-y-1.5 pl-3"
                         >
                           {SERVICES.map((s) => (
                             <Link
                               key={s.slug}
                               to={s.route}
-                              className="flex items-center gap-3 px-8 py-2.5 text-sm text-slate hover:text-royal rounded-lg hover:bg-cloud transition-colors"
+                              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white rounded-xl bg-slate-500/5 border border-line transition-colors"
                             >
-                              <Icon name={s.icon} className="w-4 h-4" />
+                              <Icon name={s.icon} className="w-4 h-4 text-cyan-400" />
                               {s.name}
                             </Link>
                           ))}
@@ -197,8 +227,10 @@ export default function Navbar() {
                   >
                     <Link
                       to={l.href}
-                      className={`block px-4 py-3.5 text-lg font-semibold rounded-xl hover:bg-cloud transition-colors ${
-                        isActive(l.href) ? 'text-royal' : 'text-ink'
+                      className={`block px-4 py-3 text-base font-bold rounded-2xl transition-colors border ${
+                        isActive(l.href)
+                          ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
+                          : 'text-ink bg-slate-500/10 border-line hover:bg-slate-500/20'
                       }`}
                     >
                       {l.label}
@@ -207,13 +239,13 @@ export default function Navbar() {
                 )
               ))}
 
-              <div className="mt-6 flex flex-col gap-3 px-4">
+              <div className="mt-6 flex flex-col gap-3 px-1">
                 {user ? (
                   <Button variant="outline" onClick={() => { logout(); setMobile(false); }}>Logout</Button>
                 ) : (
                   <Button variant="outline" onClick={() => { openLogin(); setMobile(false); }}>Login</Button>
                 )}
-                <Button onClick={() => { setMobile(false); navigate('/contact'); }}>
+                <Button variant="primary" onClick={() => { setMobile(false); navigate('/contact'); }}>
                   Get Started
                 </Button>
               </div>

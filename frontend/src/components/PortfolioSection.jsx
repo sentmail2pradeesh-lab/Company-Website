@@ -56,7 +56,7 @@ export default function PortfolioSection() {
   const featured = PORTFOLIO.find((p) => p.featured);
 
   return (
-    <section id="portfolio" className="py-20 lg:py-32 bg-cloud">
+    <section id="portfolio" className="py-20 lg:py-32 bg-gradient-to-b from-sky-50/50 via-slate-100/60 to-indigo-50/40 dark:from-obsidian dark:via-obsidian dark:to-obsidian transition-colors">
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading
           badge="Our Work"
@@ -79,8 +79,8 @@ export default function PortfolioSection() {
               <button
                 key={f}
                 onClick={() => setFilter(f)}
-                className={`relative rounded-full px-5 py-2 text-sm font-semibold transition-colors ${
-                  filter === f ? 'text-white' : 'text-slate hover:text-royal'
+                className={`relative rounded-full px-5 py-2 text-sm font-bold transition-colors cursor-pointer ${
+                  filter === f ? 'text-white' : 'text-mist hover:text-ink'
                 }`}
               >
                 {filter === f && (

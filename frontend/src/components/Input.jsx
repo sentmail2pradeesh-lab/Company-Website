@@ -12,9 +12,9 @@ export default function Input({
   className = '',
 }) {
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div className={`flex flex-col gap-2 ${className}`}>
       {label && (
-        <label htmlFor={name} className="text-sm font-medium text-ink">
+        <label htmlFor={name} className="text-xs font-bold text-mist uppercase tracking-wider">
           {label}
         </label>
       )}
@@ -27,14 +27,14 @@ export default function Input({
         placeholder={placeholder}
         required={required}
         className={[
-          'w-full rounded-xl border bg-white px-4 py-3 text-sm text-ink placeholder:text-mist/60',
+          'w-full rounded-2xl border bg-obsidian-card px-4 py-3.5 text-sm text-ink placeholder:text-mist',
           'transition-all duration-200 outline-none',
-          'focus:border-royal focus:ring-2 focus:ring-royal/15',
-          error ? 'border-red-400' : 'border-line hover:border-slate/30',
+          'focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20',
+          error ? 'border-red-400' : 'border-line hover:border-slate-500/30',
         ].join(' ')}
       />
       {error && (
-        <p className="flex items-center gap-1 text-xs text-red-500 mt-0.5">
+        <p className="flex items-center gap-1 text-xs text-red-400 mt-0.5 font-bold">
           <Icon name="close" className="w-3 h-3" />
           {error}
         </p>

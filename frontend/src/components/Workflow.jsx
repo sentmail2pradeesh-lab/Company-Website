@@ -11,8 +11,8 @@ export default function Workflow() {
   const lineScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section className="py-20 lg:py-32 bg-cream relative overflow-hidden">
-      <div className="absolute inset-0 -z-10 bg-dots opacity-40 [mask-image:radial-gradient(ellipse_at_center,black,transparent_70%)]" />
+    <section className="py-24 lg:py-36 bg-obsidian relative overflow-hidden">
+      <div className="absolute inset-0 -z-10 bg-dots opacity-30 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
 
       <div className="mx-auto max-w-7xl px-6">
         <SectionHeading
@@ -23,12 +23,12 @@ export default function Workflow() {
           subtitle="No surprises, no guesswork — just a transparent, proven process refined over a decade."
         />
 
-        <div ref={ref} className="mt-16 relative">
+        <div ref={ref} className="mt-20 relative">
           {/* Desktop: horizontal connector */}
-          <div className="hidden lg:block absolute top-9 left-[10%] right-[10%] h-0.5 bg-line">
+          <div className="hidden lg:block absolute top-10 left-[10%] right-[10%] h-1 bg-line rounded-full overflow-hidden">
             <motion.div
               style={{ scaleX: lineScale, transformOrigin: 'left' }}
-              className="h-full bg-gradient-to-r from-royal to-emerald"
+              className="h-full bg-gradient-to-r from-indigo-500 via-cyan-400 to-emerald-400 shadow-[0_0_15px_rgba(6,182,212,0.8)]"
             />
           </div>
 
@@ -40,22 +40,22 @@ export default function Workflow() {
             className="grid gap-8 lg:grid-cols-5"
           >
             {WORKFLOW.map((step) => (
-              <motion.div key={step.step} variants={fadeUp} className="relative text-center lg:text-left">
+              <motion.div key={step.step} variants={fadeUp} className="relative text-center lg:text-left group">
                 {/* Number circle */}
-                <div className="relative z-10 mx-auto lg:mx-0 flex h-18 w-18 lg:h-18 lg:w-18 items-center justify-center">
-                  <div className="flex h-14 w-14 lg:h-18 lg:w-18 items-center justify-center rounded-2xl bg-white border border-line shadow-card">
-                    <span className="font-display text-lg font-extrabold text-gradient-brand">{step.step}</span>
+                <div className="relative z-10 mx-auto lg:mx-0 flex h-20 w-20 items-center justify-center">
+                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-obsidian-card border border-line shadow-float glass-card group-hover:border-cyan-500/50 transition-all">
+                    <span className="font-display text-xl font-extrabold text-gradient-brand">{step.step}</span>
                   </div>
                 </div>
 
-                <div className="mt-4 lg:px-2">
-                  <div className="flex items-center gap-2 justify-center lg:justify-start">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-royal-50 text-royal">
+                <div className="mt-5 lg:px-2">
+                  <div className="flex items-center gap-2.5 justify-center lg:justify-start">
+                    <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
                       <Icon name={step.icon} className="w-4 h-4" />
                     </span>
                     <h3 className="font-bold font-display text-ink text-lg">{step.title}</h3>
                   </div>
-                  <p className="mt-2 text-sm text-mist leading-relaxed">{step.desc}</p>
+                  <p className="mt-3 text-sm text-mist leading-relaxed font-normal">{step.desc}</p>
                 </div>
               </motion.div>
             ))}

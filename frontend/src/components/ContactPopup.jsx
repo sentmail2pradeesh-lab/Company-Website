@@ -45,21 +45,21 @@ export default function ContactPopup() {
     setLoading(false);
   };
 
-  const inputCls = 'w-full rounded-xl border border-line bg-white px-4 py-3 text-sm text-ink placeholder:text-mist/60 outline-none focus:border-royal focus:ring-2 focus:ring-royal/15 transition-all hover:border-slate/30';
+  const inputCls = 'w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all hover:border-slate-500/30';
 
   return (
     <AnimatePresence>
       {isContactOpen && (
         <>
           <motion.div
-            className="fixed inset-0 z-[60] bg-ink/30 backdrop-blur-sm"
+            className="fixed inset-0 z-[60] bg-obsidian/80 backdrop-blur-md"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
           />
           <motion.aside
-            className="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-white shadow-float flex flex-col"
+            className="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-obsidian-card border-l border-line shadow-float flex flex-col glass-card"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
@@ -69,12 +69,12 @@ export default function ContactPopup() {
             <div className="flex items-start justify-between p-6 border-b border-line">
               <div>
                 <h2 className="text-xl font-bold font-display text-ink">Let's talk</h2>
-                <p className="text-sm text-mist mt-1">Share your project — we'll reply within 24 hours.</p>
+                <p className="text-sm text-mist mt-1 font-normal">Share your project — we'll reply within 24 hours.</p>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex h-8 w-8 items-center justify-center rounded-lg hover:bg-cloud transition-colors text-mist"
+                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-500/10 hover:bg-slate-500/20 transition-colors text-ink border border-line"
                 aria-label="Close"
               >
                 <Icon name="close" className="w-5 h-5" />
@@ -89,14 +89,14 @@ export default function ContactPopup() {
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
                 >
-                  <div className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-soft text-emerald mb-5">
-                    <Icon name="shield" className="w-8 h-8" />
+                  <div className="flex h-18 w-18 items-center justify-center rounded-full bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 mb-5 shadow-emerald">
+                    <Icon name="shield" className="w-9 h-9" />
                   </div>
-                  <h3 className="text-lg font-bold font-display text-ink mb-2">Thank you!</h3>
-                  <p className="text-sm text-mist max-w-xs mb-6">
+                  <h3 className="text-xl font-bold font-display text-ink mb-2">Thank you!</h3>
+                  <p className="text-sm text-mist max-w-xs mb-6 font-normal">
                     Your inquiry has been received. Our team will contact you within 24 hours.
                   </p>
-                  <Button onClick={handleClose}>Close</Button>
+                  <Button variant="primary" onClick={handleClose}>Close</Button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-4">
@@ -104,8 +104,8 @@ export default function ContactPopup() {
                   <Input label="Email Address" type="email" name="email" value={form.email} onChange={handleChange} placeholder="you@company.com" required />
                   <Input label="Phone Number" type="tel" name="phone" value={form.phone} onChange={handleChange} placeholder="+1 (555) 000-0000" />
 
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="service" className="text-sm font-medium text-ink">Service Interested In</label>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="service" className="text-xs font-bold text-mist uppercase tracking-wider">Service Interested In</label>
                     <select
                       id="service"
                       name="service"
@@ -114,15 +114,15 @@ export default function ContactPopup() {
                       className={inputCls}
                       required
                     >
-                      <option value="">Select a service</option>
+                      <option value="" className="bg-obsidian-card text-mist">Select a service</option>
                       {serviceOptions.map((opt) => (
-                        <option key={opt} value={opt}>{opt}</option>
+                        <option key={opt} value={opt} className="bg-obsidian-card text-ink">{opt}</option>
                       ))}
                     </select>
                   </div>
 
-                  <div className="flex flex-col gap-1.5">
-                    <label htmlFor="message" className="text-sm font-medium text-ink">Message</label>
+                  <div className="flex flex-col gap-2">
+                    <label htmlFor="message" className="text-xs font-bold text-mist uppercase tracking-wider">Message</label>
                     <textarea
                       id="message"
                       name="message"
@@ -135,12 +135,12 @@ export default function ContactPopup() {
                     />
                   </div>
 
-                  <Button type="submit" disabled={loading} className="w-full">
+                  <Button type="submit" disabled={loading} variant="primary" className="w-full">
                     {loading ? 'Sending…' : 'Submit Inquiry'}
                   </Button>
 
                   <p className="text-xs text-mist text-center pt-2">
-                    Or email us at <a href={`mailto:${COMPANY.email}`} className="text-royal font-medium">{COMPANY.email}</a>
+                    Or email us at <a href={`mailto:${COMPANY.email}`} className="text-cyan-400 font-bold hover:underline">{COMPANY.email}</a>
                   </p>
                 </form>
               )}

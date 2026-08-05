@@ -25,7 +25,7 @@ export default function SectionHeading({
         </Badge>
       )}
       {title && (
-        <h2 className="text-3xl md:text-[2.8rem] lg:text-5xl font-bold tracking-tight leading-[1.08]">
+        <h2 className="text-3xl md:text-[2.8rem] lg:text-5xl font-extrabold text-ink tracking-tight leading-[1.08]">
           {titleHighlight ? (
             <>
               {title.split(titleHighlight)[0]}
@@ -38,7 +38,7 @@ export default function SectionHeading({
         </h2>
       )}
       {subtitle && (
-        <p className="mt-4 text-base md:text-lg text-mist leading-relaxed max-w-2xl mx-auto">
+        <p className="mt-4 text-base md:text-lg text-mist leading-relaxed max-w-2xl mx-auto font-normal">
           {subtitle}
         </p>
       )}
