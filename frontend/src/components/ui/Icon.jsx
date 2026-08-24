@@ -50,6 +50,9 @@ import {
   FaFileLines,
   FaShareNodes,
   FaRobot,
+  FaInstagram,
+  FaFacebook,
+  FaLinkedin,
 } from 'react-icons/fa6';
 
 const MAP = {
@@ -101,6 +104,9 @@ const MAP = {
   chevronDown: HiOutlineChevronDown,
   close: HiOutlineXMark,
   menu: HiOutlineBars3,
+  instagram: FaInstagram,
+  facebook: FaFacebook,
+  linkedin: FaLinkedin,
 };
 
 export default function Icon({ name, className = 'w-5 h-5' }) {

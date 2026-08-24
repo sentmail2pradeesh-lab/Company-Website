@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from 'react';
+import { useState, useRef, useCallback, useEffect } from 'react';
 import { motion } from 'framer-motion';
 
 export default function BeforeAfterSlider({
@@ -11,8 +11,18 @@ export default function BeforeAfterSlider({
   initial = 50,
 }) {
   const [pos, setPos] = useState(initial);
+  const [width, setWidth] = useState(0);
   const ref = useRef(null);
   const dragging = useRef(false);
+
+  useEffect(() => {
+    if (!ref.current) return;
+    const obs = new ResizeObserver(([entry]) => {
+      if (entry) setWidth(entry.contentRect.width);
+    });
+    obs.observe(ref.current);
+    return () => obs.disconnect();
+  }, []);
 
   const update = useCallback((clientX) => {
     const el = ref.current;
@@ -49,7 +59,7 @@ export default function BeforeAfterSlider({
 
       {/* Before (clipped overlay) */}
       <div className="absolute inset-0 overflow-hidden pointer-events-none" style={{ width: `${pos}%` }}>
-        <img src={before} alt={beforeLabel} className="absolute inset-0 h-full w-full object-cover max-w-none" style={{ width: ref.current?.clientWidth || '100%' }} draggable="false" loading="lazy" />
+        <img src={before} alt={beforeLabel} className="absolute inset-0 h-full w-full object-cover max-w-none" style={{ width: width ? `${width}px` : '100%' }} draggable="false" loading="lazy" />
       </div>
 
       {/* Labels */}

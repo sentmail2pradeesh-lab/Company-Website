@@ -4,14 +4,14 @@ import { Link } from 'react-router-dom';
 import SectionHeading from './ui/SectionHeading';
 import Icon from './ui/Icon';
 import BeforeAfterSlider from './BeforeAfterSlider';
-import { fadeUp, viewportOnce, slideInLeft, slideInRight } from '../lib/motion';
+import { fadeUp, viewportOnce } from '../lib/motion';
 import { SERVICE_HIGHLIGHTS, VIDEO_TAGS, MARKETING_TAGS, STACK_BADGES } from '../lib/data';
 
 /* ============ 01 — PHOTO: Bento layout ============ */
 function PhotoService() {
   const highlights = SERVICE_HIGHLIGHTS['photo-editing'];
   return (
-    <ServiceShell index="01" serviceName="Photo Editing" route="/photo-editing" variant={slideInLeft}>
+    <ServiceShell index="01" serviceName="Photo Editing" route="/photo-editing" variant={fadeUp}>
       <div className="grid gap-8 lg:grid-cols-2 items-center">
         <div className="rounded-[2.5rem] p-3 shadow-float border border-line glass-card">
           <BeforeAfterSlider
@@ -55,7 +55,7 @@ function PhotoService() {
 /* ============ 02 — VIDEO: timeline layout ============ */
 function VideoService() {
   return (
-    <ServiceShell index="02" serviceName="Video Editing" route="/video-editing" variant={slideInRight} reverse>
+    <ServiceShell index="02" serviceName="Video Editing" route="/video-editing" variant={fadeUp} reverse>
       <div className="grid gap-8 lg:grid-cols-2 items-center">
         <div className="order-2 lg:order-1">
           <h3 className="text-2xl md:text-3xl font-extrabold font-display text-ink tracking-tight">
@@ -126,7 +126,7 @@ function VideoService() {
 /* ============ 03 — SOFTWARE: code layout ============ */
 function SoftwareService() {
   return (
-    <ServiceShell index="03" serviceName="Software Development" route="/software-development" variant={slideInLeft}>
+    <ServiceShell index="03" serviceName="Software Development" route="/software-development" variant={fadeUp}>
       <div className="grid gap-8 lg:grid-cols-2 items-center">
         <div className="rounded-[2.5rem] overflow-hidden shadow-float border border-line bg-slate-950 text-slate-100">
           <div className="flex items-center gap-2 border-b border-line px-5 py-3.5 bg-slate-500/10">
@@ -135,7 +135,7 @@ function SoftwareService() {
             <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
             <span className="ml-3 text-xs font-mono text-mist">app.tsx</span>
           </div>
-          <pre className="p-6 text-sm font-mono leading-relaxed overflow-x-auto text-ink">
+          <pre className="p-6 text-sm font-mono leading-relaxed overflow-x-auto text-slate-100">
             <code>
               <span className="text-cyan-400">const</span> <span className="text-emerald-400">product</span> <span className="text-mist">=</span> {'{\n'}
               <span className="text-cyan-400">  name</span>: <span className="text-indigo-400">'Vista Edits'</span>,{'\n'}
@@ -177,7 +177,7 @@ function SoftwareService() {
 /* ============ 04 — MARKETING: analytics dashboard ============ */
 function MarketingService() {
   return (
-    <ServiceShell index="04" serviceName="Digital Marketing" route="/digital-marketing" variant={slideInRight} reverse>
+    <ServiceShell index="04" serviceName="Digital Marketing" route="/digital-marketing" variant={fadeUp} reverse>
       <div className="grid gap-8 lg:grid-cols-2 items-center">
         <div className="order-2 lg:order-1">
           <h3 className="text-2xl md:text-3xl font-extrabold font-display text-ink tracking-tight">
@@ -241,7 +241,7 @@ function ServiceShell({ index, serviceName, route, variant, children }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      className="relative"
+      className="relative will-change-transform"
     >
       <span className="pointer-events-none absolute -top-12 right-0 font-display text-[8rem] md:text-[12rem] font-extrabold leading-none opacity-5 select-none -z-10 text-ink">
         {index}

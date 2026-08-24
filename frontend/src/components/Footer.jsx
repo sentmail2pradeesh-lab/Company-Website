@@ -22,7 +22,10 @@ export default function Footer() {
                 <a
                   key={s.name}
                   href={s.href}
+                  target="_blank"
+                  rel="noopener noreferrer"
                   aria-label={s.name}
+                  title={`${s.name}: ${s.handle}`}
                   className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-900 text-slate-400 hover:text-cyan-400 hover:bg-cyan-500/15 hover:border-cyan-500/30 border border-slate-800 transition-all"
                 >
                   <Icon name={s.icon} className="w-4.5 h-4.5" />
@@ -100,9 +103,7 @@ export default function Footer() {
       <div className="border-t border-slate-900 bg-slate-950/80 backdrop-blur-md">
         <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-sm font-bold text-slate-400 sm:flex-row">
           <p>© {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.</p>
-          <p className="flex items-center gap-1.5">
-            Crafted with <Icon name="heart" className="w-4 h-4 text-emerald-400" /> in Chennai
-          </p>
+
         </div>
       </div>
     </footer>

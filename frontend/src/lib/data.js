@@ -6,14 +6,14 @@ export const COMPANY = {
   name: 'Vista Editz',
   legalName: 'Vista Editz Pvt. Ltd.',
   tagline: 'Creative Digital Solutions',
-  email: 'hello@vistaedits.com',
-  phone: '+91 98765 43210',
+  email: 'vistaeditz@gmail.com',
+  phone: '+91 95385 37778',
+  website: 'http://www.vistaeditz.com',
   location: 'Bangalore, India · Serving clients worldwide',
   socials: [
-    { name: 'LinkedIn', icon: 'linkedin', href: '#' },
-    { name: 'Instagram', icon: 'instagram', href: '#' },
-    { name: 'Behance', icon: 'behance', href: '#' },
-    { name: 'YouTube', icon: 'youtube', href: '#' },
+    { name: 'Instagram', handle: '@vista_editz', icon: 'instagram', href: 'https://www.instagram.com/vista_editz' },
+    { name: 'Facebook', handle: 'Vista editz', icon: 'facebook', href: 'https://www.facebook.com/vistaeditz' },
+    { name: 'Website', handle: 'www.vistaeditz.com', icon: 'globe', href: 'http://www.vistaeditz.com' },
   ],
 };
 

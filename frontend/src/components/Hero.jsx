@@ -35,9 +35,10 @@ export default function Hero() {
           loop
           muted
           playsInline
-          className="h-full w-full object-cover opacity-25 dark:opacity-40 scale-105"
+          preload="auto"
+          className="h-full w-full object-cover opacity-25 dark:opacity-40 scale-105 will-change-transform"
         >
-          <source src="/v.mp4" type="video/mp4" />
+          <source src="/hero-reel.mp4" type="video/mp4" />
         </video>
         <div className="absolute inset-0 bg-gradient-to-b from-obsidian/90 via-obsidian/75 to-obsidian backdrop-blur-[2px]" />
       </div>
@@ -61,17 +62,17 @@ export default function Hero() {
           </motion.h1>
 
           <motion.p variants={fadeUp} className="mt-6 max-w-xl text-base md:text-lg text-mist leading-relaxed font-normal">
-            From pixel-perfect photo and video editing to high-growth marketing and custom software — Vista Edits crafts premium creative work for real estate, e-commerce, agencies and enterprises.
+            From pixel-perfect photo and video editing to high-growth marketing and custom software — Vista Editz crafts premium creative work for real estate, e-commerce, agencies and enterprises.
           </motion.p>
 
           <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-4">
             <Button size="lg" variant="primary" onClick={() => navigate('/contact')} iconRight="arrowRight">
               Start Your Project
             </Button>
-            <Button 
-              size="lg" 
-              variant="outline" 
-              iconLeft="play" 
+            <Button
+              size="lg"
+              variant="outline"
+              iconLeft="play"
               onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
             >
               Explore Work
@@ -80,7 +81,7 @@ export default function Hero() {
         </motion.div>
 
         {/* Right column — Cinematic Video Reel Stage */}
-        <motion.div style={{ y: yVisual }} variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }} className="relative">
+        <motion.div style={{ y: yVisual }} variants={fadeUp} initial="hidden" animate="show" transition={{ delay: 0.2 }} className="relative will-change-transform">
           {/* Main Video Monitor Stage */}
           <div className="relative rounded-[2.5rem] overflow-hidden glass-card shadow-float border border-line p-2.5">
             <div className="relative aspect-video rounded-[2rem] overflow-hidden bg-slate-950">
@@ -90,9 +91,10 @@ export default function Hero() {
                 loop
                 muted
                 playsInline
+                preload="auto"
                 className="h-full w-full object-cover opacity-90 scale-105"
               >
-                <source src="/v.mp4" type="video/mp4" />
+                <source src="/hero-reel.mp4" type="video/mp4" />
               </video>
 
               {/* Video Overlay Top Badge */}

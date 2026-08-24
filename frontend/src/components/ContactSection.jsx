@@ -27,6 +27,7 @@ export default function ContactSection() {
   const infoItems = [
     { icon: 'envelope', label: 'Email', value: COMPANY.email, href: `mailto:${COMPANY.email}` },
     { icon: 'phoneIcon', label: 'Phone', value: COMPANY.phone, href: `tel:${COMPANY.phone}` },
+    { icon: 'globe', label: 'Website', value: COMPANY.website.replace('http://', ''), href: COMPANY.website },
     { icon: 'map', label: 'Location', value: COMPANY.location },
   ];
 
@@ -60,7 +61,7 @@ export default function ContactSection() {
                     <div>
                       <p className="text-xs font-bold uppercase tracking-wider text-mist">{item.label}</p>
                       {item.href ? (
-                        <a href={item.href} className="text-base font-bold text-ink hover:text-cyan-400 transition-colors">{item.value}</a>
+                        <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-ink hover:text-cyan-400 transition-colors">{item.value}</a>
                       ) : (
                         <p className="text-base font-bold text-ink">{item.value}</p>
                       )}
@@ -69,16 +70,26 @@ export default function ContactSection() {
                 ))}
               </div>
               <div className="mt-10 pt-6 border-t border-line">
-                <p className="text-xs font-bold uppercase tracking-wider text-mist mb-4">Follow us</p>
-                <div className="flex gap-2.5">
+                <p className="text-xs font-bold uppercase tracking-wider text-mist mb-4">Official Links & Socials</p>
+                <div className="space-y-2.5">
                   {COMPANY.socials.map((s) => (
                     <a
                       key={s.name}
                       href={s.href}
-                      aria-label={s.name}
-                      className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-500/10 text-mist hover:bg-cyan-500/20 hover:text-cyan-400 hover:border-cyan-500/30 border border-line transition-all"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center justify-between rounded-2xl bg-slate-500/10 p-3 px-4 text-ink hover:bg-cyan-500/15 hover:border-cyan-500/30 border border-line transition-all group"
                     >
-                      <Icon name={s.icon} className="w-4.5 h-4.5" />
+                      <div className="flex items-center gap-3">
+                        <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-cyan-400">
+                          <Icon name={s.icon} className="w-4 h-4" />
+                        </span>
+                        <div>
+                          <p className="text-xs font-bold text-ink">{s.name}</p>
+                          <p className="text-[0.75rem] text-mist font-medium">{s.handle}</p>
+                        </div>
+                      </div>
+                      <Icon name="arrowUpRight" className="w-4 h-4 text-mist group-hover:text-cyan-400 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform" />
                     </a>
                   ))}
                 </div>

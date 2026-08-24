@@ -136,7 +136,7 @@ export default function ServicePageLayout({ data, showBeforeAfter = false }) {
                 <p className="mt-3.5 text-mist leading-relaxed font-normal">{svc.text}</p>
               </div>
 
-              <div className={`rounded-[2.5rem] overflow-hidden border border-white/15 shadow-float glass-card bg-slate-900/80 p-3 ${svc.reverse ? 'lg:order-1' : ''}`}>
+              <div className={`rounded-[2.5rem] overflow-hidden border border-line shadow-float bg-obsidian-card p-3 ${svc.reverse ? 'lg:order-1' : ''}`}>
                 {showBeforeAfter && svc.before ? (
                   <BeforeAfterSlider
                     before={svc.before}
@@ -154,17 +154,17 @@ export default function ServicePageLayout({ data, showBeforeAfter = false }) {
       </section>
 
       {/* CTA band */}
-      <section className="py-20 lg:py-28 bg-slate-950">
+      <section className="py-20 lg:py-28 bg-gradient-to-b from-slate-100 via-indigo-950/20 to-obsidian dark:from-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
         <div className="mx-auto max-w-7xl px-6">
           <motion.div
             variants={fadeUp}
             initial="hidden"
             whileInView="show"
             viewport={viewportOnce}
-            className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-900/90 via-slate-900 to-slate-950 p-10 md:p-16 text-center border border-white/15 shadow-float glass-card"
+            className="relative overflow-hidden rounded-[3rem] bg-gradient-to-br from-indigo-950 via-slate-900 to-slate-950 p-10 md:p-16 text-center border border-indigo-500/30 shadow-float glass-card-dark"
           >
-            <div className="absolute -top-32 -right-32 w-80 h-80 blob-royal opacity-40 pointer-events-none" />
-            <div className="absolute -bottom-32 -left-32 w-80 h-80 blob-emerald opacity-40 pointer-events-none" />
+            <div className="absolute -top-32 -right-32 w-80 h-80 blob-royal opacity-50 pointer-events-none" />
+            <div className="absolute -bottom-32 -left-32 w-80 h-80 blob-emerald opacity-50 pointer-events-none" />
 
             <div className="relative z-10">
               <h2 className="font-display text-3xl md:text-5xl font-extrabold text-white tracking-tight">
