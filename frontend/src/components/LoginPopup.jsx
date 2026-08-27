@@ -8,13 +8,21 @@ import Icon from './ui/Icon';
 export default function LoginPopup() {
   const { isLoginOpen, closeLogin, login, forgotPassword } = useAuth();
   const [view, setView] = useState('login');
-  const [email, setEmail] = useState('');
+  const [usernameInput, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
+  const getFormattedEmail = (input) => {
+    const trimmed = (input || '').trim();
+    if (!trimmed) return '';
+    if (trimmed.includes('@')) return trimmed;
+    const clean = trimmed.replace(/\.$/, '');
+    return `${clean}.aszen@gmail.com`;
+  };
+
   const resetForm = () => {
-    setEmail('');
+    setUsernameInput('');
     setPassword('');
     setMessage({ type: '', text: '' });
     setView('login');
@@ -30,7 +38,7 @@ export default function LoginPopup() {
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      await login(email, password);
+      await login(usernameInput, password);
       resetForm();
     } catch (err) {
       setMessage({
@@ -47,7 +55,7 @@ export default function LoginPopup() {
     setLoading(true);
     setMessage({ type: '', text: '' });
     try {
-      const res = await forgotPassword(email);
+      const res = await forgotPassword(usernameInput);
       setMessage({ type: 'success', text: res.message });
     } catch (err) {
       setMessage({
@@ -59,47 +67,49 @@ export default function LoginPopup() {
     }
   };
 
+  const formattedPreview = getFormattedEmail(usernameInput);
+
   return (
     <AnimatePresence>
       {isLoginOpen && (
         <>
           <motion.div
-            className="fixed inset-0 z-[60] bg-obsidian/80 backdrop-blur-md"
+            className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
           />
           <motion.div
-            className="fixed top-1/2 left-1/2 z-[70] w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-[2.5rem] bg-obsidian-card p-7 md:p-9 shadow-float border border-line glass-card"
+            className="fixed top-1/2 left-1/2 z-[70] w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-white p-7 md:p-8 shadow-2xl border border-slate-200"
             initial={{ opacity: 0, scale: 0.95, y: '-50%' }}
             animate={{ opacity: 1, scale: 1, y: '-50%' }}
             exit={{ opacity: 0, scale: 0.95, y: '-50%' }}
-            transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+            transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold font-display text-ink">Welcome back</h2>
-                <p className="text-sm text-mist mt-1 font-normal">
-                  Sign in to continue your editing workflow.
+                <h2 className="text-2xl font-bold font-display text-slate-900">ASZEN Login</h2>
+                <p className="text-xs text-slate-500 mt-1 font-medium">
+                  Enter your name to sign in (e.g. <span className="font-semibold text-indigo-600">lessy</span>)
                 </p>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-500/10 hover:bg-slate-500/20 transition-colors text-ink border border-line"
+                className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors text-slate-500"
                 aria-label="Close"
               >
-                <Icon name="close" className="w-5 h-5" />
+                <Icon name="close" className="w-4 h-4" />
               </button>
             </div>
 
             {message.text && (
               <div
-                className={`mb-5 rounded-2xl px-4 py-3 text-sm font-semibold ${
+                className={`mb-4 rounded-xl px-4 py-2.5 text-xs font-semibold ${
                   message.type === 'success'
-                    ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30'
-                    : 'bg-red-500/20 text-red-400 border border-red-500/30'
+                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                    : 'bg-rose-50 text-rose-700 border border-rose-200'
                 }`}
               >
                 {message.text}
@@ -108,15 +118,23 @@ export default function LoginPopup() {
 
             {view === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
-                <Input
-                  label="Email"
-                  type="email"
-                  name="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="name@example.com"
-                  required
-                />
+                <div>
+                  <Input
+                    label="Username / Name"
+                    type="text"
+                    name="username"
+                    value={usernameInput}
+                    onChange={(e) => setUsernameInput(e.target.value)}
+                    placeholder="e.g. lessy, shwetha, karan"
+                    required
+                  />
+                  {formattedPreview && (
+                    <div className="mt-1.5 text-[11px] text-indigo-600 font-mono flex items-center gap-1 font-semibold">
+                      <span>➜</span> Authentic Email: <span className="underline">{formattedPreview}</span>
+                    </div>
+                  )}
+                </div>
+
                 <Input
                   label="Password"
                   type="password"
@@ -126,47 +144,56 @@ export default function LoginPopup() {
                   placeholder="Enter your password"
                   required
                 />
-                <div className="flex items-center justify-between text-sm pt-1">
-                  <label className="flex items-center gap-2 text-mist cursor-pointer text-xs font-bold">
-                    <input type="checkbox" className="rounded border-line bg-obsidian-card text-cyan-400 focus:ring-cyan-400/20" />
+
+                <div className="flex items-center justify-between text-xs pt-1">
+                  <label className="flex items-center gap-2 text-slate-500 cursor-pointer font-medium">
+                    <input type="checkbox" className="rounded border-slate-300 text-indigo-600 focus:ring-indigo-500/20" />
                     Keep me signed in
                   </label>
                   <button
                     type="button"
                     onClick={() => { setView('forgot'); setMessage({ type: '', text: '' }); }}
-                    className="text-cyan-400 hover:text-cyan-300 hover:underline font-bold text-xs"
+                    className="text-indigo-600 hover:underline font-bold text-xs"
                   >
                     Forgot password?
                   </button>
                 </div>
-                <Button type="submit" disabled={loading} variant="primary" className="w-full mt-2">
-                  {loading ? 'Signing In…' : 'Login'}
+
+                <Button type="submit" disabled={loading} variant="primary" className="w-full mt-2 py-2.5">
+                  {loading ? 'Signing In…' : 'Sign In'}
                 </Button>
               </form>
             ) : (
               <div>
-                <h3 className="font-bold text-ink text-lg mb-1 font-display">Forgot your password?</h3>
-                <p className="text-sm text-mist mb-5 font-normal">
-                  Enter your email and we'll send you a reset link.
+                <h3 className="font-bold text-slate-900 text-lg mb-1 font-display">Forgot password?</h3>
+                <p className="text-xs text-slate-500 mb-4">
+                  Enter your name or email to receive a password reset link.
                 </p>
                 <form onSubmit={handleForgot} className="space-y-4">
-                  <Input
-                    label="Email"
-                    type="email"
-                    name="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="name@example.com"
-                    required
-                  />
-                  <Button type="submit" disabled={loading} variant="primary" className="w-full mt-2">
+                  <div>
+                    <Input
+                      label="Username / Name"
+                      type="text"
+                      name="username"
+                      value={usernameInput}
+                      onChange={(e) => setUsernameInput(e.target.value)}
+                      placeholder="e.g. lessy, shwetha"
+                      required
+                    />
+                    {formattedPreview && (
+                      <div className="mt-1.5 text-[11px] text-indigo-600 font-mono">
+                        Reset link will send to: <span className="font-semibold">{formattedPreview}</span>
+                      </div>
+                    )}
+                  </div>
+                  <Button type="submit" disabled={loading} variant="primary" className="w-full mt-2 py-2.5">
                     {loading ? 'Sending…' : 'Send Reset Link'}
                   </Button>
                 </form>
                 <button
                   type="button"
                   onClick={() => { setView('login'); setMessage({ type: '', text: '' }); }}
-                  className="mt-5 text-xs text-mist hover:text-ink flex items-center gap-1.5 transition-colors font-bold"
+                  className="mt-4 text-xs text-slate-500 hover:text-slate-900 flex items-center gap-1.5 transition-colors font-bold"
                 >
                   <Icon name="arrowRight" className="w-3.5 h-3.5 rotate-180" />
                   Back to login

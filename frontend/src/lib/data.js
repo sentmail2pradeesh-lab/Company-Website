@@ -20,8 +20,7 @@ export const COMPANY = {
 export const NAV_LINKS = [
   { label: 'Home', href: '/' },
   { label: 'Services', href: '/#services', dropdown: 'services' },
-  // { label: 'Portfolio', href: '/#portfolio' },
-  //{ label: 'About', href: '/#why' },
+  { label: 'Gallery', href: '/#gallery' },
   { label: 'Blogs', href: '/blogs' },
   { label: 'Contact', href: '/contact' },
 ];
