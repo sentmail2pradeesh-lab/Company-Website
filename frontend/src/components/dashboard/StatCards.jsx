@@ -1,82 +1,78 @@
 import { useJobs } from '../../context/JobContext';
-import { FiBriefcase, FiFileText, FiCheckCircle, FiClock, FiAlertCircle, FiLayers } from 'react-icons/fi';
 
 export default function StatCards() {
   const { stats } = useJobs();
 
-  const cards = [
-    {
-      title: 'Total Jobs',
-      value: stats.totalJobs,
-      subtitle: 'Active production pipeline',
-      badgeBg: 'bg-blue-50 text-blue-600 border-blue-100',
-      icon: FiBriefcase,
-    },
-    {
-      title: 'Total Files',
-      value: stats.totalFiles,
-      subtitle: 'Processed output target',
-      badgeBg: 'bg-sky-50 text-sky-600 border-sky-100',
-      icon: FiFileText,
-    },
-    {
-      title: 'Completed Jobs',
-      value: stats.completedJobs,
-      subtitle: 'Fully dispatched & verified',
-      badgeBg: 'bg-emerald-50 text-emerald-600 border-emerald-100',
-      icon: FiCheckCircle,
-    },
-    {
-      title: 'Pending Jobs',
-      value: stats.pendingJobs,
-      subtitle: 'In-progress across stages',
-      badgeBg: 'bg-pink-50 text-pink-600 border-pink-100',
-      icon: FiClock,
-    },
-    {
-      title: 'QC Pending Jobs',
-      value: stats.qcPendingJobs,
-      subtitle: 'Awaiting quality approval',
-      badgeBg: 'bg-rose-50 text-rose-600 border-rose-100',
-      icon: FiAlertCircle,
-    },
-    {
-      title: 'Path Pending Jobs',
-      value: stats.pathPendingJobs,
-      subtitle: 'In Path 1 or Path 2 preparation',
-      badgeBg: 'bg-amber-50 text-amber-600 border-amber-100',
-      icon: FiLayers,
-    },
-  ];
-
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-5 mb-8">
-      {cards.map((card, idx) => {
-        const Icon = card.icon;
-        return (
-          <div
-            key={idx}
-            className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs transition-all duration-200 hover:shadow-md hover:-translate-y-0.5"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider">
-                {card.title}
-              </span>
-              <div className={`w-8 h-8 rounded-xl border flex items-center justify-center ${card.badgeBg}`}>
-                <Icon className="w-4 h-4" />
-              </div>
-            </div>
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden">
+      {/* Coral Red Header Banner */}
+      <div className="bg-[#FF4D5A] text-white px-6 py-4 font-bold text-lg">
+        Jobs
+      </div>
 
-            <div className="text-3xl font-bold font-mono text-slate-900 tracking-tight my-2">
-              {card.value}
-            </div>
-
-            <div className="text-xs text-slate-500 font-medium">
-              {card.subtitle}
-            </div>
+      {/* 2-Column Metric Grid */}
+      <div className="p-5 grid grid-cols-2 gap-4">
+        {/* 1. Total Jobs (Solid Blue) */}
+        <div className="bg-[#3892F6] text-white rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-white/95">
+            Total Jobs
           </div>
-        );
-      })}
+          <div className="text-3xl font-extrabold font-mono tracking-tight">
+            {stats.totalJobs}
+          </div>
+        </div>
+
+        {/* 2. Total Files (Pastel Ice Blue) */}
+        <div className="bg-[#E4F1FF] text-slate-800 rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-slate-600">
+            Total Files
+          </div>
+          <div className="text-3xl font-extrabold font-mono tracking-tight text-[#3892F6]">
+            {stats.totalFiles}
+          </div>
+        </div>
+
+        {/* 3. Completed Jobs (Pastel Mint Cyan) */}
+        <div className="bg-[#D6F7F3] text-slate-800 rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-slate-600">
+            Completed Jobs
+          </div>
+          <div className="text-3xl font-extrabold font-mono tracking-tight text-[#00BFA5]">
+            {stats.completedJobs}
+          </div>
+        </div>
+
+        {/* 4. Pending Jobs (Pastel Coral Pink) */}
+        <div className="bg-[#FFE6EA] text-slate-800 rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-slate-600">
+            Pending Jobs
+          </div>
+          <div className="text-3xl font-extrabold font-mono tracking-tight text-[#FF4D5A]">
+            {stats.pendingJobs}
+          </div>
+        </div>
+
+        {/* 5. QC Pending Jobs (Solid Coral Red) */}
+        <div className="bg-[#FF4D5A] text-white rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-white/95">
+            QC Pending Jobs
+          </div>
+          <div className="text-3xl font-extrabold font-mono tracking-tight">
+            {stats.qcPendingJobs}
+          </div>
+        </div>
+
+        {/* 6. Path Pending Jobs (Solid Golden Orange) */}
+        <div className="bg-[#FF9F00] text-white rounded-2xl p-5 flex flex-col justify-between h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+          <div className="text-sm font-semibold text-white/95">
+            Path Pending Jobs
+          </div>
+          <div className="text-3xl font-extrabold font-mono tracking-tight">
+            {stats.pathPendingJobs}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
+

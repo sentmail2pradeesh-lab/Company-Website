@@ -1,19 +1,37 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { FiClock, FiX, FiCheckCircle } from 'react-icons/fi';
 
 export default function ClientTurnaroundModal() {
   const { clientModalState, setClientModalState, jobs, updateClientTurnaround } = useJobs();
 
-  if (!clientModalState) return null;
-
-  const { jobId } = clientModalState;
+  const jobId = clientModalState?.jobId;
   const job = jobs.find((j) => j.id === jobId);
-  if (!job) return null;
 
-  const [entryTime, setEntryTime] = useState(job.clientEntryTime || '');
-  const [targetTime, setTargetTime] = useState(job.clientTargetTime || '');
-  const [finishTime, setFinishTime] = useState(job.clientFinishTime || '');
+  const [entryTime, setEntryTime] = useState('');
+  const [targetTime, setTargetTime] = useState('');
+  const [finishTime, setFinishTime] = useState('');
+
+  useEffect(() => {
+    if (job) {
+      setEntryTime(job.clientEntryTime || '');
+      setTargetTime(job.clientTargetTime || '');
+      setFinishTime(job.clientFinishTime || '');
+    }
+  }, [job]);
+
+  useEffect(() => {
+    if (clientModalState) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [clientModalState]);
+
+  if (!clientModalState || !job) return null;
 
   const calculateDuration = (start, end) => {
     if (!start || !end) return 'N/A';
@@ -33,9 +51,10 @@ export default function ClientTurnaroundModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
-      <div className="relative w-full max-w-md bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Close Button */}
         <button
+          type="button"
           onClick={() => setClientModalState(null)}
           className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
         >

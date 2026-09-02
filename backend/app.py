@@ -25,9 +25,48 @@ def create_app():
 
     with app.app_context():
         db.create_all()
+
+        # Ensure missing columns (name, role) exist in legacy SQLite database
+        try:
+            from sqlalchemy import text
+            with db.engine.connect() as conn:
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(255)"))
+                    conn.commit()
+                except Exception:
+                    pass
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'employee'"))
+                    conn.commit()
+                except Exception:
+                    pass
+        except Exception as e:
+            print("DB Migration notice:", e)
+
+        seed_users()
         seed_blogs()
 
     return app
+
+
+def seed_users():
+    test_users = [
+        {"email": "arun@aszen.com", "name": "Arun", "role": "admin", "pwd": "Aszen@123"},
+        {"email": "lessy@aszen.com", "name": "Lessy", "role": "manager", "pwd": "Aszen@123"},
+        {"email": "Karan@aszen.com", "name": "Karan", "role": "employee", "pwd": "Aszen@123"},
+        {"email": "lalithaa@aszen.com", "name": "Lalithaa", "role": "employee", "pwd": "Aszen@123"},
+    ]
+    for data in test_users:
+        user = User.query.filter_by(email=data["email"]).first()
+        if not user:
+            user = User(email=data["email"], name=data["name"], role=data["role"])
+            user.set_password(data["pwd"])
+            db.session.add(user)
+        else:
+            user.name = data["name"]
+            user.role = data["role"]
+            user.set_password(data["pwd"])
+    db.session.commit()
 
 
 def seed_blogs():

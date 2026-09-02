@@ -1,27 +1,38 @@
 import { useJobs } from '../../context/JobContext';
-import { FiUsers } from 'react-icons/fi';
 
 export default function TasksOverviewTable() {
   const { jobs, editors } = useJobs();
 
-  // Compute live workload matrix per editor
+  // Compute live workload matrix per editor dynamically from job creation file counts
   const editorWorkload = editors.map((editor) => {
     let pathCount = 0;
     let editingCount = 0;
-    let qcCount = 0;
+    let lcCount = 0;
 
     jobs.forEach((j) => {
       // Check Path 1 & Path 2
-      if (j.stages.path1?.assignee === editor.name && j.stages.path1?.status !== 'Complete') pathCount += (j.outputTarget || 1);
-      if (j.stages.path2?.assignee === editor.name && j.stages.path2?.status !== 'Complete') pathCount += (j.outputTarget || 1);
+      if (j.stages.path1?.assignee === editor.name) {
+        pathCount += (j.stages.path1.filesCount !== undefined ? j.stages.path1.filesCount : (j.outputTarget || 0));
+      }
+      if (j.stages.path2?.assignee === editor.name) {
+        pathCount += (j.stages.path2.filesCount !== undefined ? j.stages.path2.filesCount : (j.outputTarget || 0));
+      }
 
-      // Check Editor 1 & Editor 2
-      if (j.stages.editor1?.assignee === editor.name && j.stages.editor1?.status !== 'Complete') editingCount += (j.outputTarget || 1);
-      if (j.stages.editor2?.assignee === editor.name && j.stages.editor2?.status !== 'Complete') editingCount += (j.outputTarget || 1);
+      // Check Editor 1 & Editor 2 (Designer 1 & 2)
+      if (j.stages.editor1?.assignee === editor.name) {
+        editingCount += (j.stages.editor1.filesCount !== undefined ? j.stages.editor1.filesCount : (j.outputTarget || 0));
+      }
+      if (j.stages.editor2?.assignee === editor.name) {
+        editingCount += (j.stages.editor2.filesCount !== undefined ? j.stages.editor2.filesCount : (j.outputTarget || 0));
+      }
 
-      // Check QC & FC
-      if (j.stages.qc?.assignee === editor.name && j.stages.qc?.status !== 'Complete') qcCount += (j.outputTarget || 1);
-      if (j.stages.fc?.assignee === editor.name && j.stages.fc?.status !== 'Complete') qcCount += (j.outputTarget || 1);
+      // Check Blending (Lightroom Correction) & FC (Final Correction)
+      if (j.stages.blending?.assignee === editor.name) {
+        lcCount += (j.stages.blending.filesCount !== undefined ? j.stages.blending.filesCount : (j.outputTarget || 0));
+      }
+      if (j.stages.fc?.assignee === editor.name) {
+        lcCount += (j.stages.fc.filesCount !== undefined ? j.stages.fc.filesCount : (j.outputTarget || 0));
+      }
     });
 
     return {
@@ -29,78 +40,43 @@ export default function TasksOverviewTable() {
       role: editor.role,
       path: pathCount,
       editing: editingCount,
-      qc: qcCount,
-      totalActive: pathCount + editingCount + qcCount,
+      qc: lcCount,
+      totalActive: pathCount + editingCount + lcCount,
     };
   });
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm overflow-hidden flex flex-col h-full">
-      {/* Sleek Dark Header Accent */}
-      <div className="bg-slate-900 text-white p-4.5 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold flex items-center gap-2">
-            <FiUsers className="w-4 h-4 text-cyan-400" /> Tasks Overview & Editor Matrix
-          </h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Active file workloads for Pathing, Editing, and QC
-          </p>
-        </div>
-        <span className="text-[11px] font-mono font-bold bg-white/10 text-cyan-300 px-2.5 py-0.5 rounded-full border border-white/10">
-          {editors.length} Personnel
-        </span>
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden">
+      {/* Purple Header Banner matching screenshot */}
+      <div className="bg-[#834BFF] text-white px-6 py-4 font-bold text-lg">
+        Tasks Overview
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto p-4 flex-1">
+      {/* Clean Table Container */}
+      <div className="overflow-x-auto">
         <table className="w-full text-left text-xs">
           <thead>
-            <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-              <th className="pb-2.5 px-3">Editor</th>
-              <th className="pb-2.5 px-3 text-center">Pathing</th>
-              <th className="pb-2.5 px-3 text-center">Editing</th>
-              <th className="pb-2.5 px-3 text-center">QC</th>
-              <th className="pb-2.5 px-3 text-right">Active Load</th>
+            <tr className="border-b border-slate-200 text-slate-600 font-bold text-xs uppercase tracking-wider bg-slate-50/50">
+              <th className="py-3 px-6">Editor</th>
+              <th className="py-3 px-4 text-center">Path</th>
+              <th className="py-3 px-4 text-center">Editing</th>
+              <th className="py-3 px-6 text-center">LC</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
             {editorWorkload.map((item, idx) => (
-              <tr key={idx} className="hover:bg-slate-50 transition-colors">
-                <td className="py-2.5 px-3">
-                  <div className="font-semibold text-slate-900">{item.name}</div>
-                  <div className="text-[10px] text-slate-400">{item.role}</div>
+              <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                <td className="py-3 px-6 font-medium text-slate-800">
+                  {item.name}
                 </td>
-                <td className="py-2.5 px-3 text-center font-mono">
-                  {item.path > 0 ? (
-                    <span className="text-amber-600 font-bold">{item.path}</span>
-                  ) : (
-                    <span className="text-slate-300">0</span>
-                  )}
+                <td className="py-3 px-4 text-center font-mono font-medium">
+                  {item.path}
                 </td>
-                <td className="py-2.5 px-3 text-center font-mono">
-                  {item.editing > 0 ? (
-                    <span className="text-indigo-600 font-bold">{item.editing}</span>
-                  ) : (
-                    <span className="text-slate-300">0</span>
-                  )}
+                <td className="py-3 px-4 text-center font-mono font-medium">
+                  {item.editing}
                 </td>
-                <td className="py-2.5 px-3 text-center font-mono">
-                  {item.qc > 0 ? (
-                    <span className="text-rose-600 font-bold">{item.qc}</span>
-                  ) : (
-                    <span className="text-slate-300">0</span>
-                  )}
-                </td>
-                <td className="py-2.5 px-3 text-right font-mono">
-                  <span
-                    className={`px-2 py-0.5 rounded-md text-xs font-bold ${
-                      item.totalActive > 0
-                        ? 'bg-indigo-50 text-indigo-700 border border-indigo-200'
-                        : 'bg-slate-50 text-slate-400'
-                    }`}
-                  >
-                    {item.totalActive}
-                  </span>
+                <td className="py-3 px-6 text-center font-mono font-medium">
+                  {item.qc}
                 </td>
               </tr>
             ))}
@@ -110,3 +86,4 @@ export default function TasksOverviewTable() {
     </div>
   );
 }
+

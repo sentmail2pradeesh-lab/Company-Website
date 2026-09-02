@@ -17,14 +17,16 @@ import Blogs from './pages/Blogs';
 import BlogDetail from './pages/BlogDetail';
 import Contact from './pages/Contact';
 
-// Dashboard Imports (Hidden for public website deployment)
-// import DashboardLayout from './components/dashboard/DashboardLayout';
-// import DashboardOverview from './pages/dashboard/DashboardOverview';
-// import TodaysJobsPage from './pages/dashboard/TodaysJobsPage';
-// import QCPendingPage from './pages/dashboard/QCPendingPage';
-// import AssignmentsPage from './pages/dashboard/AssignmentsPage';
-// import ProductionSheetsPage from './pages/dashboard/ProductionSheetsPage';
-// import ClientHistorySummaryPage from './pages/dashboard/ClientHistorySummaryPage';
+// Dashboard Imports
+import DashboardLayout from './components/dashboard/DashboardLayout';
+import DashboardOverview from './pages/dashboard/DashboardOverview';
+import CreateJobPage from './pages/dashboard/CreateJobPage';
+import ManagementPage from './pages/dashboard/ManagementPage';
+import TodaysJobsPage from './pages/dashboard/TodaysJobsPage';
+import QCPendingPage from './pages/dashboard/QCPendingPage';
+import AssignmentsPage from './pages/dashboard/AssignmentsPage';
+import ProductionSheetsPage from './pages/dashboard/ProductionSheetsPage';
+import ClientHistorySummaryPage from './pages/dashboard/ClientHistorySummaryPage';
 
 export default function App() {
   return (
@@ -45,17 +47,17 @@ export default function App() {
                 <Route path="/blogs/:id" element={<BlogDetail />} />
                 <Route path="/contact" element={<Contact />} />
 
-                {/* Employee & Admin Dashboard System Routes (Hidden for deployment) */}
-                {/*
+                {/* Employee & Admin Dashboard System Routes */}
                 <Route path="/dashboard" element={<DashboardLayout />}>
                   <Route index element={<DashboardOverview />} />
+                  <Route path="create-job" element={<CreateJobPage />} />
+                  <Route path="management" element={<ManagementPage />} />
                   <Route path="jobs" element={<TodaysJobsPage />} />
                   <Route path="qc-pending" element={<QCPendingPage />} />
                   <Route path="assignments" element={<AssignmentsPage />} />
                   <Route path="production-sheets" element={<ProductionSheetsPage />} />
                   <Route path="client-summary" element={<ClientHistorySummaryPage />} />
                 </Route>
-                */}
               </Routes>
               <LoginPopup />
               <ContactPopup />

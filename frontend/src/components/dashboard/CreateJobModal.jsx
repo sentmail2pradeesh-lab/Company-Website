@@ -17,7 +17,16 @@ export default function CreateJobModal() {
   const [editor1Assignee, setEditor1Assignee] = useState('Karan');
   const [editor2Assignee, setEditor2Assignee] = useState('Godwin');
   const [qcAssignee, setQcAssignee] = useState('Arun QC');
-  const [fcAssignee, setFcAssignee] = useState('Arun DD');
+  useEffect(() => {
+    if (isCreateModalOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isCreateModalOpen]);
 
   if (!isCreateModalOpen) return null;
 
@@ -40,8 +49,8 @@ export default function CreateJobModal() {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn overflow-y-auto">
-      <div className="relative w-full max-w-2xl bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl my-8">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
+      <div className="relative w-full max-w-2xl bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Close Button */}
         <button
           onClick={() => setIsCreateModalOpen(false)}

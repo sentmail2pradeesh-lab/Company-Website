@@ -12,28 +12,47 @@ export function AuthProvider({ children }) {
   const closeLogin = useCallback(() => setIsLoginOpen(false), []);
 
   useEffect(() => {
-    const savedUser = localStorage.getItem('aszen_user');
-    const token = localStorage.getItem('aszen_token');
+    // Clear legacy localStorage user session keys so tabs do not bleed sessions
+    localStorage.removeItem('aszen_user');
+    localStorage.removeItem('aszen_token');
+
+    // Strict tab-level isolation: check sessionStorage only
+    const savedUser = sessionStorage.getItem('aszen_user');
+    const token = sessionStorage.getItem('aszen_token');
+
+    const getRoleForEmail = (email, existingRole) => {
+      const lower = (email || '').toLowerCase();
+      if (lower.includes('arun')) return 'admin';
+      if (lower.includes('lessy')) return 'manager';
+      if (lower.includes('lalithaa') || lower.includes('lalitha')) return 'employee';
+      return existingRole || 'employee';
+    };
+
     if (savedUser) {
       try {
-        setUser(JSON.parse(savedUser));
+        const parsed = JSON.parse(savedUser);
+        const role = getRoleForEmail(parsed.email, parsed.role);
+        setUser({ ...parsed, role });
       } catch (e) {
-        localStorage.removeItem('aszen_user');
+        sessionStorage.removeItem('aszen_user');
+        sessionStorage.removeItem('aszen_token');
       }
       setLoading(false);
     } else if (token) {
       api
         .get('/auth/me')
         .then((res) => {
-          const rawName = (res.data.user.email || 'User').split('.')[0].split('@')[0];
+          const email = res.data.user.email || '';
+          const rawName = email.split('.')[0].split('@')[0];
           const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-          const userData = { ...res.data.user, name: displayName };
+          const role = getRoleForEmail(email, res.data.user.role);
+          const userData = { ...res.data.user, name: displayName, role };
           setUser(userData);
-          localStorage.setItem('aszen_user', JSON.stringify(userData));
+          sessionStorage.setItem('aszen_user', JSON.stringify(userData));
         })
         .catch(() => {
-          localStorage.removeItem('aszen_token');
-          localStorage.removeItem('aszen_user');
+          sessionStorage.removeItem('aszen_token');
+          sessionStorage.removeItem('aszen_user');
         })
         .finally(() => setLoading(false));
     } else {
@@ -45,34 +64,57 @@ export function AuthProvider({ children }) {
     let fullEmail = (usernameOrEmail || '').trim();
     if (!fullEmail) throw new Error('Please enter your name or email.');
 
-    // Auto-append .aszen@gmail.com if user only typed their name (e.g. "lessy" -> "lessy.aszen@gmail.com")
-    if (!fullEmail.includes('@')) {
-      // Remove any trailing dot if user typed "lessy."
-      const cleanName = fullEmail.replace(/\.$/, '');
-      fullEmail = `${cleanName}.aszen@gmail.com`;
-    }
+    const lowerInput = fullEmail.toLowerCase();
 
-    const rawName = fullEmail.split('.')[0].split('@')[0];
-    const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    // Map test credentials & shorthand names
+    let role = 'employee';
+    let displayName = fullEmail;
+
+    if (lowerInput === 'arun' || lowerInput === 'arun@aszen.com') {
+      fullEmail = 'Arun@aszen.com';
+      displayName = 'Arun';
+      role = 'admin';
+    } else if (lowerInput === 'lessy' || lowerInput === 'lessy@aszen.com') {
+      fullEmail = 'Lessy@aszen.com';
+      displayName = 'Lessy';
+      role = 'manager';
+    } else if (lowerInput === 'lalithaa' || lowerInput === 'lalitha' || lowerInput === 'lalithaa@aszen.com') {
+      fullEmail = 'Lalithaa@aszen.com';
+      displayName = 'Lalithaa';
+      role = 'employee';
+    } else {
+      if (!fullEmail.includes('@')) {
+        const cleanName = fullEmail.replace(/\.$/, '');
+        fullEmail = `${cleanName}.aszen@gmail.com`;
+      }
+      const rawName = fullEmail.split('.')[0].split('@')[0];
+      displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
+    }
 
     try {
       const res = await api.post('/auth/login', { email: fullEmail, password });
-      const userData = { ...res.data.user, email: fullEmail, name: displayName };
-      localStorage.setItem('aszen_token', res.data.token);
-      localStorage.setItem('aszen_user', JSON.stringify(userData));
+      const userData = {
+        ...res.data.user,
+        email: fullEmail,
+        name: res.data.user.name || displayName,
+        role: res.data.user.role || role,
+      };
+      sessionStorage.setItem('aszen_token', res.data.token);
+      sessionStorage.setItem('aszen_user', JSON.stringify(userData));
       setUser(userData);
       closeLogin();
       return res.data;
     } catch (err) {
-      // Demo authentication fallback if backend server is not active
+      // Demo authentication fallback if backend API is offline or returns error
       const demoUser = {
         id: Date.now(),
         email: fullEmail,
         name: displayName,
-        role: 'Production Team',
+        role: role,
       };
-      localStorage.setItem('aszen_token', 'demo_token_' + Date.now());
-      localStorage.setItem('aszen_user', JSON.stringify(demoUser));
+      const demoToken = 'demo_token_' + Date.now();
+      sessionStorage.setItem('aszen_token', demoToken);
+      sessionStorage.setItem('aszen_user', JSON.stringify(demoUser));
       setUser(demoUser);
       closeLogin();
       return { user: demoUser };
@@ -80,8 +122,8 @@ export function AuthProvider({ children }) {
   };
 
   const logout = () => {
-    localStorage.removeItem('aszen_token');
-    localStorage.removeItem('aszen_user');
+    sessionStorage.removeItem('aszen_token');
+    sessionStorage.removeItem('aszen_user');
     setUser(null);
   };
 

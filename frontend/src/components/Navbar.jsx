@@ -147,29 +147,25 @@ export default function Navbar() {
             <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="w-4 h-4 text-cyan-400" />
           </motion.button>
 
-          {/* Dashboard link hidden for public release */}
-          {/* <Link
-            to="/dashboard"
-            className="flex h-9 items-center gap-1.5 px-3.5 rounded-full bg-gradient-to-r from-blue-600/20 to-indigo-600/20 hover:from-blue-600/30 hover:to-indigo-600/30 text-cyan-400 border border-cyan-500/30 text-xs font-bold transition-all shadow-sm"
-          >
-            <Icon name="grid" className="w-3.5 h-3.5" /> Dashboard
-          </Link> */}
           {user ? (
             <div className="flex items-center gap-2">
-              <div className="flex items-center gap-2 pl-2 pr-3 py-1 rounded-full bg-slate-500/10 border border-line text-xs font-semibold text-ink">
-                <span className="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] shadow-xs">
-                  {(user.name || user.email || 'U').charAt(0).toUpperCase()}
-                </span>
-                <span>{user.name || user.email?.split('.')[0] || 'User'}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={logout}>Logout</Button>
+              <Button size="sm" variant="primary" onClick={() => navigate('/dashboard')}>
+                Dashboard ({user.name})
+              </Button>
+              <Button variant="ghost" size="sm" onClick={logout}>
+                Logout
+              </Button>
             </div>
           ) : (
-            <Button variant="ghost" size="sm" onClick={openLogin}>Login</Button>
+            <div className="flex items-center gap-2">
+              <Button variant="ghost" size="sm" onClick={openLogin}>
+                Login
+              </Button>
+              <Button size="sm" variant="primary" onClick={() => navigate('/contact')}>
+                Get Started
+              </Button>
+            </div>
           )}
-          <Button size="sm" variant="primary" onClick={() => navigate('/contact')}>
-            Get Started
-          </Button>
         </div>
 
         {/* Mobile controls */}
@@ -255,6 +251,13 @@ export default function Navbar() {
               ))}
 
               <div className="mt-6 flex flex-col gap-3 px-1">
+                <Link
+                  to="/dashboard"
+                  onClick={() => setMobile(false)}
+                  className="flex h-10 items-center justify-center gap-2 rounded-2xl bg-indigo-600/20 text-cyan-400 border border-indigo-500/30 text-sm font-bold transition-all"
+                >
+                  <Icon name="grid" className="w-4 h-4" /> Dashboard
+                </Link>
                 {user ? (
                   <Button variant="outline" onClick={() => { logout(); setMobile(false); }}>Logout</Button>
                 ) : (

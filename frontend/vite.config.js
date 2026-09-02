@@ -19,7 +19,7 @@ export default defineConfig({
   server: {
     port: 5173,
     watch: {
-      ignored: ['**/*.crdownload', '**/*.tmp', '**/Unconfirmed*'],
+      ignored: ['**/*.crdownload', '**/*.tmp', '**/Unconfirmed*', '**/*.zip'],
     },
     proxy: {
       '/api': {

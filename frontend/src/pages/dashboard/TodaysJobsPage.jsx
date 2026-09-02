@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
+import EditJobModal from '../../components/dashboard/EditJobModal';
 import {
   FiPlus,
   FiSearch,
@@ -11,12 +13,30 @@ import {
 } from 'react-icons/fi';
 
 export default function TodaysJobsPage() {
-  const { jobs, setIsCreateModalOpen, setTimerModalState, setClientModalState, setAssignModalState, deleteJob } = useJobs();
+  const navigate = useNavigate();
+  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob } = useJobs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
   const [filterStatus, setFilterStatus] = useState('ALL');
   const [currentPage, setCurrentPage] = useState(1);
+  const [editModalState, setEditModalState] = useState(null);
+
+  // Helper to format working time below stage name/pill
+  const getStageWorkingTime = (stageObj) => {
+    if (!stageObj || !stageObj.startTime) return null;
+    const start = new Date(stageObj.startTime).getTime();
+    const end = stageObj.endTime ? new Date(stageObj.endTime).getTime() : Date.now();
+    const gross = Math.floor((end - start) / 1000);
+    const net = Math.max(0, gross - (stageObj.pausedDurationSeconds || 0));
+
+    const hrs = Math.floor(net / 3600);
+    const mins = Math.floor((net % 3600) / 60);
+    const secs = net % 60;
+    if (hrs > 0) return `${hrs}h ${mins}m`;
+    if (mins > 0) return `${mins}m ${secs}s`;
+    return `${secs}s`;
+  };
 
   // Filter jobs based on search term & status
   const filteredJobs = jobs.filter((job) => {
@@ -27,11 +47,26 @@ export default function TodaysJobsPage() {
 
     if (!matchesSearch) return false;
 
-    if (filterStatus === 'QC_PENDING') {
-      return job.stages.qc?.status === 'Pending' || job.stages.qc?.status === 'In-Progress';
+    if (filterStatus === 'BLENDING') {
+      return job.stages.blending?.assignee && job.stages.blending?.status !== 'Complete';
     }
-    if (filterStatus === 'PATH_PENDING') {
-      return job.stages.path1?.status !== 'Complete' || job.stages.path2?.status !== 'Complete';
+    if (filterStatus === 'LC') {
+      return job.stages.lc?.assignee && job.stages.lc?.status !== 'Complete';
+    }
+    if (filterStatus === 'PATH') {
+      return (
+        (job.stages.path1?.assignee && job.stages.path1?.status !== 'Complete') ||
+        (job.stages.path2?.assignee && job.stages.path2?.status !== 'Complete')
+      );
+    }
+    if (filterStatus === 'EDITING') {
+      return (
+        (job.stages.editor1?.assignee && job.stages.editor1?.status !== 'Complete') ||
+        (job.stages.editor2?.assignee && job.stages.editor2?.status !== 'Complete')
+      );
+    }
+    if (filterStatus === 'QC') {
+      return job.stages.fc?.assignee && job.stages.fc?.status !== 'Complete';
     }
     if (filterStatus === 'COMPLETE') {
       return Object.values(job.stages).every((s) => s.status === 'Complete' || !s.assignee);
@@ -42,13 +77,19 @@ export default function TodaysJobsPage() {
   const totalPages = Math.ceil(filteredJobs.length / entriesPerPage) || 1;
   const paginatedJobs = filteredJobs.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
-  // Render clickable Stage Badge
   const renderStageBadge = (jobId, stageKey, stageObj) => {
     if (!stageObj || !stageObj.assignee) {
+      if (!canAssignJob) {
+        return (
+          <span className="px-2 py-1 rounded-md text-[10px] bg-slate-100 text-slate-400 font-medium italic block text-center">
+            Unassigned
+          </span>
+        );
+      }
       return (
         <button
           onClick={() => setAssignModalState({ jobId, stageKey })}
-          className="px-2 py-0.5 rounded-md text-[10px] bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200 font-medium flex items-center gap-1 transition-colors"
+          className="px-2 py-1 rounded-md text-[10px] bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200 font-medium flex items-center justify-center gap-1 transition-colors mx-auto"
         >
           <FiUserPlus className="w-3 h-3" /> Assign
         </button>
@@ -56,32 +97,30 @@ export default function TodaysJobsPage() {
     }
 
     const { assignee, status } = stageObj;
+    const isTimeTrackedStage = stageKey === 'path1' || stageKey === 'path2' || stageKey === 'editor1' || stageKey === 'editor2';
+    const workingTimeStr = isTimeTrackedStage ? getStageWorkingTime(stageObj) : null;
 
-    const badgeStyles = {
-      Pending: 'bg-rose-50 text-rose-700 border-rose-200 hover:bg-rose-100',
-      'In-Progress': 'bg-amber-50 text-amber-800 border-amber-300 hover:bg-amber-100 font-bold',
-      Paused: 'bg-purple-50 text-purple-700 border-purple-200 hover:bg-purple-100',
-      Complete: 'bg-emerald-50 text-emerald-700 border-emerald-200 hover:bg-emerald-100',
+    const pillStyles = {
+      Pending: 'bg-[#FF4D5A] text-white',
+      'In-Progress': 'bg-[#834BFF] text-white',
+      Paused: 'bg-purple-600 text-white',
+      Complete: 'bg-[#00CBB8] text-white',
     };
 
     return (
-      <div className="flex flex-col items-start gap-0.5">
-        <button
-          onClick={() => setTimerModalState({ jobId, stageKey })}
-          className={`px-2 py-0.5 rounded-md text-[11px] font-semibold border transition-all flex items-center gap-1 ${
-            badgeStyles[status] || 'bg-slate-100 text-slate-600'
-          }`}
-          title={`Click to open timer for ${assignee}`}
-        >
-          <span>{assignee}</span>
-          <span className="opacity-70 text-[9px] uppercase font-mono">({status})</span>
-        </button>
+      <div className="flex flex-col items-center justify-center text-center gap-1 py-1">
+        <div className="font-semibold text-slate-900 text-xs">
+          {assignee}
+        </div>
 
         <button
-          onClick={() => setAssignModalState({ jobId, stageKey })}
-          className="text-[9px] text-slate-400 hover:text-slate-600 underline font-mono"
+          onClick={() => setTimerModalState({ jobId, stageKey })}
+          className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide transition-all hover:scale-105 cursor-pointer ${
+            pillStyles[status] || 'bg-slate-200 text-slate-700'
+          }`}
+          title={`Click to view details for ${assignee}`}
         >
-          Reassign
+          {status}
         </button>
       </div>
     );
@@ -96,12 +135,12 @@ export default function TodaysJobsPage() {
             Todays Jobs <FiRefreshCw className="w-4 h-4 text-indigo-600 cursor-pointer hover:rotate-180 transition-transform" />
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
-            Multi-stage production sheet table with Path 1, Path 2, Editors, QC, and FC active timers
+            Multi-stage production sheet table with Blending, Path 1, Path 2, Editors, LC, and FC active timers
           </p>
         </div>
 
         <button
-          onClick={() => setIsCreateModalOpen(true)}
+          onClick={() => navigate('/dashboard/create-job')}
           className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all hover:scale-[1.02]"
         >
           <FiPlus className="w-4 h-4" /> Create Job
@@ -124,9 +163,9 @@ export default function TodaysJobsPage() {
             />
           </div>
 
-          {/* Status Pills */}
+          {/* Status Filter Pills */}
           <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'PATH_PENDING', 'QC_PENDING', 'COMPLETE'].map((st) => (
+            {['ALL', 'BLENDING', 'LC', 'PATH', 'EDITING', 'QC', 'COMPLETE'].map((st) => (
               <button
                 key={st}
                 onClick={() => setFilterStatus(st)}
@@ -136,7 +175,7 @@ export default function TodaysJobsPage() {
                     : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                 }`}
               >
-                {st.replace('_', ' ')}
+                {st}
               </button>
             ))}
           </div>
@@ -157,7 +196,7 @@ export default function TodaysJobsPage() {
           </div>
         </div>
 
-        {/* Jobs Data Table with Dark Accent Header Row */}
+        {/* Jobs Data Table (Req 1 Order: Blending, Path 1, Path 2, Editor 1, Editor 2, LC, FC) */}
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
@@ -166,13 +205,13 @@ export default function TodaysJobsPage() {
                 <th className="py-3 px-3">Client</th>
                 <th className="py-3 px-3 min-w-[140px]">Folder Name</th>
                 <th className="py-3 px-3 text-center">Output</th>
-                <th className="py-3 px-3 text-center min-w-[110px]">Client Turnaround</th>
-                <th className="py-3 px-3">Path 1</th>
-                <th className="py-3 px-3">Path 2</th>
-                <th className="py-3 px-3">Editor 1</th>
-                <th className="py-3 px-3">Editor 2</th>
-                <th className="py-3 px-3">QC</th>
-                <th className="py-3 px-3">FC</th>
+                <th className="py-3 px-3 text-center">Blending</th>
+                <th className="py-3 px-3 text-center">Path 1</th>
+                <th className="py-3 px-3 text-center">Path 2</th>
+                <th className="py-3 px-3 text-center">Editor 1</th>
+                <th className="py-3 px-3 text-center">Editor 2</th>
+                <th className="py-3 px-3 text-center">LC</th>
+                <th className="py-3 px-3 text-center">FC</th>
                 <th className="py-3 px-3 text-center">Actions</th>
               </tr>
             </thead>
@@ -198,38 +237,40 @@ export default function TodaysJobsPage() {
                     <td className="py-3 px-3 text-center font-mono font-bold text-slate-900">
                       {job.outputTarget}
                     </td>
-                    <td className="py-3 px-3 text-center">
-                      <button
-                        onClick={() => setClientModalState({ jobId: job.id })}
-                        className="px-2 py-1 rounded-md text-[10px] bg-slate-100 hover:bg-slate-200 text-slate-700 border border-slate-200 font-mono flex items-center justify-center gap-1 mx-auto"
-                        title="Click to view/edit client turnaround times"
-                      >
-                        <FiClock className="w-3 h-3 text-indigo-600" />
-                        {job.clientFinishTime ? 'Completed' : 'Set Times'}
-                      </button>
-                    </td>
+                    <td className="py-3 px-3">{renderStageBadge(job.id, 'blending', job.stages.blending)}</td>
                     <td className="py-3 px-3">{renderStageBadge(job.id, 'path1', job.stages.path1)}</td>
                     <td className="py-3 px-3">{renderStageBadge(job.id, 'path2', job.stages.path2)}</td>
                     <td className="py-3 px-3">{renderStageBadge(job.id, 'editor1', job.stages.editor1)}</td>
                     <td className="py-3 px-3">{renderStageBadge(job.id, 'editor2', job.stages.editor2)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'qc', job.stages.qc)}</td>
+                    <td className="py-3 px-3">{renderStageBadge(job.id, 'lc', job.stages.lc)}</td>
                     <td className="py-3 px-3">{renderStageBadge(job.id, 'fc', job.stages.fc)}</td>
                     <td className="py-3 px-3 text-center">
                       <div className="flex items-center justify-center gap-1.5">
+                        {canAssignJob && (
+                          <button
+                            onClick={() => setEditModalState({ jobId: job.id })}
+                            className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-100"
+                            title="Modify / Edit Job Specifications"
+                          >
+                            <FiEdit2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => setClientModalState({ jobId: job.id })}
-                          className="p-1 rounded-md bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
-                          title="Edit Turnaround"
+                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                          title="View Turnaround Timestamps"
                         >
-                          <FiEdit2 className="w-3.5 h-3.5" />
+                          <FiClock className="w-3.5 h-3.5" />
                         </button>
-                        <button
-                          onClick={() => deleteJob(job.id)}
-                          className="p-1 rounded-md bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
-                          title="Delete Job"
-                        >
-                          <FiTrash2 className="w-3.5 h-3.5" />
-                        </button>
+                        {canAssignJob && (
+                          <button
+                            onClick={() => deleteJob(job.id)}
+                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors border border-rose-100"
+                            title="Delete Job"
+                          >
+                            <FiTrash2 className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -275,6 +316,9 @@ export default function TodaysJobsPage() {
           </div>
         </div>
       </div>
+
+      {/* Edit Job Modal */}
+      <EditJobModal editModalState={editModalState} setEditModalState={setEditModalState} />
     </div>
   );
 }

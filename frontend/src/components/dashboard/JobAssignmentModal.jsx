@@ -1,20 +1,35 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { FiUserCheck, FiX, FiCheck } from 'react-icons/fi';
 
 export default function JobAssignmentModal() {
-  const { assignModalState, setAssignModalState, jobs, editors, assignStage } = useJobs();
+  const { assignModalState, setAssignModalState, jobs, editors, assignStage, canAssignJob } = useJobs();
 
-  if (!assignModalState) return null;
-
-  const { jobId, stageKey } = assignModalState;
+  const jobId = assignModalState?.jobId;
+  const stageKey = assignModalState?.stageKey;
   const job = jobs.find((j) => j.id === jobId);
-  if (!job) return null;
+  const stage = job?.stages ? job.stages[stageKey] : null;
 
-  const stage = job.stages[stageKey];
-  if (!stage) return null;
+  const [selectedAssignee, setSelectedAssignee] = useState('');
 
-  const [selectedAssignee, setSelectedAssignee] = useState(stage.assignee || editors[0]?.name || '');
+  useEffect(() => {
+    if (stage) {
+      setSelectedAssignee(stage.assignee || editors[0]?.name || '');
+    }
+  }, [stage, editors]);
+
+  useEffect(() => {
+    if (assignModalState) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [assignModalState]);
+
+  if (!assignModalState || !job || !stage || !canAssignJob) return null;
 
   const stageLabels = {
     path1: 'Path 1 (Prep & Masking)',
@@ -32,9 +47,10 @@ export default function JobAssignmentModal() {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/40 backdrop-blur-xs p-4 animate-fadeIn">
-      <div className="relative w-full max-w-md bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl overflow-hidden">
+      <div className="relative w-full max-w-md bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl my-auto max-h-[90vh] overflow-y-auto overscroll-contain">
         {/* Close Button */}
         <button
+          type="button"
           onClick={() => setAssignModalState(null)}
           className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
         >

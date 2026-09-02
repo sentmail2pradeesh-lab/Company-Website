@@ -1,79 +1,76 @@
-import { Link } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
-import { FiExternalLink, FiFolder, FiCheckCircle } from 'react-icons/fi';
+import { FiRefreshCw } from 'react-icons/fi';
 
 export default function TodaysJobsSummary() {
   const { jobs } = useJobs();
 
   return (
-    <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm flex flex-col h-full overflow-hidden">
-      {/* Sleek Dark Header Accent */}
-      <div className="bg-slate-900 text-white p-4.5 flex items-center justify-between">
-        <div>
-          <h3 className="text-sm font-bold">
-            Today's Jobs Overview
-          </h3>
-          <p className="text-[11px] text-slate-400 mt-0.5">
-            Quick glance summary of client output & QC status
-          </p>
-        </div>
-
-        <Link
-          to="/dashboard/jobs"
-          className="text-xs font-semibold text-cyan-400 hover:text-cyan-300 flex items-center gap-1 hover:underline"
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-6 flex flex-col h-full min-h-[480px]">
+      {/* Top Header Row matching screenshot */}
+      <div className="flex items-center justify-between pb-6">
+        <h2 className="text-lg font-bold text-slate-900 font-sans">
+          Today jobs
+        </h2>
+        <button
+          onClick={() => window.location.reload()}
+          className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+          title="Refresh jobs"
         >
-          View All <FiExternalLink className="w-3 h-3" />
-        </Link>
+          <FiRefreshCw className="w-4 h-4" />
+        </button>
       </div>
 
-      {/* Table */}
-      <div className="overflow-x-auto flex-1 p-4">
-        <table className="w-full text-left text-xs">
+      {/* Table Container */}
+      <div className="overflow-x-auto flex-1">
+        <table className="w-full text-left text-xs border border-slate-100">
           <thead>
-            <tr className="border-b border-slate-100 text-slate-400 uppercase tracking-wider font-semibold">
-              <th className="pb-2.5 px-2">ID #</th>
-              <th className="pb-2.5 px-2">Client</th>
-              <th className="pb-2.5 px-2">Folder</th>
-              <th className="pb-2.5 px-2">Output</th>
-              <th className="pb-2.5 px-2 text-right">QC Status</th>
+            <tr className="border-b border-slate-200 text-slate-700 font-bold text-xs bg-slate-50/50">
+              <th className="py-3 px-4 border-r border-slate-100 w-24">ID #</th>
+              <th className="py-3 px-4 border-r border-slate-100">Client</th>
+              <th className="py-3 px-4 border-r border-slate-100">Folder</th>
+              <th className="py-3 px-4 border-r border-slate-100">Output</th>
+              <th className="py-3 px-4">QC Pending</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-            {jobs.slice(0, 7).map((job) => {
-              const qcPendingCount = job.stages.qc.status === 'Complete' ? 0 : 1;
-              return (
-                <tr key={job.id} className="hover:bg-slate-50 transition-colors">
-                  <td className="py-2.5 px-2 font-mono font-bold text-indigo-600">
-                    #{job.id}
-                  </td>
-                  <td className="py-2.5 px-2 text-slate-900 font-bold">
-                    {job.client}
-                  </td>
-                  <td className="py-2.5 px-2 text-slate-600">
-                    <span className="inline-flex items-center gap-1">
-                      <FiFolder className="w-3 h-3 text-amber-500" /> {job.folderCount}
-                    </span>
-                  </td>
-                  <td className="py-2.5 px-2 text-slate-900 font-mono font-bold">
-                    {job.outputTarget}
-                  </td>
-                  <td className="py-2.5 px-2 text-right">
-                    {qcPendingCount > 0 ? (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] bg-rose-50 text-rose-700 border border-rose-200 font-medium">
-                        {qcPendingCount} Pending
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded-md text-[10px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-medium inline-flex items-center gap-1">
-                        <FiCheckCircle className="w-3 h-3" /> QC Done
-                      </span>
-                    )}
-                  </td>
-                </tr>
-              );
-            })}
+            {jobs.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
+                  No jobs logged for today yet.
+                </td>
+              </tr>
+            ) : (
+              jobs.slice(0, 10).map((job) => {
+                const qcPendingCount = (job.stages.fc?.status === 'Complete' || job.stages.qc?.status === 'Complete') ? 0 : 1;
+                return (
+                  <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-3 px-4 font-mono font-bold text-slate-800 border-r border-slate-100">
+                      #{job.id}
+                    </td>
+                    <td className="py-3 px-4 text-slate-900 font-semibold border-r border-slate-100">
+                      {job.client}
+                    </td>
+                    <td className="py-3 px-4 text-slate-700 border-r border-slate-100">
+                      {job.name || job.folderCount}
+                    </td>
+                    <td className="py-3 px-4 text-slate-900 font-mono font-semibold border-r border-slate-100">
+                      {job.outputTarget}
+                    </td>
+                    <td className="py-3 px-4 font-mono">
+                      {qcPendingCount > 0 ? (
+                        <span className="text-rose-600 font-bold">{qcPendingCount}</span>
+                      ) : (
+                        <span className="text-emerald-600 font-bold">0</span>
+                      )}
+                    </td>
+                  </tr>
+                );
+              })
+            )}
           </tbody>
         </table>
       </div>
     </div>
   );
 }
+

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '../context/AuthContext';
 import Input from './Input';
@@ -6,6 +7,7 @@ import Button from './ui/Button';
 import Icon from './ui/Icon';
 
 export default function LoginPopup() {
+  const navigate = useNavigate();
   const { isLoginOpen, closeLogin, login, forgotPassword } = useAuth();
   const [view, setView] = useState('login');
   const [usernameInput, setUsernameInput] = useState('');
@@ -40,6 +42,7 @@ export default function LoginPopup() {
     try {
       await login(usernameInput, password);
       resetForm();
+      navigate('/dashboard');
     } catch (err) {
       setMessage({
         type: 'error',
@@ -72,26 +75,26 @@ export default function LoginPopup() {
   return (
     <AnimatePresence>
       {isLoginOpen && (
-        <>
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto">
           <motion.div
-            className="fixed inset-0 z-[60] bg-slate-900/60 backdrop-blur-xs"
+            className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onClick={handleClose}
           />
           <motion.div
-            className="fixed top-1/2 left-1/2 z-[70] w-[92vw] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-3xl bg-white p-7 md:p-8 shadow-2xl border border-slate-200"
-            initial={{ opacity: 0, scale: 0.95, y: '-50%' }}
-            animate={{ opacity: 1, scale: 1, y: '-50%' }}
-            exit={{ opacity: 0, scale: 0.95, y: '-50%' }}
+            className="relative z-10 w-full max-w-md my-auto rounded-3xl bg-white p-7 md:p-8 shadow-2xl border border-slate-200"
+            initial={{ opacity: 0, scale: 0.95, y: 10 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             <div className="flex items-start justify-between mb-6">
               <div>
-                <h2 className="text-2xl font-bold font-display text-slate-900">ASZEN Login</h2>
+                <h2 className="text-2xl font-bold font-display text-slate-900">Sign In</h2>
                 <p className="text-xs text-slate-500 mt-1 font-medium">
-                  Enter your name to sign in (e.g. <span className="font-semibold text-indigo-600">lessy</span>)
+                  Enter your credentials to access your account
                 </p>
               </div>
               <button
@@ -120,19 +123,14 @@ export default function LoginPopup() {
               <form onSubmit={handleLogin} className="space-y-4">
                 <div>
                   <Input
-                    label="Username / Name"
-                    type="text"
+                    label="Email Address"
+                    type="email"
                     name="username"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
-                    placeholder="e.g. lessy, shwetha, karan"
+                    placeholder="Enter your email"
                     required
                   />
-                  {formattedPreview && (
-                    <div className="mt-1.5 text-[11px] text-indigo-600 font-mono flex items-center gap-1 font-semibold">
-                      <span>➜</span> Authentic Email: <span className="underline">{formattedPreview}</span>
-                    </div>
-                  )}
                 </div>
 
                 <Input
@@ -167,24 +165,19 @@ export default function LoginPopup() {
               <div>
                 <h3 className="font-bold text-slate-900 text-lg mb-1 font-display">Forgot password?</h3>
                 <p className="text-xs text-slate-500 mb-4">
-                  Enter your name or email to receive a password reset link.
+                  Enter your email address to receive a password reset link.
                 </p>
                 <form onSubmit={handleForgot} className="space-y-4">
                   <div>
                     <Input
-                      label="Username / Name"
-                      type="text"
+                      label="Email Address"
+                      type="email"
                       name="username"
                       value={usernameInput}
                       onChange={(e) => setUsernameInput(e.target.value)}
-                      placeholder="e.g. lessy, shwetha"
+                      placeholder="Enter your email"
                       required
                     />
-                    {formattedPreview && (
-                      <div className="mt-1.5 text-[11px] text-indigo-600 font-mono">
-                        Reset link will send to: <span className="font-semibold">{formattedPreview}</span>
-                      </div>
-                    )}
                   </div>
                   <Button type="submit" disabled={loading} variant="primary" className="w-full mt-2 py-2.5">
                     {loading ? 'Sending…' : 'Send Reset Link'}
@@ -201,7 +194,7 @@ export default function LoginPopup() {
               </div>
             )}
           </motion.div>
-        </>
+        </div>
       )}
     </AnimatePresence>
   );
