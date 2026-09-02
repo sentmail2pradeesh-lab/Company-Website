@@ -41,26 +41,28 @@ def login():
 
     token = create_token(user.id)
 
-    # Start or retrieve active work session for today
-    today_str = datetime.utcnow().strftime('%Y-%m-%d')
-    active_session = WorkSession.query.filter_by(
-        user_email=user.email,
-        date=today_str,
-        status='Active'
-    ).first()
-
-    if not active_session:
-        active_session = WorkSession(
-            user_id=user.id,
+    # Start or retrieve active work session for today (Exclude master Admin arun@aszen.com)
+    active_session = None
+    if user.email.lower() != 'arun@aszen.com':
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        active_session = WorkSession.query.filter_by(
             user_email=user.email,
-            user_name=user.name or user.email.split('@')[0].capitalize(),
-            user_role=user.role or 'employee',
             date=today_str,
-            login_time=datetime.utcnow(),
             status='Active'
-        )
-        db.session.add(active_session)
-        db.session.commit()
+        ).first()
+
+        if not active_session:
+            active_session = WorkSession(
+                user_id=user.id,
+                user_email=user.email,
+                user_name=user.name or user.email.split('@')[0].capitalize(),
+                user_role=user.role or 'employee',
+                date=today_str,
+                login_time=datetime.utcnow(),
+                status='Active'
+            )
+            db.session.add(active_session)
+            db.session.commit()
 
     return jsonify({
         'message': 'Login successful',
@@ -68,6 +70,7 @@ def login():
         'user': user.to_dict(),
         'work_session': active_session.to_dict() if active_session else None
     })
+
 
 
 @auth_bp.route('/logout', methods=['POST'])
@@ -132,3 +135,70 @@ def reset_password():
     db.session.commit()
 
     return jsonify({'message': 'Password reset successful'})
+
+
+# Admin User Management Routes
+@auth_bp.route('/users', methods=['GET'])
+@token_required
+def get_users():
+    user = request.current_user
+    if user.role != 'admin':
+        return jsonify({'message': 'Permission denied'}), 403
+
+    users = User.query.order_by(User.created_at.desc()).all()
+    return jsonify({'users': [u.to_dict() for u in users]})
+
+
+@auth_bp.route('/users', methods=['POST'])
+@token_required
+def create_user():
+    current = request.current_user
+    if current.role != 'admin':
+        return jsonify({'message': 'Permission denied. Only Admin can create users.'}), 403
+
+    data = request.get_json() or {}
+    email = (data.get('email') or '').strip().lower()
+    name = (data.get('name') or '').strip()
+    designation = (data.get('designation') or 'Editor').strip()
+    password = data.get('password') or 'Aszen@123'
+
+    if not email or not name:
+        return jsonify({'message': 'Name and Email are required.'}), 400
+
+    if User.query.filter_by(email=email).first():
+        return jsonify({'message': 'User with this email already exists.'}), 409
+
+    role = 'manager' if designation.lower() == 'manager' else 'employee'
+
+    new_user = User(
+        email=email,
+        name=name,
+        role=role,
+        designation=designation
+    )
+    new_user.set_password(password)
+    db.session.add(new_user)
+    db.session.commit()
+
+    return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
+
+
+@auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
+@token_required
+def delete_user(user_id):
+    current = request.current_user
+    if current.role != 'admin':
+        return jsonify({'message': 'Permission denied. Only Admin can delete users.'}), 403
+
+    target = User.query.get(user_id)
+    if not target:
+        return jsonify({'message': 'User not found'}), 404
+
+    if target.role == 'admin':
+        return jsonify({'message': 'Cannot delete master Admin account.'}), 400
+
+    db.session.delete(target)
+    db.session.commit()
+
+    return jsonify({'message': 'User deleted successfully'})
+

@@ -42,8 +42,10 @@ export default function DashboardLayout() {
     return () => clearInterval(interval);
   }, [activeSession]);
 
-  const handleLogout = () => {
-    logout();
+  const handleLogout = async () => {
+    try {
+      await logout();
+    } catch (e) {}
     window.location.href = '/';
   };
 

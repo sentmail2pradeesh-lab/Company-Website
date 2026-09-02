@@ -43,34 +43,35 @@ def create_app():
                     conn.commit()
                 except Exception:
                     pass
+                try:
+                    conn.execute(text("ALTER TABLE users ADD COLUMN designation VARCHAR(100) DEFAULT 'Editor'"))
+                    conn.commit()
+                except Exception:
+                    pass
         except Exception as e:
             print("DB Migration notice:", e)
 
         seed_users()
         seed_blogs()
-        seed_work_sessions()
 
     return app
 
 
 def seed_users():
-    test_users = [
-        {"email": "arun@aszen.com", "name": "Arun", "role": "admin", "pwd": "Aszen@123"},
-        {"email": "lessy@aszen.com", "name": "Lessy", "role": "manager", "pwd": "Aszen@123"},
-        {"email": "Karan@aszen.com", "name": "Karan", "role": "employee", "pwd": "Aszen@123"},
-        {"email": "lalithaa@aszen.com", "name": "Lalithaa", "role": "employee", "pwd": "Aszen@123"},
-    ]
-    for data in test_users:
-        user = User.query.filter_by(email=data["email"]).first()
-        if not user:
-            user = User(email=data["email"], name=data["name"], role=data["role"])
-            user.set_password(data["pwd"])
-            db.session.add(user)
-        else:
-            user.name = data["name"]
-            user.role = data["role"]
-            user.set_password(data["pwd"])
+    # Only master Admin account is pre-seeded. All other users created dynamically by Admin.
+    admin_email = "arun@aszen.com"
+    admin = User.query.filter_by(email=admin_email).first()
+    if not admin:
+        admin = User(email=admin_email, name="Arun", role="admin", designation="Admin / System Manager")
+        admin.set_password("Aszen@123")
+        db.session.add(admin)
+    else:
+        admin.name = "Arun"
+        admin.role = "admin"
+        admin.designation = "Admin / System Manager"
+        admin.set_password("Aszen@123")
     db.session.commit()
+
 
 
 def seed_blogs():

@@ -11,6 +11,11 @@ work_hours_bp = Blueprint('work_hours', __name__)
 @token_required
 def session_login():
     user = request.current_user
+
+    # Master Admin arun@aszen.com does not record work sessions
+    if user.email.lower() == 'arun@aszen.com':
+        return jsonify({'message': 'Master Admin session exempt', 'session': None})
+
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
 
     # Check if there is an active work session for user today
@@ -40,6 +45,8 @@ def session_login():
 @token_required
 def session_logout():
     user = request.current_user
+    if user.email.lower() == 'arun@aszen.com':
+        return jsonify({'message': 'Master Admin session exempt'})
 
     # Find active session or most recent un-ended session today/recently
     active_session = WorkSession.query.filter_by(
@@ -95,7 +102,8 @@ def get_all_sessions():
     if user.role not in ['admin', 'manager']:
         return jsonify({'message': 'Permission denied. Only Manager or Admin can access production working hour sheets.'}), 403
 
-    query = WorkSession.query
+    # Always exclude master admin arun@aszen.com from production sheet logs
+    query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com')
 
     date_param = request.args.get('date')
     if date_param:
@@ -111,6 +119,7 @@ def get_all_sessions():
 
     sessions = query.order_by(WorkSession.login_time.desc()).all()
     return jsonify({'sessions': [s.to_dict() for s in sessions]})
+
 
 
 @work_hours_bp.route('/manual', methods=['POST'])

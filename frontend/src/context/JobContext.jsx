@@ -1,4 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import api from '../api/axios';
 import { INITIAL_EDITORS, INITIAL_CLIENTS, INITIAL_JOBS, INITIAL_PRODUCTION_SHEETS, INITIAL_WORK_SESSIONS } from '../data/mockJobs';
 import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
@@ -7,15 +8,14 @@ const JobContext = createContext(null);
 
 export function JobProvider({ children }) {
   const { user } = useAuth();
-  const userRole = (user?.role || 'employee').toLowerCase();
 
-  // Clear legacy mock data from local storage if old IDs (e.g. 19723) exist
+  // Clear legacy mock data from local storage if old IDs (e.g. 1001, 19723) exist
   useEffect(() => {
     try {
       const savedJobs = localStorage.getItem('aszen_jobs');
       if (savedJobs) {
         const parsed = JSON.parse(savedJobs);
-        if (parsed.some((j) => ['19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(j.id))) {
+        if (parsed.some((j) => ['1001', '#1001', '19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(j.id))) {
           localStorage.removeItem('aszen_jobs');
           localStorage.removeItem('aszen_prod_sheets');
           setJobs([]);
@@ -26,6 +26,7 @@ export function JobProvider({ children }) {
       console.error(e);
     }
   }, []);
+
 
   // Helper to ensure stage objects are safely structured
   const normalizeJobs = (jobList) => {
@@ -176,19 +177,25 @@ export function JobProvider({ children }) {
   };
 
 
-  // Role Permissions
-  const canCreateJob = userRole === 'admin' || userRole === 'manager';
-  const canAssignJob = userRole === 'admin' || userRole === 'manager';
+  const userRole = (user?.role || 'employee').toLowerCase();
+  const userDesignation = user?.designation || 'Editor';
+
+  // Role & Designation Permissions Matrix
+  const isSeniorEditor = userDesignation.toLowerCase() === 'senior editor';
+  const canCreateJob = userRole === 'admin' || userRole === 'manager' || isSeniorEditor;
+  const canAssignJob = userRole === 'admin' || userRole === 'manager' || isSeniorEditor;
   const canDeleteJob = userRole === 'admin' || userRole === 'manager';
   const canManageClients = userRole === 'admin';
   const canManageEmployees = userRole === 'admin';
+  const canManageWorkHours = userRole === 'admin' || userRole === 'manager';
 
   // Check if current user can update a specific stage
   const canUpdateStage = (assigneeName) => {
-    if (userRole === 'admin' || userRole === 'manager') return true;
+    if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor) return true;
     if (!user?.name || !assigneeName) return false;
     return user.name.toLowerCase() === assigneeName.toLowerCase();
   };
+
 
   // Metric Calculation Helpers
   const stats = {
@@ -562,20 +569,82 @@ export function JobProvider({ children }) {
     updateClientsState(clients.filter((c) => c.id !== clientId));
   };
 
+  // Sync registered users/editors from backend API on mount / user change
+  useEffect(() => {
+    const token = sessionStorage.getItem('aszen_token');
+    if (token) {
+      api
+        .get('/auth/users')
+        .then((res) => {
+          if (Array.isArray(res.data?.users)) {
+            const mapped = res.data.users
+              .filter((u) => u.role !== 'admin')
+              .map((u) => ({
+                id: u.id,
+                name: u.name,
+                email: u.email,
+                role: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
+                designation: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
+              }));
+            setEditors(mapped);
+            localStorage.setItem('aszen_editors', JSON.stringify(mapped));
+          }
+        })
+        .catch(() => {
+          // Offline fallback
+        });
+    }
+  }, [user]);
+
   // Employee Management (Admin)
-  const addEmployee = (empData) => {
+  const addEmployee = async (empData) => {
+    const token = sessionStorage.getItem('aszen_token');
+    try {
+      if (token) {
+        const res = await api.post('/auth/users', {
+          name: empData.name,
+          email: empData.email,
+          designation: empData.designation || empData.role || 'Editor',
+          password: empData.password || 'Aszen@123',
+        });
+        const created = res.data.user;
+        const newEmp = {
+          id: created.id,
+          name: created.name,
+          email: created.email,
+          role: created.designation || created.role,
+          designation: created.designation || created.role,
+        };
+        updateEditorsState([newEmp, ...editors]);
+        return;
+      }
+    } catch (err) {
+      console.error('Add user API error:', err);
+    }
+
+    // Demo fallback
     const newEmp = {
       id: `e-${Date.now().toString().slice(-4)}`,
       name: empData.name || 'New Employee',
-      role: empData.role || 'Editor',
+      role: empData.designation || empData.role || 'Editor',
+      designation: empData.designation || 'Editor',
       email: empData.email || '',
     };
-    updateEditorsState([...editors, newEmp]);
+    updateEditorsState([newEmp, ...editors]);
   };
 
-  const deleteEmployee = (empId) => {
+  const deleteEmployee = async (empId) => {
+    const token = sessionStorage.getItem('aszen_token');
+    try {
+      if (token && typeof empId === 'number') {
+        await api.delete(`/auth/users/${empId}`);
+      }
+    } catch (err) {
+      console.error('Delete user API error:', err);
+    }
     updateEditorsState(editors.filter((e) => e.id !== empId));
   };
+
 
   // Work Session / Attendance Management (Manager & Admin Only)
   const addWorkSession = (sessionData) => {
@@ -642,11 +711,13 @@ export function JobProvider({ children }) {
         workSessions,
         stats,
         userRole,
+        userDesignation,
         canCreateJob,
         canAssignJob,
         canDeleteJob,
         canManageClients,
         canManageEmployees,
+        canManageWorkHours,
         canUpdateStage,
         createJob,
         deleteJob,

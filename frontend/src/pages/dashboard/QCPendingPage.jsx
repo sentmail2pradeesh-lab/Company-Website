@@ -2,7 +2,7 @@ import { useJobs } from '../../context/JobContext';
 import { FiCheckSquare, FiAlertCircle, FiClock, FiCheckCircle } from 'react-icons/fi';
 
 export default function QCPendingPage() {
-  const { jobs, setTimerModalState } = useJobs();
+  const { jobs, setTimerModalState, canUpdateStage } = useJobs();
 
   // QC Pending filter: jobs where QC or FC is in Pending or In-Progress
   const qcJobs = jobs.filter(
@@ -66,12 +66,18 @@ export default function QCPendingPage() {
                 </div>
                 <div className="flex justify-between items-center bg-rose-50 p-2.5 rounded-xl border border-rose-100">
                   <span className="text-rose-800 font-bold">QC ({job.stages.qc?.assignee})</span>
-                  <button
-                    onClick={() => setTimerModalState({ jobId: job.id, stageKey: 'qc' })}
-                    className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] shadow-xs flex items-center gap-1"
-                  >
-                    <FiClock className="w-3 h-3" /> QC Action ({job.stages.qc?.status})
-                  </button>
+                  {canUpdateStage(job.stages.qc?.assignee) ? (
+                    <button
+                      onClick={() => setTimerModalState({ jobId: job.id, stageKey: 'qc' })}
+                      className="px-3 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-semibold text-[11px] shadow-xs flex items-center gap-1"
+                    >
+                      <FiClock className="w-3 h-3" /> QC Action ({job.stages.qc?.status})
+                    </button>
+                  ) : (
+                    <span className="px-3 py-1 rounded-lg bg-rose-100 text-rose-800 font-semibold text-[11px]">
+                      QC ({job.stages.qc?.status})
+                    </span>
+                  )}
                 </div>
               </div>
             </div>

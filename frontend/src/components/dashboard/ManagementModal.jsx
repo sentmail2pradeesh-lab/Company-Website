@@ -18,8 +18,9 @@ export default function ManagementModal() {
 
   // New Employee Form
   const [empName, setEmpName] = useState('');
-  const [empRole, setEmpRole] = useState('Editor');
+  const [empDesignation, setEmpDesignation] = useState('Editor');
   const [empEmail, setEmpEmail] = useState('');
+  const [empPassword, setEmpPassword] = useState('Aszen@123');
 
   // New Client Form
   const [clientCode, setClientCode] = useState('');
@@ -41,12 +42,19 @@ export default function ManagementModal() {
 
   const handleAddEmployee = (e) => {
     e.preventDefault();
-    if (!empName.trim()) return;
-    addEmployee({ name: empName.trim(), role: empRole, email: empEmail.trim() });
+    if (!empName.trim() || !empEmail.trim()) return;
+    addEmployee({
+      name: empName.trim(),
+      email: empEmail.trim(),
+      designation: empDesignation,
+      role: empDesignation === 'Manager' ? 'manager' : 'employee',
+      password: empPassword,
+    });
     setEmpName('');
-    setEmpRole('Editor');
+    setEmpDesignation('Editor');
     setEmpEmail('');
   };
+
 
   const handleAddClient = (e) => {
     e.preventDefault();
@@ -121,15 +129,15 @@ export default function ManagementModal() {
                     required
                   />
                   <select
-                    value={empRole}
-                    onChange={(e) => setEmpRole(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                    value={empDesignation}
+                    onChange={(e) => setEmpDesignation(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 font-semibold"
                   >
-                    <option value="Editor">Editor</option>
-                    <option value="Senior Editor">Senior Editor</option>
-                    <option value="Pather">Pather</option>
+                    <option value="Manager">Manager</option>
+                    <option value="Senior Editor">Senior Editor (Manager Level Access)</option>
                     <option value="QC Lead">QC Lead</option>
-                    <option value="Project Manager">Project Manager</option>
+                    <option value="Pather">Pather</option>
+                    <option value="Editor">Editor</option>
                   </select>
                   <input
                     type="email"
@@ -137,25 +145,44 @@ export default function ManagementModal() {
                     value={empEmail}
                     onChange={(e) => setEmpEmail(e.target.value)}
                     className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                    required
+                  />
+                  <input
+                    type="password"
+                    placeholder="Password (Default: Aszen@123)"
+                    value={empPassword}
+                    onChange={(e) => setEmpPassword(e.target.value)}
+                    className="bg-white border border-slate-200 rounded-lg px-3 py-1.5 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
                   />
                 </div>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 transition-all"
                 >
-                  <FiPlus className="w-4 h-4" /> Add Personnel
+                  <FiPlus className="w-4 h-4" /> Add Employee & Set Permissions
                 </button>
               </form>
 
               {/* Employees List */}
               <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Employees</h3>
+                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Employees & Designations</h3>
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
                   {editors.map((emp) => (
                     <div key={emp.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs">
                       <div>
-                        <div className="font-bold text-slate-900">{emp.name}</div>
-                        <div className="text-[11px] text-slate-500">{emp.role} • {emp.email || 'No Email'}</div>
+                        <div className="font-bold text-slate-900 flex items-center gap-2">
+                          <span>{emp.name}</span>
+                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                            emp.designation === 'Manager' || emp.role === 'manager'
+                              ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                              : emp.designation === 'Senior Editor'
+                              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                              : 'bg-slate-100 text-slate-700 border border-slate-200'
+                          }`}>
+                            {emp.designation || emp.role || 'Editor'}
+                          </span>
+                        </div>
+                        <div className="text-[11px] text-slate-500">{emp.email || 'No Email'}</div>
                       </div>
                       <button
                         onClick={() => deleteEmployee(emp.id)}
@@ -168,6 +195,7 @@ export default function ManagementModal() {
                   ))}
                 </div>
               </div>
+
             </div>
           ) : (
             <div>

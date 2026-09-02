@@ -14,11 +14,12 @@ import {
 
 export default function TodaysJobsPage() {
   const navigate = useNavigate();
-  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob } = useJobs();
+  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob, canUpdateStage } = useJobs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
-  const [filterStatus, setFilterStatus] = useState('ALL');
+  const [filterStatus, setFilterStatus] = useState('ALL'); // 'ALL' | 'PENDING' | 'IN_PROGRESS' | 'COMPLETE'
+  const [filterStage, setFilterStage] = useState('ALL'); // 'ALL' | 'blending' | 'path1' | 'path2' | 'editor1' | 'editor2' | 'lc' | 'fc'
   const [currentPage, setCurrentPage] = useState(1);
   const [editModalState, setEditModalState] = useState(null);
 
@@ -38,7 +39,7 @@ export default function TodaysJobsPage() {
     return `${secs}s`;
   };
 
-  // Filter jobs based on search term & status
+  // Filter jobs based on search term, status filter (All, Pending, In-Progress, Complete), and stage dropdown (Blending -> FC)
   const filteredJobs = jobs.filter((job) => {
     const matchesSearch =
       job.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -47,30 +48,39 @@ export default function TodaysJobsPage() {
 
     if (!matchesSearch) return false;
 
-    if (filterStatus === 'BLENDING') {
-      return job.stages.blending?.assignee && job.stages.blending?.status !== 'Complete';
+    const checkStageMatchesStatus = (stageObj, targetStatus) => {
+      if (!stageObj || !stageObj.assignee) return false;
+      if (targetStatus === 'PENDING') return stageObj.status === 'Pending';
+      if (targetStatus === 'IN_PROGRESS') return stageObj.status === 'In-Progress' || stageObj.status === 'Paused';
+      if (targetStatus === 'COMPLETE') return stageObj.status === 'Complete';
+      return true;
+    };
+
+    // 1. If a specific stage is selected from dropdown (e.g. 'blending', 'path1', etc.)
+    if (filterStage !== 'ALL') {
+      const targetStageObj = job.stages[filterStage];
+      if (!targetStageObj || !targetStageObj.assignee) return false;
+      if (filterStatus === 'ALL') return true;
+      return checkStageMatchesStatus(targetStageObj, filterStatus);
     }
-    if (filterStatus === 'LC') {
-      return job.stages.lc?.assignee && job.stages.lc?.status !== 'Complete';
+
+    // 2. If 'All Stages' selected
+    if (filterStatus === 'ALL') return true;
+
+    if (filterStatus === 'PENDING') {
+      return Object.values(job.stages).some((s) => s && s.assignee && s.status === 'Pending');
     }
-    if (filterStatus === 'PATH') {
-      return (
-        (job.stages.path1?.assignee && job.stages.path1?.status !== 'Complete') ||
-        (job.stages.path2?.assignee && job.stages.path2?.status !== 'Complete')
-      );
+
+    if (filterStatus === 'IN_PROGRESS') {
+      return Object.values(job.stages).some((s) => s && s.assignee && (s.status === 'In-Progress' || s.status === 'Paused'));
     }
-    if (filterStatus === 'EDITING') {
-      return (
-        (job.stages.editor1?.assignee && job.stages.editor1?.status !== 'Complete') ||
-        (job.stages.editor2?.assignee && job.stages.editor2?.status !== 'Complete')
-      );
-    }
-    if (filterStatus === 'QC') {
-      return job.stages.fc?.assignee && job.stages.fc?.status !== 'Complete';
-    }
+
     if (filterStatus === 'COMPLETE') {
-      return Object.values(job.stages).every((s) => s.status === 'Complete' || !s.assignee);
+      const assignedStages = Object.values(job.stages).filter((s) => s && s.assignee);
+      if (assignedStages.length === 0) return false;
+      return assignedStages.every((s) => s.status === 'Complete');
     }
+
     return true;
   });
 
@@ -97,8 +107,7 @@ export default function TodaysJobsPage() {
     }
 
     const { assignee, status } = stageObj;
-    const isTimeTrackedStage = stageKey === 'path1' || stageKey === 'path2' || stageKey === 'editor1' || stageKey === 'editor2';
-    const workingTimeStr = isTimeTrackedStage ? getStageWorkingTime(stageObj) : null;
+    const isAllowedToUpdate = canUpdateStage(assignee);
 
     const pillStyles = {
       Pending: 'bg-[#FF4D5A] text-white',
@@ -113,18 +122,30 @@ export default function TodaysJobsPage() {
           {assignee}
         </div>
 
-        <button
-          onClick={() => setTimerModalState({ jobId, stageKey })}
-          className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide transition-all hover:scale-105 cursor-pointer ${
-            pillStyles[status] || 'bg-slate-200 text-slate-700'
-          }`}
-          title={`Click to view details for ${assignee}`}
-        >
-          {status}
-        </button>
+        {isAllowedToUpdate ? (
+          <button
+            onClick={() => setTimerModalState({ jobId, stageKey })}
+            className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide transition-all hover:scale-105 cursor-pointer ${
+              pillStyles[status] || 'bg-slate-200 text-slate-700'
+            }`}
+            title={`Click to update stage for ${assignee}`}
+          >
+            {status}
+          </button>
+        ) : (
+          <span
+            className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide cursor-default ${
+              pillStyles[status] || 'bg-slate-200 text-slate-700'
+            }`}
+            title={`Assigned to ${assignee}`}
+          >
+            {status}
+          </span>
+        )}
       </div>
     );
   };
+
 
   return (
     <div className="space-y-6 animate-fadeIn">
@@ -164,20 +185,44 @@ export default function TodaysJobsPage() {
           </div>
 
           {/* Status Filter Pills */}
-          <div className="flex items-center gap-1 overflow-x-auto pb-1 md:pb-0">
-            {['ALL', 'BLENDING', 'LC', 'PATH', 'EDITING', 'QC', 'COMPLETE'].map((st) => (
+          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+            {[
+              { id: 'ALL', label: 'ALL' },
+              { id: 'PENDING', label: 'PENDING' },
+              { id: 'IN_PROGRESS', label: 'IN-PROGRESS' },
+              { id: 'COMPLETE', label: 'COMPLETE' },
+            ].map((st) => (
               <button
-                key={st}
-                onClick={() => setFilterStatus(st)}
-                className={`px-3 py-1 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
-                  filterStatus === st
+                key={st.id}
+                onClick={() => setFilterStatus(st.id)}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                  filterStatus === st.id
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
                 }`}
               >
-                {st}
+                {st.label}
               </button>
             ))}
+          </div>
+
+          {/* Stage Sub-Filter Dropdown (Blending -> FC) */}
+          <div className="flex items-center gap-2 text-xs text-slate-600 shrink-0">
+            <span className="font-bold text-slate-700">Stage:</span>
+            <select
+              value={filterStage}
+              onChange={(e) => setFilterStage(e.target.value)}
+              className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+            >
+              <option value="ALL">All Stages (Blending → FC)</option>
+              <option value="blending">Blending Stage</option>
+              <option value="path1">Path 1</option>
+              <option value="path2">Path 2</option>
+              <option value="editor1">Editor 1</option>
+              <option value="editor2">Editor 2</option>
+              <option value="lc">LC (Lighting & Color)</option>
+              <option value="fc">FC / QC (Final Check)</option>
+            </select>
           </div>
 
           {/* Show Entries Dropdown */}

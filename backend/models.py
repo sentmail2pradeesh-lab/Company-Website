@@ -10,6 +10,7 @@ class User(db.Model):
     email = db.Column(db.String(255), unique=True, nullable=False, index=True)
     name = db.Column(db.String(255), nullable=True)
     role = db.Column(db.String(50), nullable=False, default='employee')
+    designation = db.Column(db.String(100), nullable=False, default='Editor')
     password_hash = db.Column(db.String(255), nullable=False)
     reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
@@ -27,6 +28,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name or self.email.split('@')[0].capitalize(),
             'role': self.role,
+            'designation': self.designation or ('Manager' if self.role == 'manager' else 'Editor'),
         }
 
 

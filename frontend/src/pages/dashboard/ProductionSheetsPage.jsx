@@ -56,6 +56,9 @@ export default function ProductionSheetsPage() {
     const sEmail = (session.user_email || '').toLowerCase();
     const sName = (session.user_name || '').toLowerCase();
 
+    // Master Admin arun@aszen.com is excluded from production working hours records
+    if (sEmail === 'arun@aszen.com') return false;
+
     // If logged in as employee, strictly filter to employee's own logs
     if (!isManagerOrAdmin) {
       if (sEmail !== currentUserEmail && !sName.includes(currentUserName.toLowerCase())) {
