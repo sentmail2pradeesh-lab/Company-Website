@@ -1,7 +1,7 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from database import db
-from models import User
+from models import User, WorkSession
 from utils.jwt import create_token, token_required
 from utils.mail import send_reset_email, generate_reset_token
 
@@ -40,13 +40,59 @@ def login():
         return jsonify({'message': 'Invalid email or password'}), 401
 
     token = create_token(user.id)
-    return jsonify({'message': 'Login successful', 'token': token, 'user': user.to_dict()})
+
+    # Start or retrieve active work session for today
+    today_str = datetime.utcnow().strftime('%Y-%m-%d')
+    active_session = WorkSession.query.filter_by(
+        user_email=user.email,
+        date=today_str,
+        status='Active'
+    ).first()
+
+    if not active_session:
+        active_session = WorkSession(
+            user_id=user.id,
+            user_email=user.email,
+            user_name=user.name or user.email.split('@')[0].capitalize(),
+            user_role=user.role or 'employee',
+            date=today_str,
+            login_time=datetime.utcnow(),
+            status='Active'
+        )
+        db.session.add(active_session)
+        db.session.commit()
+
+    return jsonify({
+        'message': 'Login successful',
+        'token': token,
+        'user': user.to_dict(),
+        'work_session': active_session.to_dict() if active_session else None
+    })
+
+
+@auth_bp.route('/logout', methods=['POST'])
+@token_required
+def logout():
+    user = request.current_user
+    active_session = WorkSession.query.filter_by(
+        user_email=user.email,
+        status='Active'
+    ).order_by(WorkSession.login_time.desc()).first()
+
+    if active_session:
+        active_session.logout_time = datetime.utcnow()
+        active_session.status = 'Completed'
+        active_session.calculate_hours()
+        db.session.commit()
+
+    return jsonify({'message': 'Logged out successfully'})
 
 
 @auth_bp.route('/me', methods=['GET'])
 @token_required
 def me():
     return jsonify({'user': request.current_user.to_dict()})
+
 
 
 @auth_bp.route('/forgot-password', methods=['POST'])

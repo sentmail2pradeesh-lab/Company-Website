@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { INITIAL_EDITORS, INITIAL_CLIENTS, INITIAL_JOBS, INITIAL_PRODUCTION_SHEETS } from '../data/mockJobs';
+import { INITIAL_EDITORS, INITIAL_CLIENTS, INITIAL_JOBS, INITIAL_PRODUCTION_SHEETS, INITIAL_WORK_SESSIONS } from '../data/mockJobs';
 import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
 
@@ -72,6 +72,12 @@ export function JobProvider({ children }) {
     return saved ? JSON.parse(saved) : INITIAL_PRODUCTION_SHEETS;
   });
 
+  const [workSessions, setWorkSessions] = useState(() => {
+    const saved = localStorage.getItem('aszen_work_sessions');
+    return saved ? JSON.parse(saved) : INITIAL_WORK_SESSIONS;
+  });
+
+
   // Modal active states
   const [timerModalState, setTimerModalState] = useState(null); // { jobId, stageKey }
   const [clientModalState, setClientModalState] = useState(null); // { jobId }
@@ -80,7 +86,7 @@ export function JobProvider({ children }) {
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
   // Real-time BroadcastChannel for 0ms cross-window / cross-tab updates
-  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients) => {
+  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions) => {
     try {
       if ('BroadcastChannel' in window) {
         const channel = new BroadcastChannel('aszen_dashboard_realtime');
@@ -90,6 +96,7 @@ export function JobProvider({ children }) {
           productionSheets: newSheets,
           editors: newEditors,
           clients: newClients,
+          workSessions: newSessions,
           timestamp: Date.now(),
         });
         setTimeout(() => {
@@ -113,6 +120,7 @@ export function JobProvider({ children }) {
         if (data.productionSheets) setProductionSheets([...(data.productionSheets || [])]);
         if (data.editors) setEditors([...(data.editors || [])]);
         if (data.clients) setClients([...(data.clients || [])]);
+        if (data.workSessions) setWorkSessions([...(data.workSessions || [])]);
       }
     };
 
@@ -128,6 +136,7 @@ export function JobProvider({ children }) {
       if (e.key === 'aszen_prod_sheets' && e.newValue) setProductionSheets(JSON.parse(e.newValue));
       if (e.key === 'aszen_editors' && e.newValue) setEditors(JSON.parse(e.newValue));
       if (e.key === 'aszen_clients' && e.newValue) setClients(JSON.parse(e.newValue));
+      if (e.key === 'aszen_work_sessions' && e.newValue) setWorkSessions(JSON.parse(e.newValue));
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -138,27 +147,34 @@ export function JobProvider({ children }) {
     const normalized = normalizeJobs(newJobs);
     setJobs([...normalized]);
     localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
-    broadcastSync(normalized, productionSheets, editors, clients);
+    broadcastSync(normalized, productionSheets, editors, clients, workSessions);
   };
 
   const updateProdSheetsState = (newSheets, currentJobs = null) => {
     setProductionSheets(newSheets);
     localStorage.setItem('aszen_prod_sheets', JSON.stringify(newSheets));
     const targetJobs = currentJobs ? normalizeJobs(currentJobs) : jobs;
-    broadcastSync(targetJobs, newSheets, editors, clients);
+    broadcastSync(targetJobs, newSheets, editors, clients, workSessions);
   };
 
   const updateEditorsState = (newEditors) => {
     setEditors(newEditors);
     localStorage.setItem('aszen_editors', JSON.stringify(newEditors));
-    broadcastSync(jobs, productionSheets, newEditors, clients);
+    broadcastSync(jobs, productionSheets, newEditors, clients, workSessions);
   };
 
   const updateClientsState = (newClients) => {
     setClients(newClients);
     localStorage.setItem('aszen_clients', JSON.stringify(newClients));
-    broadcastSync(jobs, productionSheets, editors, newClients);
+    broadcastSync(jobs, productionSheets, editors, newClients, workSessions);
   };
+
+  const updateWorkSessionsState = (newSessions) => {
+    setWorkSessions(newSessions);
+    localStorage.setItem('aszen_work_sessions', JSON.stringify(newSessions));
+    broadcastSync(jobs, productionSheets, editors, clients, newSessions);
+  };
+
 
   // Role Permissions
   const canCreateJob = userRole === 'admin' || userRole === 'manager';
@@ -561,6 +577,61 @@ export function JobProvider({ children }) {
     updateEditorsState(editors.filter((e) => e.id !== empId));
   };
 
+  // Work Session / Attendance Management (Manager & Admin Only)
+  const addWorkSession = (sessionData) => {
+    if (userRole !== 'admin' && userRole !== 'manager') {
+      alert('Permission Denied: Only Manager or Admin can add working hour logs.');
+      return;
+    }
+    const loginDt = sessionData.login_time || new Date().toISOString();
+    const logoutDt = sessionData.logout_time || null;
+    let hours = Number(sessionData.total_hours) || 0;
+    if (!hours && loginDt && logoutDt) {
+      hours = Math.max(0, Math.round(((new Date(logoutDt) - new Date(loginDt)) / 3600000) * 100) / 100);
+    }
+    const newSession = {
+      id: `ws-${Date.now().toString().slice(-4)}`,
+      user_name: sessionData.user_name || 'Employee',
+      user_email: sessionData.user_email || `${(sessionData.user_name || 'employee').toLowerCase()}@aszen.com`,
+      user_role: 'employee',
+      date: sessionData.date || new Date().toISOString().slice(0, 10),
+      login_time: loginDt,
+      logout_time: logoutDt,
+      total_hours: hours,
+      status: logoutDt ? 'Completed' : 'Active',
+      notes: sessionData.notes || `Added by ${user?.name || userRole}`,
+    };
+    updateWorkSessionsState([newSession, ...workSessions]);
+  };
+
+  const updateWorkSession = (id, updatedFields) => {
+    if (userRole !== 'admin' && userRole !== 'manager') {
+      alert('Permission Denied: Only Manager or Admin can edit working hour logs.');
+      return;
+    }
+    const updated = workSessions.map((ws) => {
+      if (ws.id === id) {
+        const merged = { ...ws, ...updatedFields };
+        if (merged.login_time && merged.logout_time) {
+          const delta = new Date(merged.logout_time) - new Date(merged.login_time);
+          merged.total_hours = Math.max(0, Math.round((delta / 3600000) * 100) / 100);
+          merged.status = 'Completed';
+        }
+        return merged;
+      }
+      return ws;
+    });
+    updateWorkSessionsState(updated);
+  };
+
+  const deleteWorkSession = (id) => {
+    if (userRole !== 'admin' && userRole !== 'manager') {
+      alert('Permission Denied: Only Manager or Admin can delete working hour logs.');
+      return;
+    }
+    updateWorkSessionsState(workSessions.filter((ws) => ws.id !== id));
+  };
+
   return (
     <JobContext.Provider
       value={{
@@ -568,6 +639,7 @@ export function JobProvider({ children }) {
         editors,
         clients,
         productionSheets,
+        workSessions,
         stats,
         userRole,
         canCreateJob,
@@ -588,6 +660,9 @@ export function JobProvider({ children }) {
         deleteClient,
         addEmployee,
         deleteEmployee,
+        addWorkSession,
+        updateWorkSession,
+        deleteWorkSession,
         timerModalState,
         setTimerModalState,
         clientModalState,
@@ -603,6 +678,7 @@ export function JobProvider({ children }) {
       {children}
     </JobContext.Provider>
   );
+
 }
 
 export function useJobs() {

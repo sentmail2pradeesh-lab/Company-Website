@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Link, NavLink, Outlet } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
@@ -6,14 +6,41 @@ import DashboardSidebar from './DashboardSidebar';
 import TaskTimerModal from './TaskTimerModal';
 import ClientTurnaroundModal from './ClientTurnaroundModal';
 import JobAssignmentModal from './JobAssignmentModal';
-import { FiPlus, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiPlus, FiSettings, FiLogOut, FiClock } from 'react-icons/fi';
 
 export default function DashboardLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
-  const { canManageClients, canCreateJob } = useJobs();
+  const { canManageClients, canCreateJob, workSessions } = useJobs();
   const { user, logout } = useAuth();
   const displayName = user?.name || (user?.email ? user.email.split('.')[0].split('@')[0] : 'Lessy');
   const formattedDisplayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
+
+  // Live timer for active session
+  const [elapsedStr, setElapsedStr] = useState('0h 0m');
+
+  const myEmail = (user?.email || '').toLowerCase();
+  const activeSession = workSessions.find(
+    (s) => (s.user_email || '').toLowerCase() === myEmail && s.status === 'Active'
+  );
+
+  useEffect(() => {
+    const updateTimer = () => {
+      const loginIso = activeSession?.login_time || sessionStorage.getItem('aszen_login_timestamp');
+      if (loginIso) {
+        const start = new Date(loginIso).getTime();
+        const now = Date.now();
+        const diffMins = Math.max(0, Math.floor((now - start) / 60000));
+        const hrs = Math.floor(diffMins / 60);
+        const mins = diffMins % 60;
+        setElapsedStr(`${hrs}h ${mins}m`);
+      } else {
+        setElapsedStr('Active');
+      }
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 30000);
+    return () => clearInterval(interval);
+  }, [activeSession]);
 
   const handleLogout = () => {
     logout();
@@ -65,8 +92,18 @@ export default function DashboardLayout() {
           </nav>
         </div>
 
-        {/* Right Side Quick User Profile Badge (Vibrant Coral Red Pill) */}
+        {/* Right Side Quick User Profile Badge & Work Session Timer */}
         <div className="flex items-center gap-3">
+          {/* Active Work Session Live Badge */}
+          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <FiClock className="w-3.5 h-3.5" />
+            <span>Shift: {elapsedStr}</span>
+          </div>
+
           {/* Admin Control Page Link */}
           {canManageClients && (
             <Link
@@ -104,6 +141,7 @@ export default function DashboardLayout() {
           </button>
         </div>
       </header>
+
 
       {/* Sidebar Navigation */}
       <DashboardSidebar isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />

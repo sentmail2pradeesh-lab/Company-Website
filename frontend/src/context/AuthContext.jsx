@@ -101,11 +101,42 @@ export function AuthProvider({ children }) {
       };
       sessionStorage.setItem('aszen_token', res.data.token);
       sessionStorage.setItem('aszen_user', JSON.stringify(userData));
+      
+      // Store session login timestamp for active shift
+      const nowIso = new Date().toISOString();
+      sessionStorage.setItem('aszen_login_timestamp', nowIso);
+
+      // Initialize work session log in localStorage if not already existing
+      try {
+        const savedSessions = localStorage.getItem('aszen_work_sessions');
+        const list = savedSessions ? JSON.parse(savedSessions) : [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const existingActive = list.find((s) => s.user_email?.toLowerCase() === fullEmail.toLowerCase() && s.date === todayStr && s.status === 'Active');
+        if (!existingActive) {
+          const newSession = {
+            id: `ws-${Date.now().toString().slice(-4)}`,
+            user_name: userData.name,
+            user_email: fullEmail,
+            user_role: userData.role,
+            date: todayStr,
+            login_time: nowIso,
+            logout_time: null,
+            total_hours: 0,
+            status: 'Active',
+            notes: 'Morning shift started',
+          };
+          localStorage.setItem('aszen_work_sessions', JSON.stringify([newSession, ...list]));
+        }
+      } catch (e) {
+        console.error('Work session init error:', e);
+      }
+
       setUser(userData);
       closeLogin();
       return res.data;
     } catch (err) {
       // Demo authentication fallback if backend API is offline or returns error
+      const nowIso = new Date().toISOString();
       const demoUser = {
         id: Date.now(),
         email: fullEmail,
@@ -115,17 +146,78 @@ export function AuthProvider({ children }) {
       const demoToken = 'demo_token_' + Date.now();
       sessionStorage.setItem('aszen_token', demoToken);
       sessionStorage.setItem('aszen_user', JSON.stringify(demoUser));
+      sessionStorage.setItem('aszen_login_timestamp', nowIso);
+
+      try {
+        const savedSessions = localStorage.getItem('aszen_work_sessions');
+        const list = savedSessions ? JSON.parse(savedSessions) : [];
+        const todayStr = new Date().toISOString().slice(0, 10);
+        const existingActive = list.find((s) => s.user_email?.toLowerCase() === fullEmail.toLowerCase() && s.date === todayStr && s.status === 'Active');
+        if (!existingActive) {
+          const newSession = {
+            id: `ws-${Date.now().toString().slice(-4)}`,
+            user_name: displayName,
+            user_email: fullEmail,
+            user_role: role,
+            date: todayStr,
+            login_time: nowIso,
+            logout_time: null,
+            total_hours: 0,
+            status: 'Active',
+            notes: 'Shift started',
+          };
+          localStorage.setItem('aszen_work_sessions', JSON.stringify([newSession, ...list]));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+
       setUser(demoUser);
       closeLogin();
       return { user: demoUser };
     }
   };
 
-  const logout = () => {
+  const logout = async () => {
+    // End active work session and calculate working hours
+    try {
+      const nowIso = new Date().toISOString();
+      const savedSessions = localStorage.getItem('aszen_work_sessions');
+      if (savedSessions && user) {
+        const list = JSON.parse(savedSessions);
+        const updatedList = list.map((s) => {
+          if (s.user_email?.toLowerCase() === (user.email || '').toLowerCase() && s.status === 'Active') {
+            const loginDt = new Date(s.login_time || nowIso);
+            const logoutDt = new Date(nowIso);
+            const deltaMs = logoutDt - loginDt;
+            const hours = Math.max(0.1, Math.round((deltaMs / 3600000) * 100) / 100);
+            return {
+              ...s,
+              logout_time: nowIso,
+              total_hours: hours,
+              status: 'Completed',
+            };
+          }
+          return s;
+        });
+        localStorage.setItem('aszen_work_sessions', JSON.stringify(updatedList));
+      }
+    } catch (e) {
+      console.error('Work session logout error:', e);
+    }
+
+    try {
+      await api.post('/auth/logout');
+    } catch (e) {
+      // Ignore API logout error in offline/demo mode
+    }
+
     sessionStorage.removeItem('aszen_token');
     sessionStorage.removeItem('aszen_user');
+    sessionStorage.removeItem('aszen_login_timestamp');
     setUser(null);
   };
+
 
   const forgotPassword = async (email) => {
     let fullEmail = (email || '').trim();
