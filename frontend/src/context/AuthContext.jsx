@@ -177,6 +177,21 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const changePassword = async (oldPassword, newPassword) => {
+    const res = await api.post('/auth/change-password', {
+      old_password: oldPassword,
+      new_password: newPassword,
+    });
+    return res.data;
+  };
+
+  const adminResetPassword = async (userId, newPassword) => {
+    const res = await api.post(`/auth/users/${userId}/reset-password`, {
+      password: newPassword,
+    });
+    return res.data;
+  };
+
   return (
     <AuthContext.Provider
       value={{
@@ -185,6 +200,8 @@ export function AuthProvider({ children }) {
         login,
         logout,
         forgotPassword,
+        changePassword,
+        adminResetPassword,
         isLoginOpen,
         openLogin,
         closeLogin,

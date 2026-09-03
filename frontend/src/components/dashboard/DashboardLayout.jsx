@@ -6,10 +6,13 @@ import DashboardSidebar from './DashboardSidebar';
 import TaskTimerModal from './TaskTimerModal';
 import ClientTurnaroundModal from './ClientTurnaroundModal';
 import JobAssignmentModal from './JobAssignmentModal';
-import { FiPlus, FiSettings, FiLogOut, FiClock } from 'react-icons/fi';
+import ChangePasswordModal from './ChangePasswordModal';
+import { FiPlus, FiSettings, FiLogOut, FiClock, FiKey, FiUser } from 'react-icons/fi';
 
 export default function DashboardLayout() {
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
+  const [isChangePassOpen, setIsChangePassOpen] = useState(false);
   const { canManageClients, canCreateJob, workSessions } = useJobs();
   const { user, logout } = useAuth();
   const displayName = user?.name || (user?.email ? user.email.split('.')[0].split('@')[0] : 'Lessy');
@@ -126,24 +129,45 @@ export default function DashboardLayout() {
             </Link>
           )}
 
-          {/* Clean Coral Red Badge: "Hi, Lessy" without role text */}
-          <div className="bg-[#FF4D5A] text-white px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all">
-            <span>Hi, {formattedDisplayName}</span>
-            <span className="text-[10px] opacity-90">∨</span>
-          </div>
+          {/* User Profile Badge & Dropdown */}
+          <div className="relative">
+            <button
+              onClick={() => setIsUserMenuOpen((v) => !v)}
+              className="bg-[#FF4D5A] hover:bg-[#E03E4B] text-white px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+            >
+              <span>Hi, {formattedDisplayName}</span>
+              <span className={`text-[10px] transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}>∨</span>
+            </button>
 
-          {/* Header Logout Button */}
-          <button
-            onClick={handleLogout}
-            className="px-3.5 py-2 rounded-full bg-slate-100 hover:bg-rose-50 hover:text-rose-600 border border-slate-200/80 text-slate-700 font-bold text-xs transition-colors flex items-center gap-1.5 shadow-xs"
-            title="Log Out"
-          >
-            <FiLogOut className="w-3.5 h-3.5" />
-            <span>Logout</span>
-          </button>
+            {isUserMenuOpen && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white rounded-2xl border border-slate-200 shadow-xl py-2 z-50 text-xs animate-fadeIn"
+                onClick={() => setIsUserMenuOpen(false)}
+              >
+                <div className="px-4 py-2 border-b border-slate-100">
+                  <div className="font-bold text-slate-900">{user?.name || formattedDisplayName}</div>
+                  <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
+                  <div className="text-[10px] text-indigo-600 font-bold mt-0.5">{user?.designation || user?.role}</div>
+                </div>
+
+                <button
+                  onClick={() => setIsChangePassOpen(true)}
+                  className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-semibold flex items-center gap-2 transition-colors"
+                >
+                  <FiKey className="w-4 h-4 text-indigo-500" /> Change Password
+                </button>
+
+                <button
+                  onClick={handleLogout}
+                  className="w-full px-4 py-2.5 text-left text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-2 transition-colors border-t border-slate-100"
+                >
+                  <FiLogOut className="w-4 h-4 text-rose-500" /> Logout
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </header>
-
 
       {/* Sidebar Navigation */}
       <DashboardSidebar isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
@@ -161,6 +185,8 @@ export default function DashboardLayout() {
       <TaskTimerModal />
       <ClientTurnaroundModal />
       <JobAssignmentModal />
+      <ChangePasswordModal isOpen={isChangePassOpen} onClose={() => setIsChangePassOpen(false)} />
+
     </div>
   );
 }

@@ -99,69 +99,7 @@ def seed_blogs():
     db.session.commit()
 
 
-def seed_work_sessions():
-    if WorkSession.query.count() > 0:
-        return
-
-    from datetime import datetime, timedelta
-
-    employees = [
-        {"name": "Lalithaa", "email": "lalithaa@aszen.com", "role": "employee"},
-        {"name": "Karan", "email": "karan@aszen.com", "role": "employee"},
-        {"name": "Shwetha", "email": "shwetha@aszen.com", "role": "employee"},
-        {"name": "Lessy", "email": "lessy@aszen.com", "role": "manager"},
-        {"name": "Arun", "email": "arun@aszen.com", "role": "admin"},
-    ]
-
-    base_date = datetime(2026, 9, 2)
-    sessions = []
-
-    # Generate 15 past working days of attendance data for each employee
-    for day_offset in range(1, 16):
-        work_dt = base_date - timedelta(days=day_offset)
-        # Skip Sundays
-        if work_dt.weekday() == 6:
-            continue
-
-        date_str = work_dt.strftime('%Y-%m-%d')
-
-        for emp in employees:
-            login_time = datetime(work_dt.year, work_dt.month, work_dt.day, 9, 0, 0)
-            logout_time = datetime(work_dt.year, work_dt.month, work_dt.day, 17, 30, 0)
-            delta = logout_time - login_time
-
-            ws = WorkSession(
-                user_name=emp['name'],
-                user_email=emp['email'],
-                user_role=emp['role'],
-                date=date_str,
-                login_time=login_time,
-                logout_time=logout_time,
-                total_hours=round(delta.total_seconds() / 3600.0, 2),
-                status='Completed',
-                notes='Regular Shift'
-            )
-            sessions.append(ws)
-
-    # Active session for today (Sep 2, 2026) for Lalithaa & Karan
-    today_str = base_date.strftime('%Y-%m-%d')
-    today_login = datetime(2026, 9, 2, 9, 15, 0)
-    sessions.append(WorkSession(
-        user_name='Lalithaa',
-        user_email='lalithaa@aszen.com',
-        user_role='employee',
-        date=today_str,
-        login_time=today_login,
-        logout_time=None,
-        status='Active',
-        notes='Morning shift active'
-    ))
-
-    db.session.add_all(sessions)
-    db.session.commit()
-
-
 if __name__ == '__main__':
-
     app = create_app()
     app.run(debug=True, port=5000)
+

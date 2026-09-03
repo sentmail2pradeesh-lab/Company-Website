@@ -1,10 +1,12 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
-import { FiPlus, FiTrash2, FiUsers, FiBriefcase, FiArrowLeft, FiShield } from 'react-icons/fi';
+import { useAuth } from '../../context/AuthContext';
+import { FiPlus, FiTrash2, FiUsers, FiBriefcase, FiArrowLeft, FiShield, FiKey } from 'react-icons/fi';
 
 export default function ManagementPage() {
   const navigate = useNavigate();
+  const { adminResetPassword } = useAuth();
   const {
     editors,
     clients,
@@ -159,13 +161,32 @@ export default function ManagementPage() {
                           <div className="text-[11px] text-slate-500">{emp.role} • {emp.email || 'No Email Registered'}</div>
                         </div>
                       </div>
-                      <button
-                        onClick={() => deleteEmployee(emp.id)}
-                        className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
-                        title="Delete Employee"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
+                      <div className="flex items-center gap-2">
+                        <button
+                          onClick={async () => {
+                            const newPass = prompt(`Enter new password for ${emp.name}:`, 'Aszen@123');
+                            if (newPass) {
+                              try {
+                                await adminResetPassword(emp.id, newPass);
+                                alert(`Password for ${emp.name} updated successfully!`);
+                              } catch (e) {
+                                alert(e.message || 'Failed to reset password');
+                              }
+                            }
+                          }}
+                          className="p-2 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-600 transition-colors"
+                          title="Reset Employee Password"
+                        >
+                          <FiKey className="w-4 h-4" />
+                        </button>
+                        <button
+                          onClick={() => deleteEmployee(emp.id)}
+                          className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors"
+                          title="Delete Employee"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
+                      </div>
                     </div>
                   ))}
                 </div>

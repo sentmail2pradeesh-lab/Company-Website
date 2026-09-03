@@ -202,3 +202,48 @@ def delete_user(user_id):
 
     return jsonify({'message': 'User deleted successfully'})
 
+
+@auth_bp.route('/change-password', methods=['POST'])
+@token_required
+def change_password():
+    user = request.current_user
+    data = request.get_json() or {}
+    old_password = data.get('old_password') or ''
+    new_password = data.get('new_password') or ''
+
+    if not old_password or not new_password:
+        return jsonify({'message': 'Current password and new password are required.'}), 400
+
+    if not user.check_password(old_password):
+        return jsonify({'message': 'Current password is incorrect.'}), 400
+
+    if len(new_password) < 6:
+        return jsonify({'message': 'New password must be at least 6 characters.'}), 400
+
+    user.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': 'Password updated successfully.'})
+
+
+@auth_bp.route('/users/<int:user_id>/reset-password', methods=['POST'])
+@token_required
+def admin_reset_password(user_id):
+    current = request.current_user
+    if current.role != 'admin':
+        return jsonify({'message': 'Permission denied. Only Admin can reset employee passwords.'}), 403
+
+    target = User.query.get(user_id)
+    if not target:
+        return jsonify({'message': 'User not found'}), 404
+
+    data = request.get_json() or {}
+    new_password = data.get('password') or 'Aszen@123'
+
+    if len(new_password) < 6:
+        return jsonify({'message': 'New password must be at least 6 characters.'}), 400
+
+    target.set_password(new_password)
+    db.session.commit()
+    return jsonify({'message': f'Password for {target.name} updated successfully.'})
+
+
