@@ -12,9 +12,9 @@ work_hours_bp = Blueprint('work_hours', __name__)
 def session_login():
     user = request.current_user
 
-    # Master Admin arun@aszen.com does not record work sessions
-    if user.email.lower() == 'arun@aszen.com':
-        return jsonify({'message': 'Master Admin session exempt', 'session': None})
+    # Master Admin & Admin roles are exempt from shift attendance records
+    if user.email.lower() == 'arun@aszen.com' or user.role == 'admin':
+        return jsonify({'message': 'Management authority session exempt', 'session': None})
 
     today_str = datetime.utcnow().strftime('%Y-%m-%d')
 
@@ -95,15 +95,32 @@ def my_stats():
     })
 
 
+def parse_iso_dt(iso_str):
+    if not iso_str:
+        return None
+    cleaned = str(iso_str).strip()
+    # Normalize Z to UTC offset or strip
+    cleaned = cleaned.replace('Z', '+00:00')
+    try:
+        return datetime.fromisoformat(cleaned)
+    except Exception:
+        try:
+            cleaned_no_tz = cleaned.split('+')[0].split('Z')[0]
+            return datetime.fromisoformat(cleaned_no_tz)
+        except Exception:
+            return datetime.utcnow()
+
+
 @work_hours_bp.route('/all', methods=['GET'])
 @token_required
 def get_all_sessions():
     user = request.current_user
-    if user.role not in ['admin', 'manager']:
-        return jsonify({'message': 'Permission denied. Only Manager or Admin can access production working hour sheets.'}), 403
-
-    # Always exclude master admin arun@aszen.com from production sheet logs
-    query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com')
+    if user.role in ['admin', 'manager']:
+        # Always exclude master admin and admin authority accounts from work session logs
+        query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com', WorkSession.user_role != 'admin')
+    else:
+        # Employees only view their own attendance records
+        query = WorkSession.query.filter(WorkSession.user_email == user.email)
 
     date_param = request.args.get('date')
     if date_param:
@@ -121,7 +138,6 @@ def get_all_sessions():
     return jsonify({'sessions': [s.to_dict() for s in sessions]})
 
 
-
 @work_hours_bp.route('/manual', methods=['POST'])
 @token_required
 def add_manual_session():
@@ -137,8 +153,8 @@ def add_manual_session():
     logout_iso = data.get('logout_time')
     notes = data.get('notes') or f"Manual entry by {user.name or user.role.capitalize()}"
 
-    login_dt = datetime.fromisoformat(login_iso) if login_iso else datetime.utcnow()
-    logout_dt = datetime.fromisoformat(logout_iso) if logout_iso else None
+    login_dt = parse_iso_dt(login_iso) or datetime.utcnow()
+    logout_dt = parse_iso_dt(logout_iso) if logout_iso else None
 
     new_session = WorkSession(
         user_name=employee_name,
@@ -174,9 +190,9 @@ def update_session(session_id):
     if 'date' in data:
         session_obj.date = data['date']
     if 'login_time' in data and data['login_time']:
-        session_obj.login_time = datetime.fromisoformat(data['login_time'].replace('Z', ''))
+        session_obj.login_time = parse_iso_dt(data['login_time'])
     if 'logout_time' in data:
-        session_obj.logout_time = datetime.fromisoformat(data['logout_time'].replace('Z', '')) if data['logout_time'] else None
+        session_obj.logout_time = parse_iso_dt(data['logout_time']) if data['logout_time'] else None
         session_obj.status = 'Completed' if session_obj.logout_time else 'Active'
     if 'notes' in data:
         session_obj.notes = data['notes']

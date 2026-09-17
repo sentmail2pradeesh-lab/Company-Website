@@ -4,11 +4,15 @@ basedir = os.path.abspath(os.path.dirname(__file__))
 
 
 class Config:
-    SECRET_KEY = os.environ.get('SECRET_KEY', 'aszen-dev-secret-change-in-production')
-    SQLALCHEMY_DATABASE_URI = os.environ.get(
-        "DATABASE_URL",
-        f"sqlite:///{os.path.join(basedir, 'aszen.db')}"
-    )
+    _raw_db_url = os.environ.get("DATABASE_URL")
+    if _raw_db_url:
+        if _raw_db_url.startswith("postgres://"):
+            _raw_db_url = _raw_db_url.replace("postgres://", "postgresql://", 1)
+        elif _raw_db_url.startswith("mysql://") and "mysql+pymysql://" not in _raw_db_url:
+            _raw_db_url = _raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
+        SQLALCHEMY_DATABASE_URI = _raw_db_url
+    else:
+        SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'aszen.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     JWT_SECRET = os.environ.get('JWT_SECRET', 'aszen-jwt-secret-change-in-production')
     JWT_EXPIRY_HOURS = 8760  # 1 year session duration (no automatic session timeout during workday)

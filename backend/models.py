@@ -93,3 +93,152 @@ class WorkSession(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
+
+class Client(db.Model):
+    __tablename__ = 'clients'
+
+    id = db.Column(db.Integer, primary_key=True)
+    code = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    name = db.Column(db.String(255), nullable=False)
+    contact = db.Column(db.String(255), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'code': self.code,
+            'name': self.name,
+            'contact': self.contact or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+class Job(db.Model):
+    __tablename__ = 'jobs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_number = db.Column(db.String(50), unique=True, nullable=False, index=True)
+    client_code = db.Column(db.String(50), nullable=False)
+    service = db.Column(db.String(255), nullable=False)
+    files_count = db.Column(db.Integer, default=0)
+    output_target = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(50), default='In Progress')
+    client_entry_time = db.Column(db.String(50), nullable=True)
+    client_target_time = db.Column(db.String(50), nullable=True)
+    client_finish_time = db.Column(db.String(50), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    stages = db.relationship('JobStage', backref='job', cascade='all, delete-orphan')
+
+    def to_dict(self):
+        stages_dict = {}
+        for s in self.stages:
+            stages_dict[s.stage_key] = s.to_dict()
+        return {
+            'id': str(self.job_number),
+            'db_id': self.id,
+            'jobNumber': self.job_number,
+            'client': self.client_code,
+            'service': self.service,
+            'name': self.service,
+            'files': self.files_count,
+            'outputTarget': self.output_target,
+            'status': self.status,
+            'clientEntryTime': self.client_entry_time or '',
+            'clientTargetTime': self.client_target_time or '',
+            'clientFinishTime': self.client_finish_time or '',
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'stages': stages_dict
+        }
+
+
+class JobStage(db.Model):
+    __tablename__ = 'job_stages'
+
+    id = db.Column(db.Integer, primary_key=True)
+    job_id = db.Column(db.Integer, db.ForeignKey('jobs.id'), nullable=False)
+    stage_key = db.Column(db.String(50), nullable=False)
+    assignee = db.Column(db.String(255), default='')
+    status = db.Column(db.String(50), default='Unassigned')
+    files_count = db.Column(db.Integer, default=0)
+    output_count = db.Column(db.Integer, default=0)
+    start_time = db.Column(db.String(50), nullable=True)
+    end_time = db.Column(db.String(50), nullable=True)
+    paused_duration_seconds = db.Column(db.Integer, default=0)
+    current_pause_start = db.Column(db.String(50), nullable=True)
+    pause_logs_json = db.Column(db.Text, default='[]')
+
+    def to_dict(self):
+        import json
+        try:
+            pause_logs = json.loads(self.pause_logs_json or '[]')
+        except Exception:
+            pause_logs = []
+        return {
+            'assignee': self.assignee or '',
+            'status': self.status or 'Unassigned',
+            'filesCount': self.files_count,
+            'outputCount': self.output_count,
+            'startTime': self.start_time,
+            'endTime': self.end_time,
+            'pausedDurationSeconds': self.paused_duration_seconds,
+            'currentPauseStart': self.current_pause_start,
+            'pauseLogs': pause_logs,
+        }
+
+
+class ProductionSheetEntry(db.Model):
+    __tablename__ = 'production_sheets'
+
+    id = db.Column(db.Integer, primary_key=True)
+    date = db.Column(db.String(10), nullable=False, index=True)
+    editor_name = db.Column(db.String(255), nullable=False)
+    role = db.Column(db.String(100), nullable=False)
+    job_id = db.Column(db.String(50), nullable=False)
+    client = db.Column(db.String(50), nullable=False)
+    stage = db.Column(db.String(50), nullable=False)
+    files_processed = db.Column(db.Integer, default=0)
+    active_minutes = db.Column(db.Integer, default=0)
+    pause_minutes = db.Column(db.Integer, default=0)
+    status = db.Column(db.String(50), default='Verified')
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': f"ps-{self.id}",
+            'date': self.date,
+            'editorName': self.editor_name,
+            'role': self.role,
+            'jobId': self.job_id,
+            'client': self.client,
+            'stage': self.stage,
+            'filesProcessed': self.files_processed,
+            'activeMinutes': self.active_minutes,
+            'pauseMinutes': self.pause_minutes,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class AuditLog(db.Model):
+    __tablename__ = 'audit_logs'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_email = db.Column(db.String(255), nullable=False)
+    user_name = db.Column(db.String(255), nullable=False)
+    action = db.Column(db.String(100), nullable=False)
+    details = db.Column(db.Text, nullable=True)
+    timestamp = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'userEmail': self.user_email,
+            'userName': self.user_name,
+            'action': self.action,
+            'details': self.details or '',
+            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+        }
+
+
+

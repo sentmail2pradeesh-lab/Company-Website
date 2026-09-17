@@ -32,12 +32,24 @@ export default function JobAssignmentModal() {
   if (!assignModalState || !job || !stage || !canAssignJob) return null;
 
   const stageLabels = {
+    blending: 'Blending (Exposure & Composite)',
     path1: 'Path 1 (Prep & Masking)',
     path2: 'Path 2 (Secondary Pathing)',
     editor1: 'Editor 1 (Primary Edit)',
     editor2: 'Editor 2 (Secondary Edit)',
+    lc: 'LC (Lighting & Color Correction)',
     qc: 'QC (Quality Control)',
     fc: 'FC (Final Verification)',
+  };
+
+  const getActiveCount = (editorName) => {
+    return jobs.reduce((acc, j) => {
+      if (!j.stages) return acc;
+      const hasActive = Object.values(j.stages).some(
+        (st) => st.assignee === editorName && (st.status === 'In Progress' || st.status === 'Paused')
+      );
+      return acc + (hasActive ? 1 : 0);
+    }, 0);
   };
 
   const handleSubmit = (e) => {
@@ -63,7 +75,7 @@ export default function JobAssignmentModal() {
             <FiUserCheck className="w-3.5 h-3.5" /> Reassign Stage Personnel
           </div>
           <h3 className="text-xl font-bold text-slate-900 mt-1">
-            {stageLabels[stageKey]}
+            {stageLabels[stageKey] || stageKey}
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
             Job <span className="font-mono font-bold text-indigo-600">#{job.id}</span> • Client <span className="font-bold text-slate-900">{job.client}</span>
@@ -78,11 +90,11 @@ export default function JobAssignmentModal() {
             <select
               value={selectedAssignee}
               onChange={(e) => setSelectedAssignee(e.target.value)}
-              className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+              className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-medium"
             >
               {editors.map((ed) => (
                 <option key={ed.id} value={ed.name}>
-                  {ed.name} — {ed.role} ({ed.activeCount} active tasks)
+                  {ed.name} — {ed.role} ({getActiveCount(ed.name)} active tasks)
                 </option>
               ))}
             </select>

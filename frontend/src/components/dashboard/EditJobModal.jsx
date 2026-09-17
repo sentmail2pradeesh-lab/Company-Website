@@ -199,6 +199,33 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              {/* Blending */}
+              <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 space-y-1.5">
+                <label className="block text-[11px] font-bold text-slate-700">Blending Stage</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <select
+                    value={blendingAssignee}
+                    onChange={(e) => setBlendingAssignee(e.target.value)}
+                    className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
+                  >
+                    <option value="">Unassigned</option>
+                    {editors.map((ed) => (
+                      <option key={ed.id} value={ed.name}>
+                        {ed.name} ({ed.role})
+                      </option>
+                    ))}
+                  </select>
+                  <input
+                    type="number"
+                    value={blendingFiles}
+                    onChange={(e) => setBlendingFiles(e.target.value)}
+                    placeholder="Files"
+                    className="col-span-1 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono focus:outline-none focus:border-indigo-500"
+                    title="Files count for Blending"
+                  />
+                </div>
+              </div>
+
               {/* Path 1 */}
               <div className="bg-slate-50 p-2.5 rounded-xl border border-slate-200/70 space-y-1.5">
                 <label className="block text-[11px] font-bold text-slate-700">Path 1 Stage</label>

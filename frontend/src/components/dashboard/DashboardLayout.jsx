@@ -57,7 +57,7 @@ export default function DashboardLayout() {
       {/* ASZEN Design Clean White Top Navigation Header */}
       <header className="fixed top-0 left-0 right-0 h-16 z-40 bg-white text-slate-800 border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between shadow-xs">
         {/* Left Side Navigation Links */}
-        <div className="flex items-center gap-8 pl-64">
+        <div className={`flex items-center gap-8 transition-all duration-300 ${isSidebarCollapsed ? 'pl-24' : 'pl-64'}`}>
           <nav className="flex items-center gap-8 text-sm font-semibold">
             <NavLink
               to="/dashboard"
@@ -99,15 +99,17 @@ export default function DashboardLayout() {
 
         {/* Right Side Quick User Profile Badge & Work Session Timer */}
         <div className="flex items-center gap-3">
-          {/* Active Work Session Live Badge */}
-          <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
-            </span>
-            <FiClock className="w-3.5 h-3.5" />
-            <span>Shift: {elapsedStr}</span>
-          </div>
+          {/* Active Work Session Live Badge (Exempt for Admin management authority) */}
+          {user?.role !== 'admin' && user?.email?.toLowerCase() !== 'arun@aszen.com' && (
+            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <FiClock className="w-3.5 h-3.5" />
+              <span>Shift: {elapsedStr}</span>
+            </div>
+          )}
 
           {/* Admin Control Page Link */}
           {canManageClients && (

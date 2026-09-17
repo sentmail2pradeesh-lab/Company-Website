@@ -12,7 +12,7 @@ export function AuthProvider({ children }) {
   const closeLogin = useCallback(() => setIsLoginOpen(false), []);
 
   useEffect(() => {
-    // Clear legacy localStorage user session keys so tabs do not bleed sessions
+    // Clear legacy localStorage user session keys so tabs do not bleed sessions across tabs
     localStorage.removeItem('aszen_user');
     localStorage.removeItem('aszen_token');
 
@@ -61,31 +61,48 @@ export function AuthProvider({ children }) {
       const userData = res.data.user;
       sessionStorage.setItem('aszen_token', res.data.token);
       sessionStorage.setItem('aszen_user', JSON.stringify(userData));
+      localStorage.removeItem('aszen_token');
+      localStorage.removeItem('aszen_user');
       
-      // Store session login timestamp for active shift
+      // Store session login timestamp for active shift (use existing ongoing shift time if reconnected)
       const nowIso = new Date().toISOString();
-      sessionStorage.setItem('aszen_login_timestamp', nowIso);
+      const backendSession = res.data.work_session;
+      const shiftLoginTime = backendSession?.login_time || nowIso;
+      sessionStorage.setItem('aszen_login_timestamp', shiftLoginTime);
 
-      // Initialize work session log in localStorage if not master Admin (arun@aszen.com)
-      if (fullEmail.toLowerCase() !== 'arun@aszen.com') {
+      // Initialize or sync work session log in localStorage if not master Admin or Admin role
+      if (fullEmail.toLowerCase() !== 'arun@aszen.com' && userData.role !== 'admin') {
         try {
           const savedSessions = localStorage.getItem('aszen_work_sessions');
           const list = savedSessions ? JSON.parse(savedSessions) : [];
-          const todayStr = new Date().toISOString().slice(0, 10);
-          const existingActive = list.find((s) => s.user_email?.toLowerCase() === fullEmail.toLowerCase() && s.date === todayStr && s.status === 'Active');
-          if (!existingActive) {
+          const todayStr = nowIso.slice(0, 10);
+          const shiftDate = backendSession?.date || todayStr;
+          
+          const existingIndex = list.findIndex(
+            (s) => s.user_email?.toLowerCase() === fullEmail.toLowerCase() && s.status === 'Active'
+          );
+
+          if (existingIndex >= 0) {
+            list[existingIndex] = {
+              ...list[existingIndex],
+              login_time: shiftLoginTime,
+              date: shiftDate,
+              status: 'Active',
+            };
+            localStorage.setItem('aszen_work_sessions', JSON.stringify(list));
+          } else {
             const newSession = {
-              id: `ws-${Date.now().toString().slice(-4)}`,
+              id: backendSession?.id ? `ws-${backendSession.id}` : `ws-${Date.now().toString().slice(-4)}`,
               user_name: userData.name,
               user_email: fullEmail,
               user_role: userData.role,
               user_designation: userData.designation || 'Editor',
-              date: todayStr,
-              login_time: nowIso,
+              date: shiftDate,
+              login_time: shiftLoginTime,
               logout_time: null,
               total_hours: 0,
               status: 'Active',
-              notes: 'Shift started',
+              notes: res.data.is_reconnected ? 'Shift reconnected' : 'Shift started',
             };
             localStorage.setItem('aszen_work_sessions', JSON.stringify([newSession, ...list]));
           }
@@ -132,7 +149,7 @@ export function AuthProvider({ children }) {
     try {
       const nowIso = new Date().toISOString();
       const savedSessions = localStorage.getItem('aszen_work_sessions');
-      if (savedSessions && user) {
+      if (savedSessions && user && user.role !== 'admin' && user.email?.toLowerCase() !== 'arun@aszen.com') {
         const list = JSON.parse(savedSessions);
         const updatedList = list.map((s) => {
           if (s.user_email?.toLowerCase() === (user.email || '').toLowerCase() && s.status === 'Active') {
@@ -164,6 +181,8 @@ export function AuthProvider({ children }) {
     sessionStorage.removeItem('aszen_token');
     sessionStorage.removeItem('aszen_user');
     sessionStorage.removeItem('aszen_login_timestamp');
+    localStorage.removeItem('aszen_token');
+    localStorage.removeItem('aszen_user');
     setUser(null);
   };
 

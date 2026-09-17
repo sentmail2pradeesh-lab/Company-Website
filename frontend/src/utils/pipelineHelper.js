@@ -83,12 +83,12 @@ export const checkStageUnlockStatus = (job, stageKey) => {
     return { isUnlocked: true, lockedReason: '' };
   }
 
-  // Step 5: FC (Final Check) -> Requires LC (and all earlier) to be completed
-  if (stageKey === 'fc') {
+  // Step 5: FC (Final Check) / QC -> Requires LC (and all earlier) to be completed
+  if (stageKey === 'fc' || stageKey === 'qc') {
     if (!isSatisfied('blending')) {
       return {
         isUnlocked: false,
-        lockedReason: 'Blending stage must be Completed first before starting FC!',
+        lockedReason: 'Blending stage must be Completed first before starting FC / QC!',
         prereqName: 'Blending Stage',
       };
     }

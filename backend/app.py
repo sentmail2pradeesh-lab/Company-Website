@@ -2,16 +2,18 @@ from flask import Flask
 from flask_cors import CORS
 from config import Config
 from database import db
-from models import User, Blog, WorkSession
+from models import User, Blog, WorkSession, Client, Job, JobStage, ProductionSheetEntry, AuditLog
 from routes.auth import auth_bp
 from routes.blogs import blogs_bp
 from routes.work_hours import work_hours_bp
+from routes.clients import clients_bp
+from routes.jobs import jobs_bp
 from utils.mail import mail
 
 
-def create_app():
+def create_app(config_object=Config):
     app = Flask(__name__)
-    app.config.from_object(Config)
+    app.config.from_object(config_object)
 
     CORS(app, resources={r'/api/*': {'origins': '*'}})
     db.init_app(app)
@@ -20,6 +22,8 @@ def create_app():
     app.register_blueprint(auth_bp, url_prefix='/api/auth')
     app.register_blueprint(blogs_bp, url_prefix='/api/blogs')
     app.register_blueprint(work_hours_bp, url_prefix='/api/work-hours')
+    app.register_blueprint(clients_bp, url_prefix='/api/clients')
+    app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
 
 
     @app.route('/api/health')
@@ -52,13 +56,15 @@ def create_app():
             print("DB Migration notice:", e)
 
         seed_users()
+        seed_clients()
         seed_blogs()
 
     return app
 
 
+
 def seed_users():
-    # Only master Admin account is pre-seeded. All other users created dynamically by Admin.
+    # Production: Only master Admin account is pre-seeded. All employee personnel created dynamically by Admin.
     admin_email = "arun@aszen.com"
     admin = User.query.filter_by(email=admin_email).first()
     if not admin:
@@ -71,6 +77,12 @@ def seed_users():
         admin.designation = "Admin / System Manager"
         admin.set_password("Aszen@123")
     db.session.commit()
+
+
+def seed_clients():
+    # Production: Start with clean database (0 test clients)
+    pass
+
 
 
 
@@ -99,7 +111,13 @@ def seed_blogs():
     db.session.commit()
 
 
+app = create_app()
+
+
 if __name__ == '__main__':
-    app = create_app()
-    app.run(debug=True, port=5000)
+    import os
+    port = int(os.environ.get('PORT', 5000))
+    debug = os.environ.get('FLASK_ENV', 'development') != 'production'
+    app.run(debug=debug, host='0.0.0.0', port=port)
+
 

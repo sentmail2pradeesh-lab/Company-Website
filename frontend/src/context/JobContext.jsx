@@ -28,27 +28,58 @@ export function JobProvider({ children }) {
   }, []);
 
 
-  // Helper to ensure stage objects are safely structured
+  const STANDARD_STAGES = ['blending', 'path1', 'path2', 'editor1', 'editor2', 'lc', 'fc'];
+
+  // Helper to ensure stage objects and standard fields are safely structured
   const normalizeJobs = (jobList) => {
     if (!Array.isArray(jobList)) return [];
     return jobList.map((job) => {
-      if (!job || !job.stages) return job;
-      const normalizedStages = { ...job.stages };
+      if (!job) return job;
+      const rawStages = job.stages || {};
+      const normalizedStages = { ...rawStages };
+
+      // Ensure all standard stages exist
+      STANDARD_STAGES.forEach((key) => {
+        if (!normalizedStages[key]) {
+          normalizedStages[key] = {
+            assignee: '',
+            status: 'Unassigned',
+            filesCount: 0,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+            currentPauseStart: null,
+          };
+        }
+      });
+
       Object.keys(normalizedStages).forEach((key) => {
         const s = normalizedStages[key] || {};
         normalizedStages[key] = {
           assignee: s.assignee || '',
           status: s.status || (s.assignee ? 'Pending' : 'Unassigned'),
-          filesCount: s.filesCount || 0,
+          filesCount: Number(s.filesCount) || 0,
           startTime: s.startTime || null,
           endTime: s.endTime || null,
-          pausedDurationSeconds: s.pausedDurationSeconds || 0,
+          pausedDurationSeconds: Number(s.pausedDurationSeconds) || 0,
           pauseLogs: Array.isArray(s.pauseLogs) ? s.pauseLogs : [],
-          outputCount: s.outputCount || 0,
+          outputCount: Number(s.outputCount) || 0,
           currentPauseStart: s.currentPauseStart || null,
         };
       });
-      return { ...job, stages: normalizedStages };
+
+      return {
+        ...job,
+        id: String(job.id || job.jobNumber || ''),
+        jobNumber: String(job.jobNumber || job.id || ''),
+        client: job.client || job.client_code || 'BE',
+        name: job.name || job.service || 'Untitled Job',
+        service: job.service || job.name || 'Untitled Job',
+        outputTarget: Number(job.outputTarget !== undefined ? job.outputTarget : (job.output_target || 0)),
+        stages: normalizedStages,
+      };
     });
   };
 
@@ -143,19 +174,29 @@ export function JobProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Persist state updates to LocalStorage & broadcast real-time
-  const updateJobsState = (newJobs) => {
+  // Persist state updates to LocalStorage, SQLite Backend & broadcast real-time
+  const updateJobsState = (newJobs, targetJobToSync = null) => {
     const normalized = normalizeJobs(newJobs);
     setJobs([...normalized]);
     localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
     broadcastSync(normalized, productionSheets, editors, clients, workSessions);
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token && targetJobToSync) {
+      api.put(`/jobs/${targetJobToSync.id || targetJobToSync.jobNumber}`, targetJobToSync).catch(() => {});
+    }
   };
 
-  const updateProdSheetsState = (newSheets, currentJobs = null) => {
+  const updateProdSheetsState = (newSheets, currentJobs = null, newEntryToSync = null) => {
     setProductionSheets(newSheets);
     localStorage.setItem('aszen_prod_sheets', JSON.stringify(newSheets));
     const targetJobs = currentJobs ? normalizeJobs(currentJobs) : jobs;
     broadcastSync(targetJobs, newSheets, editors, clients, workSessions);
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token && newEntryToSync) {
+      api.post('/jobs/production-sheets', newEntryToSync).catch(() => {});
+    }
   };
 
   const updateEditorsState = (newEditors) => {
@@ -202,20 +243,21 @@ export function JobProvider({ children }) {
     totalJobs: jobs.length,
     totalFiles: jobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0),
     completedJobs: jobs.filter((j) =>
-      Object.values(j.stages).every((s) => s.status === 'Complete' || !s.assignee)
+      Object.values(j.stages || {}).every((s) => s?.status === 'Complete' || !s?.assignee)
     ).length,
     pendingJobs: jobs.filter((j) =>
-      Object.values(j.stages).some((s) => s.status === 'Pending' || s.status === 'In-Progress' || s.status === 'Paused')
+      Object.values(j.stages || {}).some((s) => s?.status === 'Pending' || s?.status === 'In-Progress' || s?.status === 'Paused')
     ).length,
-    blendingPendingJobs: jobs.filter((j) => j.stages.blending && (j.stages.blending.status === 'In-Progress' || j.stages.blending.status === 'Pending')).length,
-    pathPendingJobs: jobs.filter((j) => (j.stages.path1 && j.stages.path1.status !== 'Complete') || (j.stages.path2 && j.stages.path2.status !== 'Complete')).length,
-    editingPendingJobs: jobs.filter((j) => (j.stages.editor1 && j.stages.editor1.status !== 'Complete') || (j.stages.editor2 && j.stages.editor2.status !== 'Complete')).length,
-    fcPendingJobs: jobs.filter((j) => j.stages.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
-    qcPendingJobs: jobs.filter((j) => j.stages.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
+    blendingPendingJobs: jobs.filter((j) => j.stages?.blending && (j.stages.blending.status === 'In-Progress' || j.stages.blending.status === 'Pending')).length,
+    pathPendingJobs: jobs.filter((j) => (j.stages?.path1 && j.stages.path1.status !== 'Complete' && j.stages.path1.assignee) || (j.stages?.path2 && j.stages.path2.status !== 'Complete' && j.stages.path2.assignee)).length,
+    editingPendingJobs: jobs.filter((j) => (j.stages?.editor1 && j.stages.editor1.status !== 'Complete' && j.stages.editor1.assignee) || (j.stages?.editor2 && j.stages.editor2.status !== 'Complete' && j.stages.editor2.assignee)).length,
+    lcPendingJobs: jobs.filter((j) => j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')).length,
+    fcPendingJobs: jobs.filter((j) => j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
+    qcPendingJobs: jobs.filter((j) => (j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')) || (j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')) || (j.stages?.qc && (j.stages.qc.status === 'In-Progress' || j.stages.qc.status === 'Pending'))).length,
   };
 
   // Job Actions
-  const createJob = (newJobData) => {
+  const createJob = async (newJobData) => {
     const newId = (1000 + jobs.length + 1).toString();
 
     const path1Files = Number(newJobData.path1Files) || Number(newJobData.outputTarget) || 0;
@@ -228,6 +270,7 @@ export function JobProvider({ children }) {
 
     const formattedJob = {
       id: newId,
+      jobNumber: newId,
       client: newJobData.client || 'BE',
       category: newJobData.category || 'Photo Editing',
       name: newJobData.name || 'Untitled Job',
@@ -245,16 +288,6 @@ export function JobProvider({ children }) {
           assignee: newJobData.blendingAssignee || '',
           status: newJobData.blendingAssignee ? 'Pending' : 'Unassigned',
           filesCount: blendingFiles,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        lc: {
-          assignee: newJobData.lcAssignee || '',
-          status: newJobData.lcAssignee ? 'Pending' : 'Unassigned',
-          filesCount: lcFiles,
           startTime: null,
           endTime: null,
           pausedDurationSeconds: 0,
@@ -301,6 +334,16 @@ export function JobProvider({ children }) {
           pauseLogs: [],
           outputCount: 0,
         },
+        lc: {
+          assignee: newJobData.lcAssignee || '',
+          status: newJobData.lcAssignee ? 'Pending' : 'Unassigned',
+          filesCount: lcFiles,
+          startTime: null,
+          endTime: null,
+          pausedDurationSeconds: 0,
+          pauseLogs: [],
+          outputCount: 0,
+        },
         fc: {
           assignee: newJobData.fcAssignee || '',
           status: newJobData.fcAssignee ? 'Pending' : 'Unassigned',
@@ -313,16 +356,41 @@ export function JobProvider({ children }) {
         },
       },
     };
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      try {
+        const res = await api.post('/jobs', formattedJob);
+        if (res.data?.job) {
+          const createdJob = normalizeJobs([res.data.job])[0];
+          updateJobsState([createdJob, ...jobs.filter((j) => j.id !== createdJob.id)]);
+          setIsCreateModalOpen(false);
+          return createdJob;
+        }
+      } catch (err) {
+        console.error('Create job API error:', err);
+      }
+    }
+
     updateJobsState([formattedJob, ...jobs]);
     setIsCreateModalOpen(false);
+    return formattedJob;
   };
 
-  const deleteJob = (jobId) => {
+  const deleteJob = async (jobId) => {
     if (!canDeleteJob) {
       alert('Only Admin or Manager can delete jobs.');
       return;
     }
-    updateJobsState(jobs.filter((j) => j.id !== jobId));
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token && jobId) {
+      try {
+        await api.delete(`/jobs/${jobId}`);
+      } catch (err) {
+        console.error('Delete job API error:', err);
+      }
+    }
+    updateJobsState(jobs.filter((j) => j.id !== jobId && j.jobNumber !== jobId));
   };
 
   const assignStage = (jobId, stageKey, assigneeName) => {
@@ -330,9 +398,10 @@ export function JobProvider({ children }) {
       alert('Permission Denied: Only Manager or Admin can assign team members to job stages.');
       return;
     }
+    let targetJob = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
-        return {
+        const updatedJob = {
           ...j,
           stages: {
             ...j.stages,
@@ -343,10 +412,12 @@ export function JobProvider({ children }) {
             },
           },
         };
+        targetJob = updatedJob;
+        return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated);
+    updateJobsState(updated, targetJob);
     setAssignModalState(null);
   };
 
@@ -366,9 +437,10 @@ export function JobProvider({ children }) {
       }
     }
     const nowIso = new Date().toISOString();
+    let targetJob = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
-        return {
+        const updatedJob = {
           ...j,
           stages: {
             ...j.stages,
@@ -379,10 +451,12 @@ export function JobProvider({ children }) {
             },
           },
         };
+        targetJob = updatedJob;
+        return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated);
+    updateJobsState(updated, targetJob);
   };
 
   const pauseStageTimer = (jobId, stageKey, reason) => {
@@ -395,10 +469,11 @@ export function JobProvider({ children }) {
       }
     }
     const nowIso = new Date().toISOString();
+    let targetJob = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
         const currentStage = j.stages[stageKey];
-        return {
+        const updatedJob = {
           ...j,
           stages: {
             ...j.stages,
@@ -413,10 +488,12 @@ export function JobProvider({ children }) {
             },
           },
         };
+        targetJob = updatedJob;
+        return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated);
+    updateJobsState(updated, targetJob);
   };
 
   const resumeStageTimer = (jobId, stageKey) => {
@@ -429,6 +506,7 @@ export function JobProvider({ children }) {
       }
     }
     const now = new Date();
+    let targetJob = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
         const currentStage = j.stages[stageKey];
@@ -440,7 +518,7 @@ export function JobProvider({ children }) {
           updatedLogs[updatedLogs.length - 1].duration = diffSeconds;
         }
 
-        return {
+        const updatedJob = {
           ...j,
           stages: {
             ...j.stages,
@@ -453,10 +531,12 @@ export function JobProvider({ children }) {
             },
           },
         };
+        targetJob = updatedJob;
+        return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated);
+    updateJobsState(updated, targetJob);
   };
 
   const finishStageTimer = (jobId, stageKey, outputFilesCount) => {
@@ -500,7 +580,7 @@ export function JobProvider({ children }) {
       return j;
     });
 
-    updateJobsState(updated);
+    updateJobsState(updated, updatedTargetJob);
 
     // Auto-create a production sheet entry
     if (updatedTargetJob) {
@@ -511,6 +591,8 @@ export function JobProvider({ children }) {
       const pauseMins = Math.round((stageObj.pausedDurationSeconds || 0) / 60);
 
       const stageLabels = {
+        blending: 'Blending',
+        lc: 'LC',
         path1: 'Path 1',
         path2: 'Path 2',
         editor1: 'Editor 1',
@@ -532,30 +614,104 @@ export function JobProvider({ children }) {
         pauseMinutes: pauseMins,
         status: 'Verified',
       };
-      updateProdSheetsState([newEntry, ...productionSheets], updated);
+      updateProdSheetsState([newEntry, ...productionSheets], updated, newEntry);
     }
 
     setTimerModalState(null);
   };
 
   const updateClientTurnaround = (jobId, entryTime, targetTime, finishTime) => {
+    let targetJob = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
-        return {
+        const updatedJob = {
           ...j,
           clientEntryTime: entryTime,
           clientTargetTime: targetTime,
           clientFinishTime: finishTime || j.clientFinishTime,
         };
+        targetJob = updatedJob;
+        return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated);
+    updateJobsState(updated, targetJob);
     setClientModalState(null);
   };
 
+  // Sync jobs from backend API on mount / user change
+  useEffect(() => {
+    api
+      .get('/jobs')
+      .then((res) => {
+        if (Array.isArray(res.data?.jobs) && res.data.jobs.length > 0) {
+          const normalized = normalizeJobs(res.data.jobs);
+          setJobs(normalized);
+          localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  // Sync production sheets from backend API on mount / user change
+  useEffect(() => {
+    api
+      .get('/jobs/production-sheets')
+      .then((res) => {
+        if (Array.isArray(res.data?.productionSheets) && res.data.productionSheets.length > 0) {
+          setProductionSheets(res.data.productionSheets);
+          localStorage.setItem('aszen_prod_sheets', JSON.stringify(res.data.productionSheets));
+        }
+      })
+      .catch(() => {});
+  }, [user]);
+
+  // Sync clients from backend API on mount / user change
+  useEffect(() => {
+    api
+      .get('/clients')
+      .then((res) => {
+        if (Array.isArray(res.data?.clients)) {
+          const mapped = res.data.clients.map((c) => ({
+            id: c.id,
+            code: c.code,
+            name: c.name,
+            contact: c.contact,
+          }));
+          setClients(mapped);
+          localStorage.setItem('aszen_clients', JSON.stringify(mapped));
+        }
+      })
+      .catch(() => {
+        // Offline fallback
+      });
+  }, [user]);
+
   // Client Management (Admin)
-  const addClient = (clientData) => {
+  const addClient = async (clientData) => {
+    const token = sessionStorage.getItem('aszen_token');
+    try {
+      if (token) {
+        const res = await api.post('/clients', {
+          code: (clientData.code || 'NEW').toUpperCase(),
+          name: clientData.name || 'New Client',
+          contact: clientData.contact || '',
+        });
+        const created = res.data.client;
+        const newClient = {
+          id: created.id,
+          code: created.code,
+          name: created.name,
+          contact: created.contact,
+        };
+        updateClientsState([...clients, newClient]);
+        return;
+      }
+    } catch (err) {
+      console.error('Add client API error:', err);
+    }
+
+    // Demo fallback
     const newClient = {
       id: `c-${Date.now().toString().slice(-4)}`,
       code: (clientData.code || 'NEW').toUpperCase(),
@@ -565,13 +721,24 @@ export function JobProvider({ children }) {
     updateClientsState([...clients, newClient]);
   };
 
-  const deleteClient = (clientId) => {
+  const deleteClient = async (clientId) => {
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    try {
+      if (token && clientId) {
+        const idToPass = typeof clientId === 'number' ? clientId : parseInt(String(clientId).replace('c-', ''), 10);
+        if (!isNaN(idToPass) && idToPass > 0) {
+          await api.delete(`/clients/${idToPass}`);
+        }
+      }
+    } catch (err) {
+      console.error('Delete client API error:', err);
+    }
     updateClientsState(clients.filter((c) => c.id !== clientId));
   };
 
   // Sync registered users/editors from backend API on mount / user change
   useEffect(() => {
-    const token = sessionStorage.getItem('aszen_token');
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     if (token) {
       api
         .get('/auth/users')
@@ -596,9 +763,25 @@ export function JobProvider({ children }) {
     }
   }, [user]);
 
+  // Sync work sessions from backend API on mount / user change
+  useEffect(() => {
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      api
+        .get('/work-hours/all')
+        .then((res) => {
+          if (Array.isArray(res.data?.sessions)) {
+            setWorkSessions(res.data.sessions);
+            localStorage.setItem('aszen_work_sessions', JSON.stringify(res.data.sessions));
+          }
+        })
+        .catch(() => {});
+    }
+  }, [user]);
+
   // Employee Management (Admin)
   const addEmployee = async (empData) => {
-    const token = sessionStorage.getItem('aszen_token');
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     try {
       if (token) {
         const res = await api.post('/auth/users', {
@@ -634,10 +817,13 @@ export function JobProvider({ children }) {
   };
 
   const deleteEmployee = async (empId) => {
-    const token = sessionStorage.getItem('aszen_token');
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     try {
-      if (token && typeof empId === 'number') {
-        await api.delete(`/auth/users/${empId}`);
+      if (token && empId) {
+        const idToPass = typeof empId === 'number' ? empId : parseInt(String(empId).replace('e-', ''), 10);
+        if (!isNaN(idToPass) && idToPass > 0) {
+          await api.delete(`/auth/users/${idToPass}`);
+        }
       }
     } catch (err) {
       console.error('Delete user API error:', err);
@@ -645,13 +831,13 @@ export function JobProvider({ children }) {
     updateEditorsState(editors.filter((e) => e.id !== empId));
   };
 
-
   // Work Session / Attendance Management (Manager & Admin Only)
-  const addWorkSession = (sessionData) => {
+  const addWorkSession = async (sessionData) => {
     if (userRole !== 'admin' && userRole !== 'manager') {
       alert('Permission Denied: Only Manager or Admin can add working hour logs.');
       return;
     }
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     const loginDt = sessionData.login_time || new Date().toISOString();
     const logoutDt = sessionData.logout_time || null;
     let hours = Number(sessionData.total_hours) || 0;
@@ -670,13 +856,35 @@ export function JobProvider({ children }) {
       status: logoutDt ? 'Completed' : 'Active',
       notes: sessionData.notes || `Added by ${user?.name || userRole}`,
     };
+
+    if (token) {
+      try {
+        const res = await api.post('/work-hours/manual', newSession);
+        if (res.data?.session) {
+          updateWorkSessionsState([res.data.session, ...workSessions.filter((s) => s.id !== res.data.session.id)]);
+          return;
+        }
+      } catch (err) {
+        console.error('Add work session API error:', err);
+      }
+    }
+
     updateWorkSessionsState([newSession, ...workSessions]);
   };
 
-  const updateWorkSession = (id, updatedFields) => {
+  const updateWorkSession = async (id, updatedFields) => {
     if (userRole !== 'admin' && userRole !== 'manager') {
       alert('Permission Denied: Only Manager or Admin can edit working hour logs.');
       return;
+    }
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    const numericId = typeof id === 'number' ? id : parseInt(String(id).replace('ws-', ''), 10);
+    if (token && !isNaN(numericId) && numericId > 0) {
+      try {
+        await api.put(`/work-hours/${numericId}`, updatedFields);
+      } catch (err) {
+        console.error('Update work session API error:', err);
+      }
     }
     const updated = workSessions.map((ws) => {
       if (ws.id === id) {
@@ -693,10 +901,19 @@ export function JobProvider({ children }) {
     updateWorkSessionsState(updated);
   };
 
-  const deleteWorkSession = (id) => {
+  const deleteWorkSession = async (id) => {
     if (userRole !== 'admin' && userRole !== 'manager') {
       alert('Permission Denied: Only Manager or Admin can delete working hour logs.');
       return;
+    }
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    const numericId = typeof id === 'number' ? id : parseInt(String(id).replace('ws-', ''), 10);
+    if (token && !isNaN(numericId) && numericId > 0) {
+      try {
+        await api.delete(`/work-hours/${numericId}`);
+      } catch (err) {
+        console.error('Delete work session API error:', err);
+      }
     }
     updateWorkSessionsState(workSessions.filter((ws) => ws.id !== id));
   };
@@ -719,6 +936,7 @@ export function JobProvider({ children }) {
         canManageEmployees,
         canManageWorkHours,
         canUpdateStage,
+        updateJobsState,
         createJob,
         deleteJob,
         assignStage,

@@ -23,12 +23,12 @@ export default function ProductionSheetsPage() {
 
   // Search & Filter state for Output Sheets
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState('2026-08-27');
+  const [selectedDate, setSelectedDate] = useState('');
 
   // Search & Filter state for Working Hours
   const [whSearchTerm, setWhSearchTerm] = useState('');
   const [whDateFilter, setWhDateFilter] = useState('');
-  const [whMonthFilter, setWhMonthFilter] = useState('2026-09');
+  const [whMonthFilter, setWhMonthFilter] = useState(() => new Date().toISOString().slice(0, 7));
 
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -56,8 +56,8 @@ export default function ProductionSheetsPage() {
     const sEmail = (session.user_email || '').toLowerCase();
     const sName = (session.user_name || '').toLowerCase();
 
-    // Master Admin arun@aszen.com is excluded from production working hours records
-    if (sEmail === 'arun@aszen.com') return false;
+    // Master Admin & Admin management authority accounts are excluded from working hours attendance records
+    if (sEmail === 'arun@aszen.com' || (session.user_role || '').toLowerCase() === 'admin') return false;
 
     // If logged in as employee, strictly filter to employee's own logs
     if (!isManagerOrAdmin) {
@@ -85,7 +85,8 @@ export default function ProductionSheetsPage() {
   });
 
   const todayStr = new Date().toISOString().slice(0, 10);
-  const currentMonthStr = '2026-09';
+  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const monthDisplayName = new Date().toLocaleDateString('default', { month: 'long', year: 'numeric' });
 
   // Today's hours
   const myTodaySessions = mySessions.filter((s) => s.date === todayStr);
@@ -133,6 +134,29 @@ export default function ProductionSheetsPage() {
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
     link.setAttribute('download', `working_hours_sheet_${new Date().toISOString().slice(0, 10)}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportProductionSheetsToCSV = () => {
+    const headers = ['Date', 'Editor Name', 'Role/Stage', 'Job ID', 'Client', 'Files Processed', 'Active Minutes', 'Pause Minutes', 'Status'];
+    const rows = filteredSheets.map((s) => [
+      s.date,
+      `"${s.editorName || ''}"`,
+      s.role || s.stage,
+      s.jobId,
+      s.client,
+      s.filesProcessed,
+      s.activeMinutes,
+      s.pauseMinutes || 0,
+      s.status,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `production_sheets_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -207,7 +231,7 @@ export default function ProductionSheetsPage() {
                   <div className="text-2xl font-black font-mono text-emerald-600">
                     {myDaysWorkedMonth} Days
                   </div>
-                  <div className="text-[11px] text-slate-500 font-medium mt-0.5">September 2026 total</div>
+                  <div className="text-[11px] text-slate-500 font-medium mt-0.5">{monthDisplayName} total</div>
                 </div>
               </div>
 
@@ -437,29 +461,81 @@ export default function ProductionSheetsPage() {
 
       {/* ================= TAB 2: DAILY OUTPUT SHEETS ================= */}
       {activeTab === 'output-sheets' && (
-        <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-4 overflow-hidden">
-          <div className="p-5 pb-0 flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="relative flex-1 w-full sm:max-w-md">
-              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-              <input
-                type="text"
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                placeholder="Search by Editor, Client, or Job ID..."
-                className="w-full bg-slate-50 text-slate-800 pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
-              />
+        <div className="space-y-6">
+          {/* Daily Output Summary Cards */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-indigo-50 text-indigo-600">
+                <FiFileText className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Output Sheets</div>
+                <div className="text-2xl font-black font-mono text-slate-900">{filteredSheets.length}</div>
+                <div className="text-[11px] text-indigo-600 font-medium mt-0.5">Logged entries</div>
+              </div>
             </div>
 
-            <div className="flex items-center gap-2 w-full sm:w-auto text-xs text-slate-500">
-              <FiCalendar className="w-4 h-4 text-indigo-600" />
-              <input
-                type="date"
-                value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
-              />
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-emerald-50 text-emerald-600">
+                <FiCheckCircle className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Files Processed</div>
+                <div className="text-2xl font-black font-mono text-emerald-600">{totalFiles}</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">Total output count</div>
+              </div>
+            </div>
+
+            <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
+              <div className="p-3.5 rounded-2xl bg-purple-50 text-purple-600">
+                <FiClock className="w-6 h-6" />
+              </div>
+              <div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Active Time</div>
+                <div className="text-2xl font-black font-mono text-purple-600">{totalActiveMins} mins</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">{Math.round((totalActiveMins / 60) * 10) / 10} hours total</div>
+              </div>
             </div>
           </div>
+
+          <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-4 overflow-hidden">
+            <div className="p-5 pb-0 flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="relative flex-1 w-full sm:max-w-md">
+                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Search by Editor, Client, or Job ID..."
+                  className="w-full bg-slate-50 text-slate-800 pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                />
+              </div>
+
+              <div className="flex items-center gap-2 w-full sm:w-auto text-xs text-slate-500">
+                <FiCalendar className="w-4 h-4 text-indigo-600" />
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => setSelectedDate(e.target.value)}
+                  className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
+                />
+                {selectedDate && (
+                  <button
+                    onClick={() => setSelectedDate('')}
+                    className="text-indigo-600 text-xs font-semibold hover:underline px-1"
+                  >
+                    Clear
+                  </button>
+                )}
+                <button
+                  onClick={exportProductionSheetsToCSV}
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0"
+                  title="Export Daily Output Sheets to CSV"
+                >
+                  <FiDownload className="w-3.5 h-3.5" /> Export CSV
+                </button>
+              </div>
+            </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
@@ -516,7 +592,8 @@ export default function ProductionSheetsPage() {
             </table>
           </div>
         </div>
-      )}
+      </div>
+    )}
 
       {/* Modal for adding/editing work sessions (Manager/Admin) */}
       <WorkSessionModal

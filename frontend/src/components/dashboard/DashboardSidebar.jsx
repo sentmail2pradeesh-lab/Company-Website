@@ -180,21 +180,37 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed }) {
           {!isCollapsed && <span className="truncate">Client Summary</span>}
         </NavLink>
 
-        {/* 5. Admin Panel (Admin Only) */}
+        {/* 5. Admin Panel & Audit Logs (Admin Only) */}
         {canManageClients && (
-          <NavLink
-            to="/dashboard/management"
-            className={({ isActive }) =>
-              `flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-semibold transition-all ${
-                isActive
-                  ? 'bg-[#151623] text-indigo-400 font-bold border-l-4 border-indigo-500'
-                  : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
-              }`
-            }
-          >
-            <span className="text-indigo-400 text-sm">👑</span>
-            {!isCollapsed && <span className="truncate">Admin Panel</span>}
-          </NavLink>
+          <>
+            <NavLink
+              to="/dashboard/management"
+              className={({ isActive }) =>
+                `flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-[#151623] text-indigo-400 font-bold border-l-4 border-indigo-500'
+                    : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
+                }`
+              }
+            >
+              <span className="text-indigo-400 text-sm">👑</span>
+              {!isCollapsed && <span className="truncate">Admin Panel</span>}
+            </NavLink>
+
+            <NavLink
+              to="/dashboard/audit-logs"
+              className={({ isActive }) =>
+                `flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-semibold transition-all ${
+                  isActive
+                    ? 'bg-[#151623] text-emerald-400 font-bold border-l-4 border-emerald-500'
+                    : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
+                }`
+              }
+            >
+              <span className="text-emerald-400 text-sm">🛡️</span>
+              {!isCollapsed && <span className="truncate">Audit Logs</span>}
+            </NavLink>
+          </>
         )}
       </div>
 

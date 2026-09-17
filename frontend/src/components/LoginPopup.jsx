@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
+import { FiEye, FiEyeOff } from 'react-icons/fi';
 import { useAuth } from '../context/AuthContext';
 import Input from './Input';
 import Button from './ui/Button';
@@ -12,6 +13,7 @@ export default function LoginPopup() {
   const [view, setView] = useState('login');
   const [usernameInput, setUsernameInput] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState({ type: '', text: '' });
 
@@ -26,6 +28,7 @@ export default function LoginPopup() {
   const resetForm = () => {
     setUsernameInput('');
     setPassword('');
+    setShowPassword(false);
     setMessage({ type: '', text: '' });
     setView('login');
   };
@@ -46,7 +49,7 @@ export default function LoginPopup() {
     } catch (err) {
       setMessage({
         type: 'error',
-        text: err.response?.data?.message || 'Login failed. Please try again.',
+        text: err.response?.data?.message || err.message || 'Login failed. Please check your credentials.',
       });
     } finally {
       setLoading(false);
@@ -121,27 +124,40 @@ export default function LoginPopup() {
 
             {view === 'login' ? (
               <form onSubmit={handleLogin} className="space-y-4">
-                <div>
                   <Input
-                    label="Email Address"
-                    type="email"
+                    label="Email or Username"
+                    type="text"
                     name="username"
                     value={usernameInput}
                     onChange={(e) => setUsernameInput(e.target.value)}
-                    placeholder="Enter your email"
+                    placeholder="e.g. arun or arun.aszen@gmail.com"
                     required
                   />
-                </div>
+                  {usernameInput && !usernameInput.includes('@') && (
+                    <p className="text-[11px] text-indigo-600 font-medium mt-1">
+                      Signing in as: <span className="font-semibold">{formattedPreview}</span>
+                    </p>
+                  )}
 
-                <Input
-                  label="Password"
-                  type="password"
-                  name="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="Enter your password"
-                  required
-                />
+                <div className="relative">
+                  <Input
+                    label="Password"
+                    type={showPassword ? 'text' : 'password'}
+                    name="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    required
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3.5 top-[38px] text-slate-400 hover:text-slate-600 transition-colors p-1"
+                    title={showPassword ? 'Hide password' : 'Show password'}
+                  >
+                    {showPassword ? <FiEyeOff className="w-4 h-4" /> : <FiEye className="w-4 h-4" />}
+                  </button>
+                </div>
 
                 <div className="flex items-center justify-between text-xs pt-1">
                   <label className="flex items-center gap-2 text-slate-500 cursor-pointer font-medium">
@@ -170,12 +186,12 @@ export default function LoginPopup() {
                 <form onSubmit={handleForgot} className="space-y-4">
                   <div>
                     <Input
-                      label="Email Address"
-                      type="email"
+                      label="Email or Username"
+                      type="text"
                       name="username"
                       value={usernameInput}
                       onChange={(e) => setUsernameInput(e.target.value)}
-                      placeholder="Enter your email"
+                      placeholder="Enter your email or username"
                       required
                     />
                   </div>

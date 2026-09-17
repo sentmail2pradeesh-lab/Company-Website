@@ -1,22 +1,31 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { FiPlusCircle, FiX, FiCheck } from 'react-icons/fi';
 
 export default function CreateJobModal() {
-  const { isCreateModalOpen, setIsCreateModalOpen, createJob, editors } = useJobs();
+  const { isCreateModalOpen, setIsCreateModalOpen, createJob, editors, clients } = useJobs();
 
-  const [client, setClient] = useState('BE');
+  const [client, setClient] = useState('');
   const [name, setName] = useState('');
   const [folderCount, setFolderCount] = useState('1');
   const [outputTarget, setOutputTarget] = useState('25');
   const [clientEntryTime, setClientEntryTime] = useState(() => new Date().toISOString().slice(0, 16));
   const [clientTargetTime, setClientTargetTime] = useState('');
 
-  const [path1Assignee, setPath1Assignee] = useState('Shwetha');
-  const [path2Assignee, setPath2Assignee] = useState('Tejas');
-  const [editor1Assignee, setEditor1Assignee] = useState('Karan');
-  const [editor2Assignee, setEditor2Assignee] = useState('Godwin');
-  const [qcAssignee, setQcAssignee] = useState('Arun QC');
+  const [blendingAssignee, setBlendingAssignee] = useState('');
+  const [path1Assignee, setPath1Assignee] = useState('');
+  const [path2Assignee, setPath2Assignee] = useState('');
+  const [editor1Assignee, setEditor1Assignee] = useState('');
+  const [editor2Assignee, setEditor2Assignee] = useState('');
+  const [lcAssignee, setLcAssignee] = useState('');
+  const [fcAssignee, setFcAssignee] = useState('');
+
+  useEffect(() => {
+    if (clients && clients.length > 0 && !client) {
+      setClient(clients[0].code);
+    }
+  }, [clients, client]);
+
   useEffect(() => {
     if (isCreateModalOpen) {
       document.body.style.overflow = 'hidden';
@@ -33,19 +42,22 @@ export default function CreateJobModal() {
   const handleSubmit = (e) => {
     e.preventDefault();
     createJob({
-      client,
+      client: client || (clients[0]?.code || 'BE'),
       name,
       folderCount,
       outputTarget,
       clientEntryTime,
       clientTargetTime,
+      blendingAssignee,
       path1Assignee,
       path2Assignee,
       editor1Assignee,
       editor2Assignee,
-      qcAssignee,
+      lcAssignee,
       fcAssignee,
+      qcAssignee: fcAssignee, // fallback compatibility
     });
+    setIsCreateModalOpen(false);
   };
 
   return (
@@ -68,7 +80,7 @@ export default function CreateJobModal() {
             Create New Client Job
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Enter job details and assign team members for Path 1, Path 2, Editors, QC, and FC.
+            Enter job details and assign team members for all 7 pipeline stages.
           </p>
         </div>
 
@@ -79,14 +91,29 @@ export default function CreateJobModal() {
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Client ID / Code
               </label>
-              <input
-                type="text"
-                value={client}
-                onChange={(e) => setClient(e.target.value.toUpperCase())}
-                placeholder="e.g. BE, CE, EPIC, RE"
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
-                required
-              />
+              {clients && clients.length > 0 ? (
+                <select
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                  required
+                >
+                  {clients.map((c) => (
+                    <option key={c.id} value={c.code}>
+                      [{c.code}] {c.name}
+                    </option>
+                  ))}
+                </select>
+              ) : (
+                <input
+                  type="text"
+                  value={client}
+                  onChange={(e) => setClient(e.target.value.toUpperCase())}
+                  placeholder="e.g. BE, CE, EPIC, RE"
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                  required
+                />
+              )}
             </div>
 
             <div>
@@ -163,12 +190,29 @@ export default function CreateJobModal() {
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2.5">
               <div>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">Blending Assigned</label>
+                <select
+                  value={blendingAssignee}
+                  onChange={(e) => setBlendingAssignee(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                >
+                  <option value="">Unassigned</option>
+                  {editors.map((ed) => (
+                    <option key={ed.id} value={ed.name}>
+                      {ed.name} ({ed.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
                 <label className="block text-[11px] font-medium text-slate-500 mb-1">Path 1 Assigned</label>
                 <select
                   value={path1Assignee}
                   onChange={(e) => setPath1Assignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})
@@ -184,6 +228,7 @@ export default function CreateJobModal() {
                   onChange={(e) => setPath2Assignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})
@@ -199,6 +244,7 @@ export default function CreateJobModal() {
                   onChange={(e) => setEditor1Assignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})
@@ -214,6 +260,7 @@ export default function CreateJobModal() {
                   onChange={(e) => setEditor2Assignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})
@@ -223,12 +270,13 @@ export default function CreateJobModal() {
               </div>
 
               <div>
-                <label className="block text-[11px] font-medium text-slate-500 mb-1">QC Assigned</label>
+                <label className="block text-[11px] font-medium text-slate-500 mb-1">LC Assigned</label>
                 <select
-                  value={qcAssignee}
-                  onChange={(e) => setQcAssignee(e.target.value)}
+                  value={lcAssignee}
+                  onChange={(e) => setLcAssignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})
@@ -244,6 +292,7 @@ export default function CreateJobModal() {
                   onChange={(e) => setFcAssignee(e.target.value)}
                   className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 >
+                  <option value="">Unassigned</option>
                   {editors.map((ed) => (
                     <option key={ed.id} value={ed.name}>
                       {ed.name} ({ed.role})

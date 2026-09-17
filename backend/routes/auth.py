@@ -1,11 +1,25 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from database import db
-from models import User, WorkSession
+from models import User, WorkSession, AuditLog
 from utils.jwt import create_token, token_required
 from utils.mail import send_reset_email, generate_reset_token
 
 auth_bp = Blueprint('auth', __name__)
+
+
+def log_audit(user_email, user_name, action, details=""):
+    try:
+        log = AuditLog(
+            user_email=user_email,
+            user_name=user_name or user_email,
+            action=action,
+            details=details
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception as e:
+        print("Audit log error:", e)
 
 
 @auth_bp.route('/register', methods=['POST'])
@@ -37,40 +51,90 @@ def login():
 
     user = User.query.filter_by(email=email).first()
     if not user or not user.check_password(password):
+        log_audit(email, email, 'LOGIN_FAILED', 'Invalid password or unregistered user')
         return jsonify({'message': 'Invalid email or password'}), 401
 
     token = create_token(user.id)
 
-    # Start or retrieve active work session for today (Exclude master Admin arun@aszen.com)
+    # Shift & Attendance Session Management (Exclude master Admin & management authority accounts)
     active_session = None
-    if user.email.lower() != 'arun@aszen.com':
-        today_str = datetime.utcnow().strftime('%Y-%m-%d')
-        active_session = WorkSession.query.filter_by(
-            user_email=user.email,
-            date=today_str,
-            status='Active'
-        ).first()
+    is_reconnected = False
+    if user.email.lower() != 'arun@aszen.com' and user.role != 'admin':
+        now = datetime.utcnow()
+        today_str = now.strftime('%Y-%m-%d')
 
-        if not active_session:
+        # Check if this employee has ANY ongoing active shift
+        existing_active = WorkSession.query.filter_by(
+            user_email=user.email,
+            status='Active'
+        ).order_by(WorkSession.login_time.desc()).first()
+
+        if existing_active:
+            diff_hours = (now - existing_active.login_time).total_seconds() / 3600.0
+
+            # If older than 16 hours or previous day shift left open beyond 12 hours, auto-complete stale shift
+            if diff_hours > 16 or (existing_active.date != today_str and diff_hours > 12):
+                existing_active.logout_time = existing_active.login_time + timedelta(hours=min(diff_hours, 16))
+                existing_active.status = 'Completed'
+                existing_active.notes = (existing_active.notes or '') + ' [Auto-closed on next login]'
+                existing_active.calculate_hours()
+                db.session.commit()
+                log_audit(
+                    user.email,
+                    user.name or user.email,
+                    'SHIFT_AUTO_CLOSED',
+                    f"Stale shift from {existing_active.date} auto-closed ({existing_active.total_hours} hrs)"
+                )
+
+                # Start fresh shift for today
+                active_session = WorkSession(
+                    user_id=user.id,
+                    user_email=user.email,
+                    user_name=user.name or user.email.split('@')[0].capitalize(),
+                    user_role=user.role or 'employee',
+                    date=today_str,
+                    login_time=now,
+                    status='Active',
+                    notes='Shift started'
+                )
+                db.session.add(active_session)
+                db.session.commit()
+                log_audit(user.email, user.name or user.email, 'USER_LOGIN', 'Login successful, new shift started')
+            else:
+                # Same active shift: user reconnected from another system or reopened closed browser
+                active_session = existing_active
+                is_reconnected = True
+                log_audit(
+                    user.email,
+                    user.name or user.email,
+                    'USER_RELOGIN_ACTIVE_SHIFT',
+                    f"Reconnected to active shift started at {active_session.login_time.strftime('%H:%M')} UTC (ongoing)"
+                )
+        else:
+            # No prior active shift: create new shift
             active_session = WorkSession(
                 user_id=user.id,
                 user_email=user.email,
                 user_name=user.name or user.email.split('@')[0].capitalize(),
                 user_role=user.role or 'employee',
                 date=today_str,
-                login_time=datetime.utcnow(),
-                status='Active'
+                login_time=now,
+                status='Active',
+                notes='Shift started'
             )
             db.session.add(active_session)
             db.session.commit()
+            log_audit(user.email, user.name or user.email, 'USER_LOGIN', 'Login successful, shift started')
+    else:
+        log_audit(user.email, user.name or user.email, 'USER_LOGIN', 'Admin/Management login successful')
 
     return jsonify({
-        'message': 'Login successful',
+        'message': 'Shift reconnected' if is_reconnected else 'Login successful',
         'token': token,
         'user': user.to_dict(),
-        'work_session': active_session.to_dict() if active_session else None
+        'work_session': active_session.to_dict() if active_session else None,
+        'is_reconnected': is_reconnected
     })
-
 
 
 @auth_bp.route('/logout', methods=['POST'])
@@ -82,13 +146,20 @@ def logout():
         status='Active'
     ).order_by(WorkSession.login_time.desc()).first()
 
+    hours_logged = 0.0
     if active_session:
         active_session.logout_time = datetime.utcnow()
         active_session.status = 'Completed'
-        active_session.calculate_hours()
+        hours_logged = active_session.calculate_hours()
         db.session.commit()
 
-    return jsonify({'message': 'Logged out successfully'})
+    log_audit(
+        user.email,
+        user.name or user.email,
+        'USER_LOGOUT',
+        f"Logged out successfully. Shift duration: {hours_logged} hrs" if active_session else "Logged out"
+    )
+    return jsonify({'message': 'Logged out successfully', 'total_hours': hours_logged})
 
 
 @auth_bp.route('/me', methods=['GET'])
@@ -141,10 +212,6 @@ def reset_password():
 @auth_bp.route('/users', methods=['GET'])
 @token_required
 def get_users():
-    user = request.current_user
-    if user.role != 'admin':
-        return jsonify({'message': 'Permission denied'}), 403
-
     users = User.query.order_by(User.created_at.desc()).all()
     return jsonify({'users': [u.to_dict() for u in users]})
 
