@@ -26,6 +26,15 @@ def create_app(config_object=Config):
     app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
 
 
+    @app.route('/')
+    def root():
+        return {
+            'status': 'online',
+            'service': 'ASZEN / Vistaeditz Production Backend API',
+            'health': '/api/health',
+            'docs': 'All API endpoints are under /api/'
+        }
+
     @app.route('/api/health')
     def health():
         return {'status': 'ok'}
