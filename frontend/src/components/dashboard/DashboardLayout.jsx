@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink, Outlet } from 'react-router-dom';
+import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import DashboardSidebar from './DashboardSidebar';
@@ -10,12 +10,22 @@ import ChangePasswordModal from './ChangePasswordModal';
 import { FiPlus, FiSettings, FiLogOut, FiClock, FiKey, FiUser } from 'react-icons/fi';
 
 export default function DashboardLayout() {
+  const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isChangePassOpen, setIsChangePassOpen] = useState(false);
-  const { canManageClients, canCreateJob, workSessions } = useJobs();
-  const { user, logout } = useAuth();
-  const displayName = user?.name || (user?.email ? user.email.split('.')[0].split('@')[0] : 'Lessy');
+  const { canManageClients, canManageEmployees, canCreateJob, workSessions } = useJobs();
+  const { user, loading, logout, openLogin } = useAuth();
+
+  // Redirect unauthenticated visitors to homepage with login popup
+  useEffect(() => {
+    if (!loading && !user) {
+      openLogin();
+      navigate('/', { replace: true });
+    }
+  }, [loading, user, openLogin, navigate]);
+
+  const displayName = user?.name || (user?.email ? user.email.split('.')[0].split('@')[0] : 'User');
   const formattedDisplayName = displayName.charAt(0).toUpperCase() + displayName.slice(1);
 
   // Live timer for active session
@@ -51,6 +61,19 @@ export default function DashboardLayout() {
     } catch (e) {}
     window.location.href = '/';
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#F0F3FA]">
+        <div className="flex flex-col items-center gap-3">
+          <div className="w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
+          <span className="text-xs font-bold text-slate-500">Loading Dashboard...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!user) return null;
 
   return (
     <div className="min-h-screen bg-[#F0F3FA] text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900">
@@ -112,13 +135,13 @@ export default function DashboardLayout() {
           )}
 
           {/* Admin Control Page Link */}
-          {canManageClients && (
+          {(canManageClients || canManageEmployees) && (
             <Link
               to="/dashboard/management"
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all"
-              title="Admin Control Panel Page"
+              title="Admin & Personnel Control Panel"
             >
-              <FiSettings className="w-3.5 h-3.5" /> <span>Admin Panel</span>
+              <FiSettings className="w-3.5 h-3.5" /> <span>Personnel Panel</span>
             </Link>
           )}
 
@@ -154,14 +177,14 @@ export default function DashboardLayout() {
 
                 <button
                   onClick={() => setIsChangePassOpen(true)}
-                  className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-semibold flex items-center gap-2 transition-colors"
+                  className="w-full px-4 py-2.5 text-left text-slate-700 hover:bg-indigo-50 hover:text-indigo-600 font-semibold flex items-center gap-2 transition-colors cursor-pointer"
                 >
                   <FiKey className="w-4 h-4 text-indigo-500" /> Change Password
                 </button>
 
                 <button
                   onClick={handleLogout}
-                  className="w-full px-4 py-2.5 text-left text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-2 transition-colors border-t border-slate-100"
+                  className="w-full px-4 py-2.5 text-left text-rose-600 hover:bg-rose-50 font-semibold flex items-center gap-2 transition-colors border-t border-slate-100 cursor-pointer"
                 >
                   <FiLogOut className="w-4 h-4 text-rose-500" /> Logout
                 </button>
@@ -192,4 +215,3 @@ export default function DashboardLayout() {
     </div>
   );
 }
-

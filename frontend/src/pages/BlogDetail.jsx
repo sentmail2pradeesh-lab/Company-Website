@@ -1,16 +1,56 @@
+import { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 import Button from '../components/ui/Button';
 import Icon from '../components/ui/Icon';
+import api from '../api/axios';
 import { getBlogById } from '../data/blogs';
 import { fadeUp, viewportOnce } from '../lib/motion';
 
 export default function BlogDetail() {
   const { id } = useParams();
-  const blog = getBlogById(id);
+  const [blog, setBlog] = useState(() => getBlogById(id));
+  const [loading, setLoading] = useState(!blog);
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const local = getBlogById(id);
+    if (local) {
+      setBlog(local);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    api
+      .get(`/blogs/${id}`)
+      .then((res) => {
+        if (res.data?.blog) {
+          setBlog({
+            ...res.data.blog,
+            author: res.data.blog.author || 'Vista Editz Team',
+            category: res.data.blog.category || 'Insights',
+          });
+        }
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, [id]);
+
+  if (loading) {
+    return (
+      <>
+        <Navbar />
+        <section className="pt-40 pb-24 text-center bg-obsidian">
+          <div className="w-8 h-8 border-4 border-cyan-500 border-t-transparent rounded-full animate-spin mx-auto mb-3"></div>
+          <p className="text-slate-400 text-sm">Loading article...</p>
+        </section>
+        <Footer />
+      </>
+    );
+  }
 
   if (!blog) {
     return (

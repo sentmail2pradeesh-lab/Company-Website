@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { getProductionShiftDate } from '../../utils/pipelineHelper';
 import {
@@ -32,15 +32,22 @@ export default function ClientHistorySummaryPage() {
   const [selectedClient, setSelectedClient] = useState('ALL');
   const [selectedEmployee, setSelectedEmployee] = useState('ALL');
 
-  // Dynamic Lists for Filter Dropdowns
-  const clientOptions = ['ALL', ...new Set([...(clients || []).map((c) => c.code), ...jobs.map((j) => j.client)])];
-  const employeeOptions = [
-    'ALL',
-    ...new Set([
-      ...(editors || []).map((e) => e.name),
-      ...jobs.flatMap((j) => Object.values(j.stages || {}).map((s) => s.assignee)).filter(Boolean),
-    ]),
-  ];
+  // Dynamic Lists for Filter Dropdowns (Memoized)
+  const clientOptions = useMemo(
+    () => ['ALL', ...new Set([...(clients || []).map((c) => c.code), ...jobs.map((j) => j.client)])],
+    [clients, jobs]
+  );
+
+  const employeeOptions = useMemo(
+    () => [
+      'ALL',
+      ...new Set([
+        ...(editors || []).map((e) => e.name),
+        ...jobs.flatMap((j) => Object.values(j.stages || {}).map((s) => s.assignee)).filter(Boolean),
+      ]),
+    ],
+    [editors, jobs]
+  );
 
   // Helper to extract job shift date string (YYYY-MM-DD)
   const getJobDateStr = (job) => {
@@ -48,45 +55,47 @@ export default function ClientHistorySummaryPage() {
     return getProductionShiftDate(iso);
   };
 
-  // Filter Jobs based on Time, Client, and Employee criteria
-  const filteredJobs = jobs.filter((job) => {
-    const jobDate = getJobDateStr(job);
+  // Filter Jobs based on Time, Client, and Employee criteria (Memoized)
+  const filteredJobs = useMemo(() => {
+    return jobs.filter((job) => {
+      const jobDate = getJobDateStr(job);
 
-    // 1. Time Range Match
-    let matchesTime = true;
-    if (timeFilterType === 'TODAY') {
-      matchesTime = jobDate === todayStr;
-    } else if (timeFilterType === 'DATE') {
-      matchesTime = jobDate === selectedDate;
-    } else if (timeFilterType === 'MONTHLY') {
-      matchesTime = jobDate.startsWith(selectedMonth);
-    } else if (timeFilterType === 'YEARLY') {
-      matchesTime = jobDate.startsWith(selectedYear);
-    } else if (timeFilterType === 'CUSTOM') {
-      matchesTime = jobDate >= startDate && jobDate <= endDate;
-    }
+      // 1. Time Range Match
+      let matchesTime = true;
+      if (timeFilterType === 'TODAY') {
+        matchesTime = jobDate === todayStr;
+      } else if (timeFilterType === 'DATE') {
+        matchesTime = jobDate === selectedDate;
+      } else if (timeFilterType === 'MONTHLY') {
+        matchesTime = jobDate.startsWith(selectedMonth);
+      } else if (timeFilterType === 'YEARLY') {
+        matchesTime = jobDate.startsWith(selectedYear);
+      } else if (timeFilterType === 'CUSTOM') {
+        matchesTime = jobDate >= startDate && jobDate <= endDate;
+      }
 
-    if (!matchesTime) return false;
+      if (!matchesTime) return false;
 
-    // 2. Client Match
-    if (selectedClient !== 'ALL' && job.client !== selectedClient) {
-      return false;
-    }
+      // 2. Client Match
+      if (selectedClient !== 'ALL' && job.client !== selectedClient) {
+        return false;
+      }
 
-    // 3. Employee Personnel Match
-    if (selectedEmployee !== 'ALL') {
-      const hasEmployeeInStages = Object.values(job.stages || {}).some(
-        (stage) => stage?.assignee === selectedEmployee
-      );
-      if (!hasEmployeeInStages) return false;
-    }
+      // 3. Employee Personnel Match
+      if (selectedEmployee !== 'ALL') {
+        const hasEmployeeInStages = Object.values(job.stages || {}).some(
+          (stage) => stage?.assignee === selectedEmployee
+        );
+        if (!hasEmployeeInStages) return false;
+      }
 
-    return true;
-  });
+      return true;
+    });
+  }, [jobs, timeFilterType, todayStr, selectedDate, selectedMonth, selectedYear, startDate, endDate, selectedClient, selectedEmployee]);
 
   // Calculate Metrics Summary
   const totalJobsCount = filteredJobs.length;
-  const totalFilesDelivered = filteredJobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0);
+  const totalFilesDelivered = useMemo(() => filteredJobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0), [filteredJobs]);
 
   const calculateTurnaroundMinutes = (startIso, endIso) => {
     if (!startIso || !endIso) return 0;
@@ -96,9 +105,9 @@ export default function ClientHistorySummaryPage() {
     return Math.round((e - s) / 60000);
   };
 
-  const totalTurnaroundMins = filteredJobs.reduce(
-    (acc, j) => acc + calculateTurnaroundMinutes(j.clientEntryTime, j.clientFinishTime),
-    0
+  const totalTurnaroundMins = useMemo(
+    () => filteredJobs.reduce((acc, j) => acc + calculateTurnaroundMinutes(j.clientEntryTime, j.clientFinishTime), 0),
+    [filteredJobs]
   );
   const avgTurnaroundMins = totalJobsCount > 0 ? Math.round(totalTurnaroundMins / totalJobsCount) : 0;
 

@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fi';
 
 export default function ProductionSheetsPage() {
-  const { productionSheets, workSessions, deleteWorkSession, userRole } = useJobs();
+  const { productionSheets, workSessions, deleteWorkSession, userRole, canManageWorkHours } = useJobs();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('working-hours'); // 'output-sheets' or 'working-hours'
 
@@ -34,7 +34,7 @@ export default function ProductionSheetsPage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
 
-  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
+  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || !!canManageWorkHours;
   const currentUserEmail = (user?.email || '').toLowerCase();
   const currentUserName = user?.name || (user?.email ? user.email.split('.')[0] : 'Employee');
 

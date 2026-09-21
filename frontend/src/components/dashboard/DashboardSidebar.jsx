@@ -12,7 +12,7 @@ import {
 import { useJobs } from '../../context/JobContext';
 
 export default function DashboardSidebar({ isCollapsed, setIsCollapsed }) {
-  const { stats, canCreateJob, canManageClients } = useJobs();
+  const { stats, canCreateJob, canManageClients, canManageEmployees } = useJobs();
   const [jobsExpanded, setJobsExpanded] = useState(true);
   const [assignmentsExpanded, setAssignmentsExpanded] = useState(false);
 
@@ -181,7 +181,7 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed }) {
         </NavLink>
 
         {/* 5. Admin Panel & Audit Logs (Admin Only) */}
-        {canManageClients && (
+        {(canManageClients || canManageEmployees) && (
           <>
             <NavLink
               to="/dashboard/management"

@@ -1,0 +1,51 @@
+[
+  {
+    "email": "arun@aszen.com",
+    "name": "Arun",
+    "role": "admin",
+    "designation": "Admin / System Manager",
+    "is_approved": true,
+    "permissions": {
+      "can_create_job": true,
+      "can_edit_job": true,
+      "can_delete_job": true,
+      "can_create_employee": true,
+      "can_manage_clients": true,
+      "can_manage_work_hours": true
+    },
+    "password_hash": "scrypt:32768:8:1$hrh9eWr2y4r9s3Zw$9461a2c71fd794a71fe145596ca19d0063edf36dee0445d07c73db18b3997e47bce444b5ff0110ac4cb68102480d3f8e69969a48cabee9c1c004d6242d98eac1"
+  },
+  {
+    "email": "shwetha@aszen.com",
+    "name": "Shwetha",
+    "role": "employee",
+    "designation": "Senior Editor",
+    "is_approved": true,
+    "permissions": {
+      "can_create_job": true,
+      "can_edit_job": true,
+      "can_delete_job": false,
+      "can_create_employee": false,
+      "can_manage_clients": false,
+      "can_manage_work_hours": false
+    },
+    "password_hash": "scrypt:32768:8:1$yBzfq88o71e7ItQV$c98189b8e2c2bde44a09696ba9230d85a52205631e4c819abe1cc3454e5f5ba02d07b1264b5a7f40a41484b1474c58643fad79ffc4983fc8c18b00669e904a48"
+  },
+  {
+    "email": "qa_perm_test@aszen.com",
+    "name": "QA Perm Tester",
+    "role": "employee",
+    "designation": "Editor",
+    "is_approved": true,
+    "permissions": {
+      "can_create_employee": false,
+      "can_create_job": true,
+      "can_delete_job": true,
+      "can_edit_job": true,
+      "can_manage_clients": true,
+      "can_manage_work_hours": true
+    },
+    "password_hash": "scrypt:32768:8:1$n4BykXo3xVtIJxCA$f0446d75cd6e3a8e88166461f8a432be0664f2c1c6b5a1813f1c85c49301902203ee4f30e6ac55813e58de9daba49d33a996ee2da1a0452332970913d90963ba",
+    "raw_password": "Password@123"
+  }
+]

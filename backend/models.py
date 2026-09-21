@@ -1,3 +1,4 @@
+import json
 from datetime import datetime
 from werkzeug.security import generate_password_hash, check_password_hash
 from database import db
@@ -14,6 +15,8 @@ class User(db.Model):
     password_hash = db.Column(db.String(255), nullable=False)
     reset_token = db.Column(db.String(255), nullable=True)
     reset_token_expiry = db.Column(db.DateTime, nullable=True)
+    is_approved = db.Column(db.Boolean, default=True, nullable=False)
+    permissions_json = db.Column(db.Text, default='{}', nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def set_password(self, password):
@@ -22,6 +25,27 @@ class User(db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+    @property
+    def permissions(self):
+        try:
+            if not self.permissions_json:
+                return {}
+            return json.loads(self.permissions_json)
+        except Exception:
+            return {}
+
+    @permissions.setter
+    def permissions(self, val):
+        self.permissions_json = json.dumps(val or {})
+
+    def has_permission(self, perm_key):
+        if self.role == 'admin':
+            return True
+        if getattr(self, 'is_approved', True) is False:
+            return False
+        perms = self.permissions
+        return bool(perms.get(perm_key, False))
+
     def to_dict(self):
         return {
             'id': self.id,
@@ -29,6 +53,8 @@ class User(db.Model):
             'name': self.name or self.email.split('@')[0].capitalize(),
             'role': self.role,
             'designation': self.designation or ('Manager' if self.role == 'manager' else 'Editor'),
+            'is_approved': getattr(self, 'is_approved', True),
+            'permissions': self.permissions,
         }
 
 

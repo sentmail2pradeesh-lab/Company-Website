@@ -42,25 +42,22 @@ def create_app(config_object=Config):
     with app.app_context():
         db.create_all()
 
-        # Ensure missing columns (name, role) exist in legacy SQLite database
+        # Ensure missing columns (name, role, is_approved, permissions_json) exist in legacy SQLite / MySQL database
         try:
             from sqlalchemy import text
             with db.engine.connect() as conn:
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN name VARCHAR(255)"))
-                    conn.commit()
-                except Exception:
-                    pass
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'employee'"))
-                    conn.commit()
-                except Exception:
-                    pass
-                try:
-                    conn.execute(text("ALTER TABLE users ADD COLUMN designation VARCHAR(100) DEFAULT 'Editor'"))
-                    conn.commit()
-                except Exception:
-                    pass
+                for col_sql in [
+                    "ALTER TABLE users ADD COLUMN name VARCHAR(255)",
+                    "ALTER TABLE users ADD COLUMN role VARCHAR(50) DEFAULT 'employee'",
+                    "ALTER TABLE users ADD COLUMN designation VARCHAR(100) DEFAULT 'Editor'",
+                    "ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 1",
+                    "ALTER TABLE users ADD COLUMN permissions_json TEXT DEFAULT '{}'",
+                ]:
+                    try:
+                        conn.execute(text(col_sql))
+                        conn.commit()
+                    except Exception:
+                        pass
         except Exception as e:
             print("DB Migration notice:", e)
 
@@ -73,18 +70,70 @@ def create_app(config_object=Config):
 
 
 def seed_users():
-    # Production: Only master Admin account is pre-seeded. All employee personnel created dynamically by Admin.
+    import json
+    from utils.user_store import load_stored_users, save_user_to_store
+
+    # 1. Master Admin account
     admin_email = "arun@aszen.com"
     admin = User.query.filter_by(email=admin_email).first()
+    admin_perms = {
+        'can_create_job': True,
+        'can_edit_job': True,
+        'can_delete_job': True,
+        'can_create_employee': True,
+        'can_manage_clients': True,
+        'can_manage_work_hours': True,
+    }
     if not admin:
-        admin = User(email=admin_email, name="Arun", role="admin", designation="Admin / System Manager")
+        admin = User(
+            email=admin_email,
+            name="Arun",
+            role="admin",
+            designation="Admin / System Manager",
+            is_approved=True,
+            permissions_json=json.dumps(admin_perms)
+        )
         admin.set_password("Aszen@123")
         db.session.add(admin)
     else:
         admin.name = "Arun"
         admin.role = "admin"
         admin.designation = "Admin / System Manager"
+        admin.is_approved = True
+        admin.permissions_json = json.dumps(admin_perms)
         admin.set_password("Aszen@123")
+    db.session.commit()
+    save_user_to_store(admin)
+
+    # 2. Permanent Employee Persistence: Restore all registered & created personnel from users_store.json
+    stored_users = load_stored_users()
+    for stored in stored_users:
+        s_email = (stored.get('email') or '').lower().strip()
+        if not s_email or s_email == admin_email.lower():
+            continue
+        existing_emp = User.query.filter_by(email=s_email).first()
+        if not existing_emp:
+            emp = User(
+                email=s_email,
+                name=stored.get('name'),
+                role=stored.get('role', 'employee'),
+                designation=stored.get('designation', 'Editor'),
+                is_approved=stored.get('is_approved', True),
+                permissions_json=json.dumps(stored.get('permissions', {}))
+            )
+            if stored.get('password_hash'):
+                emp.password_hash = stored['password_hash']
+            elif stored.get('raw_password'):
+                emp.set_password(stored['raw_password'])
+            else:
+                emp.set_password('Aszen@123')
+            db.session.add(emp)
+        else:
+            # Sync permissions & approval status from persistent store
+            if stored.get('permissions'):
+                existing_emp.permissions_json = json.dumps(stored['permissions'])
+            if 'is_approved' in stored:
+                existing_emp.is_approved = stored['is_approved']
     db.session.commit()
 
 

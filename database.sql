@@ -28,19 +28,23 @@ CREATE TABLE `users` (
   `password_hash` VARCHAR(255) NOT NULL,
   `reset_token` VARCHAR(255) DEFAULT NULL,
   `reset_token_expiry` DATETIME DEFAULT NULL,
+  `is_approved` TINYINT(1) NOT NULL DEFAULT 1,
+  `permissions_json` TEXT DEFAULT NULL,
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
   INDEX `idx_users_email` (`email`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- Seed Master Admin Account (arun@aszen.com / Password: Aszen@123)
-INSERT INTO `users` (`id`, `email`, `name`, `role`, `designation`, `password_hash`)
+INSERT INTO `users` (`id`, `email`, `name`, `role`, `designation`, `password_hash`, `is_approved`, `permissions_json`)
 VALUES (
   1,
   'arun@aszen.com',
   'Arun',
   'admin',
   'Admin / System Manager',
-  'scrypt:32768:8:1$u7h0Pj6BvW5E2Y1x$7f5a9b8c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a'
+  'scrypt:32768:8:1$u7h0Pj6BvW5E2Y1x$7f5a9b8c0d1e2f3a4b5c6d7e8f9a0b1c2d3e4f5a6b7c8d9e0f1a2b3c4d5e6f7a',
+  1,
+  '{"can_create_job": true, "can_edit_job": true, "can_delete_job": true, "can_create_employee": true, "can_manage_clients": true, "can_manage_work_hours": true}'
 );
 
 -- --------------------------------------------------------------------

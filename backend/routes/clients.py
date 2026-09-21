@@ -16,8 +16,8 @@ def get_clients():
 @token_required
 def create_client():
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can create clients.'}), 403
+    if current.role != 'admin' and not current.has_permission('can_manage_clients'):
+        return jsonify({'message': 'Permission denied. Only Admin or authorized personnel can create clients.'}), 403
 
     data = request.get_json() or {}
     code = (data.get('code') or '').strip().upper()
@@ -42,8 +42,8 @@ def create_client():
 @token_required
 def delete_client(client_id):
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can delete clients.'}), 403
+    if current.role != 'admin' and not current.has_permission('can_manage_clients'):
+        return jsonify({'message': 'Permission denied. Only Admin or authorized personnel can delete clients.'}), 403
 
     client = Client.query.get(client_id)
     if not client:

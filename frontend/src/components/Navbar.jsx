@@ -70,8 +70,8 @@ export default function Navbar() {
             <li key={l.label} className="relative" ref={l.dropdown === 'services' ? dropRef : undefined}>
               {l.dropdown ? (
                 <button
+                  type="button"
                   onClick={() => setDropdown((v) => !v)}
-                  onBlur={() => setTimeout(() => setDropdown(false), 150)}
                   className={`${linkCls(l.href)} flex items-center gap-1 px-3.5 py-1.5 rounded-full cursor-pointer hover:bg-slate-500/10 transition-all`}
                   aria-expanded={dropdown}
                   aria-haspopup="true"

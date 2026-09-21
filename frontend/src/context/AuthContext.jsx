@@ -211,12 +211,29 @@ export function AuthProvider({ children }) {
     return res.data;
   };
 
+  const registerEmployee = async (regData) => {
+    let fullEmail = (regData.email || '').trim();
+    if (!fullEmail) throw new Error('Please enter an email or username.');
+    if (!fullEmail.includes('@')) {
+      const cleanName = fullEmail.replace(/\.$/, '');
+      fullEmail = `${cleanName}.aszen@gmail.com`;
+    }
+    const res = await api.post('/auth/register', {
+      name: regData.name,
+      email: fullEmail,
+      password: regData.password,
+      designation: regData.designation || 'Editor',
+    });
+    return res.data;
+  };
+
   return (
     <AuthContext.Provider
       value={{
         user,
         loading,
         login,
+        registerEmployee,
         logout,
         forgotPassword,
         changePassword,

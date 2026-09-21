@@ -41,6 +41,10 @@ def get_jobs():
 @token_required
 def create_job():
     user = request.current_user
+    is_senior = (user.designation or '').strip().lower() == 'senior editor'
+    if user.role not in ['admin', 'manager'] and not is_senior and not user.has_permission('can_create_job'):
+        return jsonify({'message': 'Permission denied. You do not have permission to create jobs.'}), 403
+
     data = request.get_json() or {}
     job_number = str(data.get('jobNumber') or data.get('id') or f"{int(datetime.utcnow().timestamp())}")
     client_code = (data.get('client') or data.get('clientCode') or 'BE').strip().upper()
@@ -50,7 +54,17 @@ def create_job():
 
     existing = Job.query.filter_by(job_number=job_number).first()
     if existing:
-        return jsonify({'message': f'Job #{job_number} already exists.'}), 409
+        all_jobs = Job.query.all()
+        numeric_ids = []
+        for j in all_jobs:
+            try:
+                numeric_ids.append(int(j.job_number))
+            except (ValueError, TypeError):
+                pass
+            if j.id:
+                numeric_ids.append(j.id)
+        max_id = max(numeric_ids) if numeric_ids else 1000
+        job_number = str(max_id + 1)
 
     job = Job(
         job_number=job_number,
@@ -150,8 +164,8 @@ def update_job(job_identifier):
 @token_required
 def delete_job(job_identifier):
     user = request.current_user
-    if user.role not in ['admin', 'manager']:
-        return jsonify({'message': 'Permission denied. Only Admin or Manager can delete jobs.'}), 403
+    if user.role not in ['admin', 'manager'] and not user.has_permission('can_delete_job'):
+        return jsonify({'message': 'Permission denied. Only Admin, Manager, or authorized personnel can delete jobs.'}), 403
 
     try:
         int_id = int(job_identifier)

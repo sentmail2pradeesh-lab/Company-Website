@@ -29,4 +29,17 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom', 'react-router-dom'],
+          motion: ['framer-motion'],
+          icons: ['react-icons'],
+          axios: ['axios'],
+        },
+      },
+    },
+    chunkSizeWarningLimit: 1000,
+  },
 });

@@ -8,6 +8,7 @@ export default function CreateJobModal() {
   const [client, setClient] = useState('');
   const [name, setName] = useState('');
   const [folderCount, setFolderCount] = useState('1');
+  const [folderTargets, setFolderTargets] = useState([{ name: '', count: 25 }]);
   const [outputTarget, setOutputTarget] = useState('25');
   const [clientEntryTime, setClientEntryTime] = useState(() => new Date().toISOString().slice(0, 16));
   const [clientTargetTime, setClientTargetTime] = useState('');
@@ -19,6 +20,52 @@ export default function CreateJobModal() {
   const [editor2Assignee, setEditor2Assignee] = useState('');
   const [lcAssignee, setLcAssignee] = useState('');
   const [fcAssignee, setFcAssignee] = useState('');
+
+  // Sync folderTargets array whenever folderCount changes
+  useEffect(() => {
+    const count = Math.max(1, parseInt(folderCount, 10) || 1);
+    setFolderTargets((prev) => {
+      const updated = [];
+      for (let i = 0; i < count; i++) {
+        updated.push({
+          name: prev[i]?.name !== undefined ? prev[i].name : (count === 1 && name ? name : `Folder ${i + 1}`),
+          count: prev[i]?.count !== undefined ? prev[i].count : (count === 1 && outputTarget ? Number(outputTarget) : 15),
+        });
+      }
+      return updated;
+    });
+  }, [folderCount]);
+
+  // Recalculate total outputs automatically when folder targets change
+  useEffect(() => {
+    if (Number(folderCount) > 1) {
+      const sum = folderTargets.reduce((acc, f) => acc + (Number(f.count) || 0), 0);
+      setOutputTarget(String(sum));
+    }
+  }, [folderTargets, folderCount]);
+
+  const handleFolderNameChange = (index, val) => {
+    setFolderTargets((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], name: val };
+      return copy;
+    });
+    if (index === 0 && Number(folderCount) === 1) {
+      setName(val);
+    }
+  };
+
+  const handleFolderTargetChange = (index, val) => {
+    const num = Math.max(0, parseInt(val, 10) || 0);
+    setFolderTargets((prev) => {
+      const copy = [...prev];
+      copy[index] = { ...copy[index], count: num };
+      return copy;
+    });
+    if (index === 0 && Number(folderCount) === 1) {
+      setOutputTarget(String(num));
+    }
+  };
 
   useEffect(() => {
     if (clients && clients.length > 0 && !client) {
@@ -41,11 +88,27 @@ export default function CreateJobModal() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
+
+    let jobName = name.trim();
+    if (Number(folderCount) > 1) {
+      const folderNames = folderTargets.map((f, i) => (f.name || `Folder ${i + 1}`).trim()).filter(Boolean);
+      if (!jobName) {
+        jobName = folderNames.join(', ');
+      } else {
+        jobName = `${jobName} (${folderNames.join(', ')})`;
+      }
+    } else {
+      if (!jobName && folderTargets[0]?.name) {
+        jobName = folderTargets[0].name.trim();
+      }
+    }
+
     createJob({
       client: client || (clients[0]?.code || 'BE'),
-      name,
-      folderCount,
-      outputTarget,
+      name: jobName || 'Untitled Job',
+      folderCount: Number(folderCount) || 1,
+      folderTargets,
+      outputTarget: Number(outputTarget) || 0,
       clientEntryTime,
       clientTargetTime,
       blendingAssignee,
@@ -66,7 +129,7 @@ export default function CreateJobModal() {
         {/* Close Button */}
         <button
           onClick={() => setIsCreateModalOpen(false)}
-          className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors"
+          className="absolute top-5 right-5 text-slate-400 hover:text-slate-700 p-1.5 rounded-xl hover:bg-slate-100 transition-colors cursor-pointer"
         >
           <FiX className="w-5 h-5" />
         </button>
@@ -80,7 +143,7 @@ export default function CreateJobModal() {
             Create New Client Job
           </h3>
           <p className="text-xs text-slate-500 mt-0.5">
-            Enter job details and assign team members for all 7 pipeline stages.
+            Enter job details and assign team members for all pipeline stages.
           </p>
         </div>
 
@@ -118,43 +181,174 @@ export default function CreateJobModal() {
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Folder / Job Name
-              </label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                placeholder="e.g. 1035 Nonchalant Dr"
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
                 Folder Count
               </label>
-              <input
-                type="number"
-                value={folderCount}
-                onChange={(e) => setFolderCount(e.target.value)}
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                required
-              />
+              <div className="flex items-center gap-1.5">
+                {Number(folderCount) > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setFolderCount(String(Math.max(1, Number(folderCount) - 1)))}
+                    className="w-9 h-9 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                  >
+                    -
+                  </button>
+                )}
+                <input
+                  type="number"
+                  min="1"
+                  value={folderCount}
+                  onChange={(e) => setFolderCount(e.target.value)}
+                  className="w-full text-center bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setFolderCount(String(Number(folderCount) + 1))}
+                  className="w-9 h-9 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 flex items-center justify-center transition-colors cursor-pointer"
+                  title="Add another folder"
+                >
+                  +
+                </button>
+              </div>
             </div>
+          </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
-                Target Output Files Count
-              </label>
-              <input
-                type="number"
-                value={outputTarget}
-                onChange={(e) => setOutputTarget(e.target.value)}
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                required
-              />
+          {/* Single Folder Name OR Multiple Folder Names Section */}
+          {Number(folderCount) <= 1 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Folder / Job Name
+                </label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    handleFolderNameChange(0, e.target.value);
+                  }}
+                  placeholder="e.g. 1035 Nonchalant Dr"
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                  Target Output Files Count
+                </label>
+                <input
+                  type="number"
+                  value={outputTarget}
+                  onChange={(e) => {
+                    setOutputTarget(e.target.value);
+                    handleFolderTargetChange(0, Number(e.target.value) || 0);
+                  }}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                  required
+                />
+              </div>
             </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Job / Project Title <span className="text-slate-400 font-normal lowercase">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="e.g. 1035 Nonchalant Dr"
+                    className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">
+                    Total Outputs <span className="text-indigo-600 font-bold">({outputTarget} Files)</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={outputTarget}
+                    readOnly
+                    className="w-full bg-slate-100 text-indigo-900 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Multiple Folder Names Card */}
+              <div className="p-4 bg-indigo-50/60 rounded-2xl border border-indigo-200/80 space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider flex items-center gap-1.5">
+                    📁 Folder Names &amp; Targets ({folderTargets.length} Folders)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setFolderCount(String(Number(folderCount) + 1))}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                  >
+                    + Add Folder
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                  {folderTargets.map((ft, idx) => (
+                    <div
+                      key={idx}
+                      className="p-3 bg-white rounded-xl border border-indigo-100 shadow-2xs space-y-1.5"
+                    >
+                      <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900 border-b border-slate-100 pb-1">
+                        <span>Folder #{idx + 1}</span>
+                        {folderTargets.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = folderTargets.filter((_, i) => i !== idx);
+                              setFolderTargets(updated);
+                              setFolderCount(String(updated.length));
+                            }}
+                            className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                            Folder Name
+                          </label>
+                          <input
+                            type="text"
+                            placeholder={`e.g. Living Room, Exterior...`}
+                            value={ft.name}
+                            onChange={(e) => handleFolderNameChange(idx, e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white font-medium"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">
+                            Files
+                          </label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={ft.count}
+                            onChange={(e) => handleFolderTargetChange(idx, e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2 py-1 text-xs font-mono font-bold text-indigo-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-center"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
             <div>
               <label className="block text-xs font-semibold text-slate-700 uppercase tracking-wider mb-1">

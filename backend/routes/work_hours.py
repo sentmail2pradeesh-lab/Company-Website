@@ -115,7 +115,7 @@ def parse_iso_dt(iso_str):
 @token_required
 def get_all_sessions():
     user = request.current_user
-    if user.role in ['admin', 'manager']:
+    if user.role in ['admin', 'manager'] or user.has_permission('can_manage_work_hours'):
         # Always exclude master admin and admin authority accounts from work session logs
         query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com', WorkSession.user_role != 'admin')
     else:
@@ -142,8 +142,8 @@ def get_all_sessions():
 @token_required
 def add_manual_session():
     user = request.current_user
-    if user.role not in ['admin', 'manager']:
-        return jsonify({'message': 'Permission denied'}), 403
+    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+        return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     data = request.get_json() or {}
     employee_name = data.get('user_name') or 'Employee'
@@ -177,8 +177,8 @@ def add_manual_session():
 @token_required
 def update_session(session_id):
     user = request.current_user
-    if user.role not in ['admin', 'manager']:
-        return jsonify({'message': 'Permission denied'}), 403
+    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+        return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     session_obj = WorkSession.query.get(session_id)
     if not session_obj:
@@ -206,8 +206,8 @@ def update_session(session_id):
 @token_required
 def delete_session(session_id):
     user = request.current_user
-    if user.role not in ['admin', 'manager']:
-        return jsonify({'message': 'Permission denied'}), 403
+    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+        return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     session_obj = WorkSession.query.get(session_id)
     if not session_obj:

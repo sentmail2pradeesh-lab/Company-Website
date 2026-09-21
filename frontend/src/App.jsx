@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import { UIProvider } from './context/UIContext';
 import { JobProvider } from './context/JobContext';
@@ -60,6 +60,9 @@ export default function App() {
                   <Route path="client-summary" element={<ClientHistorySummaryPage />} />
                   <Route path="audit-logs" element={<AuditLogsPage />} />
                 </Route>
+
+                {/* Catch-all route to redirect invalid routes back to home */}
+                <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>
               <LoginPopup />
               <ContactPopup />

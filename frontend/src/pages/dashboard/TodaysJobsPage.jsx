@@ -14,7 +14,7 @@ import {
 
 export default function TodaysJobsPage() {
   const navigate = useNavigate();
-  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob, canUpdateStage } = useJobs();
+  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob, canUpdateStage, refreshData } = useJobs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -22,6 +22,13 @@ export default function TodaysJobsPage() {
   const [filterStage, setFilterStage] = useState('ALL'); // 'ALL' | 'blending' | 'path1' | 'path2' | 'editor1' | 'editor2' | 'lc' | 'fc'
   const [currentPage, setCurrentPage] = useState(1);
   const [editModalState, setEditModalState] = useState(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    if (refreshData) await refreshData();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   // Helper to format working time below stage name/pill
   const getStageWorkingTime = (stageObj) => {
@@ -153,7 +160,15 @@ export default function TodaysJobsPage() {
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-slate-900 font-display flex items-center gap-2">
-            Todays Jobs <FiRefreshCw className="w-4 h-4 text-indigo-600 cursor-pointer hover:rotate-180 transition-transform" />
+            Todays Jobs{' '}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="p-1 rounded-lg hover:bg-slate-100 text-indigo-600 transition-colors cursor-pointer"
+              title="Refresh jobs"
+            >
+              <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin' : 'hover:rotate-180'}`} />
+            </button>
           </h1>
           <p className="text-xs text-slate-500 mt-0.5">
             Multi-stage production sheet table with Blending, Path 1, Path 2, Editors, LC, and FC active timers

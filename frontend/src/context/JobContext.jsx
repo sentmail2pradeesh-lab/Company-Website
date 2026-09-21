@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../api/axios';
 import { INITIAL_EDITORS, INITIAL_CLIENTS, INITIAL_JOBS, INITIAL_PRODUCTION_SHEETS, INITIAL_WORK_SESSIONS } from '../data/mockJobs';
 import { useAuth } from './AuthContext';
@@ -220,26 +220,29 @@ export function JobProvider({ children }) {
 
   const userRole = (user?.role || 'employee').toLowerCase();
   const userDesignation = user?.designation || 'Editor';
-
-  // Role & Designation Permissions Matrix
   const isSeniorEditor = userDesignation.toLowerCase() === 'senior editor';
-  const canCreateJob = userRole === 'admin' || userRole === 'manager' || isSeniorEditor;
-  const canAssignJob = userRole === 'admin' || userRole === 'manager' || isSeniorEditor;
-  const canDeleteJob = userRole === 'admin' || userRole === 'manager';
-  const canManageClients = userRole === 'admin';
-  const canManageEmployees = userRole === 'admin';
-  const canManageWorkHours = userRole === 'admin' || userRole === 'manager';
+  const perms = user?.permissions || {};
+  const isApproved = userRole === 'admin' || user?.is_approved !== false;
+
+  // Role, Designation & Dynamic Permissions Matrix (Admin can toggle for approved employees)
+  const canCreateJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_create_job);
+  const canAssignJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job);
+  const canEditJob = canAssignJob;
+  const canDeleteJob = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_delete_job);
+  const canManageClients = isApproved && (userRole === 'admin' || !!perms.can_manage_clients);
+  const canManageEmployees = isApproved && (userRole === 'admin' || !!perms.can_create_employee);
+  const canManageWorkHours = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_manage_work_hours);
 
   // Check if current user can update a specific stage
   const canUpdateStage = (assigneeName) => {
-    if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor) return true;
+    if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job) return true;
     if (!user?.name || !assigneeName) return false;
     return user.name.toLowerCase() === assigneeName.toLowerCase();
   };
 
 
-  // Metric Calculation Helpers
-  const stats = {
+  // Metric Calculation Helpers (Memoized to prevent unnecessary component re-renders)
+  const stats = useMemo(() => ({
     totalJobs: jobs.length,
     totalFiles: jobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0),
     completedJobs: jobs.filter((j) =>
@@ -254,11 +257,13 @@ export function JobProvider({ children }) {
     lcPendingJobs: jobs.filter((j) => j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')).length,
     fcPendingJobs: jobs.filter((j) => j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
     qcPendingJobs: jobs.filter((j) => (j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')) || (j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')) || (j.stages?.qc && (j.stages.qc.status === 'In-Progress' || j.stages.qc.status === 'Pending'))).length,
-  };
+  }), [jobs]);
 
   // Job Actions
   const createJob = async (newJobData) => {
-    const newId = (1000 + jobs.length + 1).toString();
+    const existingIds = jobs.map((j) => parseInt(String(j.id || j.jobNumber || 0), 10)).filter((n) => !isNaN(n));
+    const highestId = existingIds.length > 0 ? Math.max(1000, ...existingIds) : 1000;
+    const newId = (highestId + 1).toString();
 
     const path1Files = Number(newJobData.path1Files) || Number(newJobData.outputTarget) || 0;
     const path2Files = Number(newJobData.path2Files) || 0;
@@ -639,12 +644,44 @@ export function JobProvider({ children }) {
     setClientModalState(null);
   };
 
+  // Live Refresh data function without page reload
+  const refreshData = useCallback(async () => {
+    try {
+      const [jobsRes, sheetsRes, clientsRes] = await Promise.allSettled([
+        api.get('/jobs'),
+        api.get('/jobs/production-sheets'),
+        api.get('/clients'),
+      ]);
+      if (jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value.data?.jobs)) {
+        const normalized = normalizeJobs(jobsRes.value.data.jobs);
+        setJobs(normalized);
+        localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
+      }
+      if (sheetsRes.status === 'fulfilled' && Array.isArray(sheetsRes.value.data?.productionSheets)) {
+        setProductionSheets(sheetsRes.value.data.productionSheets);
+        localStorage.setItem('aszen_prod_sheets', JSON.stringify(sheetsRes.value.data.productionSheets));
+      }
+      if (clientsRes.status === 'fulfilled' && Array.isArray(clientsRes.value.data?.clients)) {
+        const mapped = clientsRes.value.data.clients.map((c) => ({
+          id: c.id,
+          code: c.code,
+          name: c.name,
+          contact: c.contact,
+        }));
+        setClients(mapped);
+        localStorage.setItem('aszen_clients', JSON.stringify(mapped));
+      }
+    } catch (e) {
+      console.error('Refresh data error:', e);
+    }
+  }, []);
+
   // Sync jobs from backend API on mount / user change
   useEffect(() => {
     api
       .get('/jobs')
       .then((res) => {
-        if (Array.isArray(res.data?.jobs) && res.data.jobs.length > 0) {
+        if (Array.isArray(res.data?.jobs)) {
           const normalized = normalizeJobs(res.data.jobs);
           setJobs(normalized);
           localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
@@ -658,7 +695,7 @@ export function JobProvider({ children }) {
     api
       .get('/jobs/production-sheets')
       .then((res) => {
-        if (Array.isArray(res.data?.productionSheets) && res.data.productionSheets.length > 0) {
+        if (Array.isArray(res.data?.productionSheets)) {
           setProductionSheets(res.data.productionSheets);
           localStorage.setItem('aszen_prod_sheets', JSON.stringify(res.data.productionSheets));
         }
@@ -752,9 +789,44 @@ export function JobProvider({ children }) {
                 email: u.email,
                 role: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
                 designation: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
+                is_approved: u.is_approved !== false,
+                permissions: u.permissions || {},
               }));
-            setEditors(mapped);
-            localStorage.setItem('aszen_editors', JSON.stringify(mapped));
+
+            if (mapped.length > 0) {
+              setEditors(mapped);
+              localStorage.setItem('aszen_editors', JSON.stringify(mapped));
+            } else {
+              // Safeguard against backend database reboots or ephemeral container resets
+              const saved = localStorage.getItem('aszen_editors');
+              if (saved) {
+                try {
+                  const parsed = JSON.parse(saved);
+                  if (Array.isArray(parsed) && parsed.length > 0) {
+                    // Auto-sync cached editors to backend so they are recreated on the server
+                    api.post('/auth/users/sync', { users: parsed }).then((syncRes) => {
+                      if (Array.isArray(syncRes.data?.users)) {
+                        const syncedMapped = syncRes.data.users
+                          .filter((u) => u.role !== 'admin')
+                          .map((u) => ({
+                            id: u.id,
+                            name: u.name,
+                            email: u.email,
+                            role: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
+                            designation: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
+                            is_approved: u.is_approved !== false,
+                            permissions: u.permissions || {},
+                          }));
+                        setEditors(syncedMapped);
+                        localStorage.setItem('aszen_editors', JSON.stringify(syncedMapped));
+                      }
+                    }).catch(() => {});
+                  }
+                } catch (e) {
+                  console.error('Failed to parse cached editors:', e);
+                }
+              }
+            }
           }
         })
         .catch(() => {
@@ -782,6 +854,14 @@ export function JobProvider({ children }) {
   // Employee Management (Admin)
   const addEmployee = async (empData) => {
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    const defaultPerms = empData.permissions || {
+      can_create_job: false,
+      can_edit_job: false,
+      can_delete_job: false,
+      can_create_employee: false,
+      can_manage_clients: false,
+      can_manage_work_hours: false,
+    };
     try {
       if (token) {
         const res = await api.post('/auth/users', {
@@ -789,6 +869,8 @@ export function JobProvider({ children }) {
           email: empData.email,
           designation: empData.designation || empData.role || 'Editor',
           password: empData.password || 'Aszen@123',
+          is_approved: empData.is_approved !== undefined ? empData.is_approved : true,
+          permissions: defaultPerms,
         });
         const created = res.data.user;
         const newEmp = {
@@ -797,9 +879,11 @@ export function JobProvider({ children }) {
           email: created.email,
           role: created.designation || created.role,
           designation: created.designation || created.role,
+          is_approved: created.is_approved !== false,
+          permissions: created.permissions || defaultPerms,
         };
         updateEditorsState([newEmp, ...editors]);
-        return;
+        return newEmp;
       }
     } catch (err) {
       console.error('Add user API error:', err);
@@ -812,8 +896,56 @@ export function JobProvider({ children }) {
       role: empData.designation || empData.role || 'Editor',
       designation: empData.designation || 'Editor',
       email: empData.email || '',
+      is_approved: empData.is_approved !== undefined ? empData.is_approved : true,
+      permissions: defaultPerms,
     };
     updateEditorsState([newEmp, ...editors]);
+    return newEmp;
+  };
+
+  const updateEmployeePermissions = async (empId, updateData) => {
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    try {
+      if (token && empId) {
+        const idToPass = typeof empId === 'number' ? empId : parseInt(String(empId).replace('e-', ''), 10);
+        if (!isNaN(idToPass) && idToPass > 0) {
+          const res = await api.patch(`/auth/users/${idToPass}/permissions`, updateData);
+          if (res.data?.user) {
+            const updated = res.data.user;
+            const updatedList = editors.map((e) =>
+              (e.id === empId || e.id === updated.id)
+                ? {
+                    ...e,
+                    is_approved: updated.is_approved !== false,
+                    permissions: updated.permissions || {},
+                    designation: updated.designation || e.designation,
+                    role: updated.designation || e.role,
+                  }
+                : e
+            );
+            updateEditorsState(updatedList);
+            return res.data.user;
+          }
+        }
+      }
+    } catch (err) {
+      console.error('Update employee permissions API error:', err);
+      throw err;
+    }
+
+    // Demo / offline fallback
+    const updatedList = editors.map((e) =>
+      e.id === empId
+        ? {
+            ...e,
+            is_approved: updateData.is_approved !== undefined ? updateData.is_approved : e.is_approved,
+            permissions: { ...(e.permissions || {}), ...(updateData.permissions || {}) },
+            designation: updateData.designation || e.designation,
+            role: updateData.designation || e.role,
+          }
+        : e
+    );
+    updateEditorsState(updatedList);
   };
 
   const deleteEmployee = async (empId) => {
@@ -931,11 +1063,13 @@ export function JobProvider({ children }) {
         userDesignation,
         canCreateJob,
         canAssignJob,
+        canEditJob,
         canDeleteJob,
         canManageClients,
         canManageEmployees,
         canManageWorkHours,
         canUpdateStage,
+        isApproved,
         updateJobsState,
         createJob,
         deleteJob,
@@ -948,6 +1082,7 @@ export function JobProvider({ children }) {
         addClient,
         deleteClient,
         addEmployee,
+        updateEmployeePermissions,
         deleteEmployee,
         addWorkSession,
         updateWorkSession,
@@ -962,6 +1097,7 @@ export function JobProvider({ children }) {
         setIsCreateModalOpen,
         isManagementModalOpen,
         setIsManagementModalOpen,
+        refreshData,
       }}
     >
       {children}

@@ -76,6 +76,12 @@ export default function TaskTimerModal() {
       };
       calculateTime();
       interval = setInterval(calculateTime, 1000);
+    } else if (stage?.status === 'Paused' && stage?.startTime) {
+      const start = new Date(stage.startTime).getTime();
+      const pausePoint = stage.currentPauseStart ? new Date(stage.currentPauseStart).getTime() : Date.now();
+      const gross = Math.floor((pausePoint - start) / 1000);
+      const net = Math.max(0, gross - (stage.pausedDurationSeconds || 0));
+      setElapsedSeconds(net);
     } else if (stage?.status === 'Complete' && stage?.startTime && stage?.endTime) {
       const start = new Date(stage.startTime).getTime();
       const end = new Date(stage.endTime).getTime();

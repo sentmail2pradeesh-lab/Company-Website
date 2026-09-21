@@ -27,6 +27,10 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
   const [lcFiles, setLcFiles] = useState('');
   const [fcFiles, setFcFiles] = useState('');
 
+  // Folder Targets & Count
+  const [folderCount, setFolderCount] = useState(1);
+  const [folderTargets, setFolderTargets] = useState([]);
+
   const job = editModalState ? jobs.find((j) => j.id === editModalState.jobId) : null;
 
   useEffect(() => {
@@ -34,6 +38,16 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
       setClient(job.client || '');
       setName(job.name || '');
       setOutputTarget(job.outputTarget || 0);
+
+      const fCount = Number(job.folderCount) || (Array.isArray(job.folderTargets) ? job.folderTargets.length : 1);
+      setFolderCount(fCount);
+      if (Array.isArray(job.folderTargets) && job.folderTargets.length > 0) {
+        setFolderTargets(job.folderTargets);
+      } else if (fCount > 1) {
+        setFolderTargets(Array.from({ length: fCount }, (_, i) => ({ name: `Folder ${i + 1}`, count: 0 })));
+      } else {
+        setFolderTargets([{ name: job.name || '', count: job.outputTarget || 0 }]);
+      }
 
       setPath1Assignee(job.stages?.path1?.assignee || '');
       setPath2Assignee(job.stages?.path2?.assignee || '');
@@ -67,6 +81,41 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
 
   if (!editModalState || !job || !canAssignJob) return null;
 
+  const handleFolderNameChange = (idx, val) => {
+    const updated = [...folderTargets];
+    if (!updated[idx]) updated[idx] = { name: '', count: 0 };
+    updated[idx] = { ...updated[idx], name: val };
+    setFolderTargets(updated);
+  };
+
+  const handleFolderTargetChange = (idx, val) => {
+    const num = Math.max(0, Number(val) || 0);
+    const updated = [...folderTargets];
+    if (!updated[idx]) updated[idx] = { name: '', count: 0 };
+    updated[idx] = { ...updated[idx], count: num };
+    setFolderTargets(updated);
+    const sum = updated.reduce((acc, curr) => acc + (Number(curr.count) || 0), 0);
+    setOutputTarget(sum);
+  };
+
+  const handleFolderCountChange = (newCount) => {
+    const count = Math.max(1, Number(newCount) || 1);
+    setFolderCount(count);
+    const current = [...folderTargets];
+    if (count > current.length) {
+      const added = Array.from({ length: count - current.length }, (_, i) => ({
+        name: `Folder ${current.length + i + 1}`,
+        count: 0,
+      }));
+      setFolderTargets([...current, ...added]);
+    } else {
+      const trimmed = current.slice(0, count);
+      setFolderTargets(trimmed);
+      const sum = trimmed.reduce((acc, curr) => acc + (Number(curr.count) || 0), 0);
+      setOutputTarget(sum);
+    }
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     try {
@@ -94,12 +143,19 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
         };
       };
 
+      let finalName = name.trim();
+      if (folderTargets.length > 1 && !finalName) {
+        finalName = folderTargets.map((ft, i) => ft.name.trim() || `Folder ${i + 1}`).join(', ');
+      }
+
       const updatedJobs = jobs.map((j) => {
         if (j.id === job.id) {
           return {
             ...j,
             client: client || j.client,
-            name: name || j.name,
+            name: finalName || j.name,
+            folderCount: folderTargets.length > 1 ? folderTargets.length : 1,
+            folderTargets: folderTargets,
             outputTarget: totOutput,
             stages: {
               ...j.stages,
@@ -149,49 +205,177 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Client</label>
-              <select
-                value={client}
-                onChange={(e) => setClient(e.target.value)}
-                className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-semibold"
-                required
-              >
-                {clients.length > 0 ? (
-                  clients.map((c) => (
-                    <option key={c.id} value={c.code}>
-                      [{c.code}] {c.name}
-                    </option>
-                  ))
-                ) : (
-                  <option value={client}>{client}</option>
-                )}
-              </select>
-            </div>
+          {Number(folderCount) <= 1 ? (
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Client</label>
+                <select
+                  value={client}
+                  onChange={(e) => setClient(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-semibold"
+                  required
+                >
+                  {clients.length > 0 ? (
+                    clients.map((c) => (
+                      <option key={c.id} value={c.code}>
+                        [{c.code}] {c.name}
+                      </option>
+                    ))
+                  ) : (
+                    <option value={client}>{client}</option>
+                  )}
+                </select>
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Folder Name</label>
-              <input
-                type="text"
-                value={name}
-                onChange={(e) => setName(e.target.value)}
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
-                required
-              />
-            </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-700 mb-1">Folder Name</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => {
+                    setName(e.target.value);
+                    handleFolderNameChange(0, e.target.value);
+                  }}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                  required
+                />
+              </div>
 
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">Total Outputs</label>
-              <input
-                type="number"
-                value={outputTarget}
-                onChange={(e) => setOutputTarget(e.target.value)}
-                className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono font-bold"
-                required
-              />
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="text-xs font-semibold text-slate-700">Total Outputs</label>
+                  <button
+                    type="button"
+                    onClick={() => handleFolderCountChange(2)}
+                    className="text-[10px] text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                  >
+                    + Multi Folders
+                  </button>
+                </div>
+                <input
+                  type="number"
+                  value={outputTarget}
+                  onChange={(e) => setOutputTarget(e.target.value)}
+                  className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-mono font-bold"
+                  required
+                />
+              </div>
             </div>
-          </div>
+          ) : (
+            <div className="space-y-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">Client</label>
+                  <select
+                    value={client}
+                    onChange={(e) => setClient(e.target.value)}
+                    className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500 font-semibold"
+                    required
+                  >
+                    {clients.length > 0 ? (
+                      clients.map((c) => (
+                        <option key={c.id} value={c.code}>
+                          [{c.code}] {c.name}
+                        </option>
+                      ))
+                    ) : (
+                      <option value={client}>{client}</option>
+                    )}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Project / Title <span className="text-slate-400 font-normal">(optional)</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    placeholder="Batch Title (or leave blank)"
+                    className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Total Outputs <span className="text-indigo-600 font-bold">({outputTarget})</span>
+                  </label>
+                  <input
+                    type="number"
+                    value={outputTarget}
+                    readOnly
+                    className="w-full bg-slate-100 text-indigo-900 border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono font-bold focus:outline-none cursor-not-allowed"
+                  />
+                </div>
+              </div>
+
+              {/* Multiple Folder Names Card */}
+              <div className="p-3.5 bg-indigo-50/60 rounded-xl border border-indigo-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-xs font-bold text-indigo-900 uppercase tracking-wider">
+                    📁 Folder Names &amp; Targets ({folderTargets.length} Folders)
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleFolderCountChange(Number(folderCount) + 1)}
+                    className="text-xs font-bold text-indigo-600 hover:text-indigo-800 hover:underline cursor-pointer"
+                  >
+                    + Add Folder
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  {folderTargets.map((ft, idx) => (
+                    <div key={idx} className="p-2.5 bg-white rounded-lg border border-indigo-100 shadow-2xs space-y-1">
+                      <div className="flex items-center justify-between text-[11px] font-bold text-indigo-900 border-b border-slate-100 pb-1">
+                        <span>Folder #{idx + 1}</span>
+                        {folderTargets.length > 1 && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const updated = folderTargets.filter((_, i) => i !== idx);
+                              setFolderTargets(updated);
+                              setFolderCount(updated.length);
+                              const sum = updated.reduce((acc, curr) => acc + (Number(curr.count) || 0), 0);
+                              setOutputTarget(sum);
+                            }}
+                            className="text-[10px] text-rose-500 hover:text-rose-700 font-semibold cursor-pointer"
+                          >
+                            Remove
+                          </button>
+                        )}
+                      </div>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div className="col-span-2">
+                          <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Folder Name</label>
+                          <input
+                            type="text"
+                            value={ft.name}
+                            onChange={(e) => handleFolderNameChange(idx, e.target.value)}
+                            placeholder={`Folder ${idx + 1}`}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                            required
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-[10px] font-semibold text-slate-500 mb-0.5">Files</label>
+                          <input
+                            type="number"
+                            min="0"
+                            value={ft.count}
+                            onChange={(e) => handleFolderTargetChange(idx, e.target.value)}
+                            className="w-full bg-slate-50 border border-slate-200 rounded-md px-2 py-1 text-xs font-mono font-bold text-indigo-900 focus:outline-none focus:border-indigo-500 focus:bg-white text-center"
+                            required
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
 
           <div className="pt-3 border-t border-slate-100">
             <div className="text-xs font-bold text-slate-900 uppercase tracking-wider mb-3">

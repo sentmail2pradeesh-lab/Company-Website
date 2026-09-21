@@ -1,8 +1,16 @@
+import { useState } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { FiRefreshCw } from 'react-icons/fi';
 
 export default function TodaysJobsSummary() {
-  const { jobs } = useJobs();
+  const { jobs, refreshData } = useJobs();
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    if (refreshData) await refreshData();
+    setTimeout(() => setIsRefreshing(false), 500);
+  };
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-6 flex flex-col h-full min-h-[480px]">
@@ -12,11 +20,12 @@ export default function TodaysJobsSummary() {
           Today jobs
         </h2>
         <button
-          onClick={() => window.location.reload()}
-          className="text-slate-400 hover:text-slate-700 transition-colors p-1"
+          type="button"
+          onClick={handleRefresh}
+          className="text-slate-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer"
           title="Refresh jobs"
         >
-          <FiRefreshCw className="w-4 h-4" />
+          <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
         </button>
       </div>
 
@@ -41,7 +50,7 @@ export default function TodaysJobsSummary() {
               </tr>
             ) : (
               jobs.slice(0, 10).map((job) => {
-                const qcPendingCount = (job.stages.fc?.status === 'Complete' || job.stages.qc?.status === 'Complete') ? 0 : 1;
+                const qcPendingCount = (job.stages?.fc?.status === 'Complete' || job.stages?.qc?.status === 'Complete') ? 0 : 1;
                 return (
                   <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
                     <td className="py-3 px-4 font-mono font-bold text-slate-800 border-r border-slate-100">

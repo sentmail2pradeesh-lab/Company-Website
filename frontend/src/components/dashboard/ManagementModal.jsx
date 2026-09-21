@@ -12,6 +12,7 @@ export default function ManagementModal() {
     deleteClient,
     addEmployee,
     deleteEmployee,
+    updateEmployeePermissions,
   } = useJobs();
 
   const [activeTab, setActiveTab] = useState('employees'); // 'employees' | 'clients'

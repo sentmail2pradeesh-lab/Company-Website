@@ -24,8 +24,8 @@ export default function AssignmentsPage() {
         {editors.map((editor) => {
           // Find assigned active jobs for this editor
           const assignedJobs = jobs.filter((j) =>
-            Object.entries(j.stages).some(
-              ([stageKey, stageObj]) => stageObj.assignee === editor.name && stageObj.status !== 'Complete'
+            Object.entries(j.stages || {}).some(
+              ([stageKey, stageObj]) => stageObj?.assignee === editor.name && stageObj?.status !== 'Complete'
             )
           );
 

@@ -1,9 +1,11 @@
+import json
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from database import db
 from models import User, WorkSession, AuditLog
 from utils.jwt import create_token, token_required
 from utils.mail import send_reset_email, generate_reset_token
+from utils.user_store import save_user_to_store, remove_user_from_store, load_stored_users
 
 auth_bp = Blueprint('auth', __name__)
 
@@ -27,6 +29,8 @@ def register():
     data = request.get_json() or {}
     email = (data.get('email') or '').strip().lower()
     password = data.get('password') or ''
+    name = (data.get('name') or '').strip()
+    designation = (data.get('designation') or 'Editor').strip()
 
     if not email or not password:
         return jsonify({'message': 'Email and password are required'}), 400
@@ -34,13 +38,41 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'Email already registered'}), 409
 
-    user = User(email=email)
+    role = 'manager' if designation.lower() == 'manager' else 'employee'
+    display_name = name or email.split('@')[0].capitalize()
+
+    # Default permissions for self-registered employees
+    default_perms = {
+        'can_create_job': False,
+        'can_edit_job': False,
+        'can_delete_job': False,
+        'can_create_employee': False,
+        'can_manage_clients': False,
+        'can_manage_work_hours': False,
+    }
+
+    user = User(
+        email=email,
+        name=display_name,
+        role=role,
+        designation=designation,
+        is_approved=True,
+        permissions_json=json.dumps(default_perms)
+    )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
 
+    # Save to persistent JSON backup store
+    save_user_to_store(user, raw_password=password)
+    log_audit(user.email, user.name, 'USER_REGISTERED', f"New employee registered: {user.name} ({user.designation})")
+
     token = create_token(user.id)
-    return jsonify({'message': 'Registration successful', 'token': token, 'user': user.to_dict()}), 201
+    return jsonify({
+        'message': 'Registration successful! Your account is created.',
+        'token': token,
+        'user': user.to_dict()
+    }), 201
 
 
 @auth_bp.route('/login', methods=['POST'])
@@ -220,14 +252,23 @@ def get_users():
 @token_required
 def create_user():
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can create users.'}), 403
+    if current.role != 'admin' and not current.has_permission('can_create_employee'):
+        return jsonify({'message': 'Permission denied. Only Admin or authorized personnel can create users.'}), 403
 
     data = request.get_json() or {}
     email = (data.get('email') or '').strip().lower()
     name = (data.get('name') or '').strip()
     designation = (data.get('designation') or 'Editor').strip()
     password = data.get('password') or 'Aszen@123'
+    is_approved = bool(data.get('is_approved', True))
+    perms = data.get('permissions') or {
+        'can_create_job': False,
+        'can_edit_job': False,
+        'can_delete_job': False,
+        'can_create_employee': False,
+        'can_manage_clients': False,
+        'can_manage_work_hours': False,
+    }
 
     if not email or not name:
         return jsonify({'message': 'Name and Email are required.'}), 400
@@ -241,13 +282,112 @@ def create_user():
         email=email,
         name=name,
         role=role,
-        designation=designation
+        designation=designation,
+        is_approved=is_approved,
+        permissions_json=json.dumps(perms)
     )
     new_user.set_password(password)
     db.session.add(new_user)
     db.session.commit()
 
+    # Save to persistent storage
+    save_user_to_store(new_user, raw_password=password)
+    log_audit(current.email, current.name, 'USER_CREATED', f"Created employee {new_user.name} ({new_user.email})")
+
     return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
+
+
+@auth_bp.route('/users/<int:user_id>/permissions', methods=['PATCH'])
+@token_required
+def update_user_permissions(user_id):
+    current = request.current_user
+    if current.role != 'admin':
+        return jsonify({'message': 'Permission denied. Only Admin can update employee permissions.'}), 403
+
+    target = User.query.get(user_id)
+    if not target:
+        return jsonify({'message': 'User not found'}), 404
+
+    if target.role == 'admin':
+        return jsonify({'message': 'Cannot modify master Admin account permissions.'}), 400
+
+    data = request.get_json() or {}
+
+    if 'is_approved' in data:
+        target.is_approved = bool(data['is_approved'])
+
+    if 'permissions' in data and isinstance(data['permissions'], dict):
+        current_perms = target.permissions
+        current_perms.update(data['permissions'])
+        target.permissions = current_perms
+
+    if 'designation' in data and data['designation']:
+        target.designation = data['designation'].strip()
+        if target.designation.lower() == 'manager':
+            target.role = 'manager'
+        elif target.role != 'admin':
+            target.role = 'employee'
+
+    db.session.commit()
+    save_user_to_store(target)
+
+    status_str = "Approved" if target.is_approved else "Restricted"
+    log_audit(
+        current.email,
+        current.name,
+        'PERMISSIONS_UPDATED',
+        f"Updated permissions for {target.name} ({target.email}): {status_str}, {target.permissions}"
+    )
+
+    return jsonify({
+        'message': f'Permissions for {target.name} updated successfully',
+        'user': target.to_dict()
+    })
+
+
+@auth_bp.route('/users/sync', methods=['POST'])
+@token_required
+def sync_users():
+    current = request.current_user
+    if current.role != 'admin' and not current.has_permission('can_create_employee'):
+        return jsonify({'message': 'Permission denied.'}), 403
+
+    data = request.get_json() or {}
+    users_list = data.get('users') or []
+    synced_count = 0
+
+    for item in users_list:
+        email = (item.get('email') or '').lower().strip()
+        if not email or email == 'arun@aszen.com':
+            continue
+
+        existing = User.query.filter_by(email=email).first()
+        if not existing:
+            new_u = User(
+                email=email,
+                name=item.get('name') or email.split('@')[0].capitalize(),
+                role='manager' if (item.get('designation') or item.get('role', '')).lower() == 'manager' else 'employee',
+                designation=item.get('designation') or item.get('role') or 'Editor',
+                is_approved=item.get('is_approved', True),
+                permissions_json=json.dumps(item.get('permissions') or {})
+            )
+            new_u.set_password(item.get('password') or 'Aszen@123')
+            db.session.add(new_u)
+            save_user_to_store(new_u, raw_password='Aszen@123')
+            synced_count += 1
+        else:
+            if item.get('permissions'):
+                existing.permissions_json = json.dumps(item['permissions'])
+            if 'is_approved' in item:
+                existing.is_approved = item['is_approved']
+            save_user_to_store(existing)
+
+    db.session.commit()
+    all_users = User.query.order_by(User.created_at.desc()).all()
+    return jsonify({
+        'message': f'Synced {synced_count} users successfully',
+        'users': [u.to_dict() for u in all_users]
+    })
 
 
 @auth_bp.route('/users/<int:user_id>', methods=['DELETE'])
@@ -264,8 +404,12 @@ def delete_user(user_id):
     if target.role == 'admin':
         return jsonify({'message': 'Cannot delete master Admin account.'}), 400
 
+    target_email = target.email
     db.session.delete(target)
     db.session.commit()
+
+    remove_user_from_store(target_email)
+    log_audit(current.email, current.name, 'USER_DELETED', f"Deleted user {target.name} ({target_email})")
 
     return jsonify({'message': 'User deleted successfully'})
 
