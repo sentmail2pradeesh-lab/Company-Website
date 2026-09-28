@@ -22,6 +22,21 @@ export function JobProvider({ children }) {
           setProductionSheets([]);
         }
       }
+
+      // Purge legacy test employees (Shwetha, QA Perm Tester) from cached local storage
+      const savedEditors = localStorage.getItem('aszen_editors');
+      if (savedEditors) {
+        const parsed = JSON.parse(savedEditors);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (e) => !['qa_perm_test@aszen.com', 'shwetha@aszen.com'].includes((e.email || '').toLowerCase().trim())
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('aszen_editors', JSON.stringify(cleaned));
+            setEditors(cleaned);
+          }
+        }
+      }
     } catch (e) {
       console.error(e);
     }
@@ -782,7 +797,11 @@ export function JobProvider({ children }) {
         .then((res) => {
           if (Array.isArray(res.data?.users)) {
             const mapped = res.data.users
-              .filter((u) => u.role !== 'admin')
+              .filter(
+                (u) =>
+                  u.role !== 'admin' &&
+                  !['qa_perm_test@aszen.com', 'shwetha@aszen.com'].includes((u.email || '').toLowerCase().trim())
+              )
               .map((u) => ({
                 id: u.id,
                 name: u.name,
@@ -793,40 +812,8 @@ export function JobProvider({ children }) {
                 permissions: u.permissions || {},
               }));
 
-            if (mapped.length > 0) {
-              setEditors(mapped);
-              localStorage.setItem('aszen_editors', JSON.stringify(mapped));
-            } else {
-              // Safeguard against backend database reboots or ephemeral container resets
-              const saved = localStorage.getItem('aszen_editors');
-              if (saved) {
-                try {
-                  const parsed = JSON.parse(saved);
-                  if (Array.isArray(parsed) && parsed.length > 0) {
-                    // Auto-sync cached editors to backend so they are recreated on the server
-                    api.post('/auth/users/sync', { users: parsed }).then((syncRes) => {
-                      if (Array.isArray(syncRes.data?.users)) {
-                        const syncedMapped = syncRes.data.users
-                          .filter((u) => u.role !== 'admin')
-                          .map((u) => ({
-                            id: u.id,
-                            name: u.name,
-                            email: u.email,
-                            role: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
-                            designation: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
-                            is_approved: u.is_approved !== false,
-                            permissions: u.permissions || {},
-                          }));
-                        setEditors(syncedMapped);
-                        localStorage.setItem('aszen_editors', JSON.stringify(syncedMapped));
-                      }
-                    }).catch(() => {});
-                  }
-                } catch (e) {
-                  console.error('Failed to parse cached editors:', e);
-                }
-              }
-            }
+            setEditors(mapped);
+            localStorage.setItem('aszen_editors', JSON.stringify(mapped));
           }
         })
         .catch(() => {

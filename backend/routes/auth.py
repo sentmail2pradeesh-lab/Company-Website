@@ -358,7 +358,7 @@ def sync_users():
 
     for item in users_list:
         email = (item.get('email') or '').lower().strip()
-        if not email or email == 'arun@aszen.com':
+        if not email or email == 'arun@aszen.com' or email in ['shwetha@aszen.com', 'qa_perm_test@aszen.com']:
             continue
 
         existing = User.query.filter_by(email=email).first()

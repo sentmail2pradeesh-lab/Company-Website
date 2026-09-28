@@ -71,7 +71,16 @@ def create_app(config_object=Config):
 
 def seed_users():
     import json
-    from utils.user_store import load_stored_users, save_user_to_store
+    from utils.user_store import load_stored_users, save_user_to_store, remove_user_from_store
+
+    # Purge any legacy test accounts permanently so they never reappear
+    legacy_test_emails = ['shwetha@aszen.com', 'qa_perm_test@aszen.com']
+    for test_email in legacy_test_emails:
+        test_u = User.query.filter_by(email=test_email).first()
+        if test_u:
+            db.session.delete(test_u)
+            db.session.commit()
+        remove_user_from_store(test_email)
 
     # 1. Master Admin account
     admin_email = "arun@aszen.com"
@@ -109,7 +118,7 @@ def seed_users():
     stored_users = load_stored_users()
     for stored in stored_users:
         s_email = (stored.get('email') or '').lower().strip()
-        if not s_email or s_email == admin_email.lower():
+        if not s_email or s_email == admin_email.lower() or s_email in legacy_test_emails:
             continue
         existing_emp = User.query.filter_by(email=s_email).first()
         if not existing_emp:

@@ -283,7 +283,7 @@ export default function LoginPopup() {
                   name="name"
                   value={regName}
                   onChange={(e) => setRegName(e.target.value)}
-                  placeholder="e.g. Lessy, Shwetha"
+                  placeholder="e.g. Rahul, Sneha"
                   required
                 />
 
