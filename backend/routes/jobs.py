@@ -54,17 +54,11 @@ def create_job():
 
     existing = Job.query.filter_by(job_number=job_number).first()
     if existing:
-        all_jobs = Job.query.all()
-        numeric_ids = []
-        for j in all_jobs:
-            try:
-                numeric_ids.append(int(j.job_number))
-            except (ValueError, TypeError):
-                pass
-            if j.id:
-                numeric_ids.append(j.id)
-        max_id = max(numeric_ids) if numeric_ids else 1000
-        job_number = str(max_id + 1)
+        try:
+            max_id = db.session.query(db.func.max(Job.id)).scalar() or 1000
+            job_number = str(max_id + 1)
+        except Exception:
+            job_number = str(int(datetime.utcnow().timestamp()))
 
     job = Job(
         job_number=job_number,
@@ -104,6 +98,75 @@ def create_job():
     db.session.commit()
     log_audit(user, 'JOB_CREATED', f"Created Job #{job_number} for client {client_code}")
     return jsonify({'message': 'Job created successfully', 'job': job.to_dict()}), 201
+
+
+@jobs_bp.route('/<string:job_identifier>/stages/<string:stage_key>', methods=['PATCH'])
+@token_required
+def update_job_stage(job_identifier, stage_key):
+    """
+    Granular stage updater: Updates ONLY the specified stage to prevent
+    concurrent editors from overwriting each other's stage data.
+    """
+    user = request.current_user
+    if stage_key not in STAGE_KEYS:
+        return jsonify({'message': f'Invalid stage key: {stage_key}'}), 400
+
+    try:
+        int_id = int(job_identifier)
+    except (ValueError, TypeError):
+        int_id = -1
+    job = Job.query.filter((Job.job_number == str(job_identifier)) | (Job.id == int_id)).first()
+    if not job:
+        return jsonify({'message': 'Job not found'}), 404
+
+    stage_obj = JobStage.query.filter_by(job_id=job.id, stage_key=stage_key).first()
+    if not stage_obj:
+        stage_obj = JobStage(job_id=job.id, stage_key=stage_key)
+        db.session.add(stage_obj)
+
+    # Permission check
+    is_senior = (user.designation or '').strip().lower() == 'senior editor'
+    can_edit_all = user.role in ['admin', 'manager'] or is_senior or user.has_permission('can_edit_job')
+    is_assignee = user.name and stage_obj.assignee and user.name.strip().lower() == stage_obj.assignee.strip().lower()
+
+    if not can_edit_all and not is_assignee:
+        return jsonify({'message': f'Permission denied. You are not assigned to {stage_key}.'}), 403
+
+    data = request.get_json() or {}
+    if 'assignee' in data and can_edit_all:
+        stage_obj.assignee = (data['assignee'] or '').strip()
+    if 'status' in data:
+        stage_obj.status = data['status']
+    if 'filesCount' in data:
+        stage_obj.files_count = safe_int(data['filesCount'], stage_obj.files_count or 0)
+    if 'outputCount' in data:
+        stage_obj.output_count = safe_int(data['outputCount'], stage_obj.output_count or 0)
+    if 'startTime' in data:
+        stage_obj.start_time = data['startTime']
+    if 'endTime' in data:
+        stage_obj.end_time = data['endTime']
+    if 'pausedDurationSeconds' in data:
+        stage_obj.paused_duration_seconds = safe_int(data['pausedDurationSeconds'], stage_obj.paused_duration_seconds or 0)
+    if 'currentPauseStart' in data:
+        stage_obj.current_pause_start = data['currentPauseStart']
+    if 'pauseLogs' in data:
+        stage_obj.pause_logs_json = json.dumps(data['pauseLogs'] if isinstance(data['pauseLogs'], list) else [])
+
+    # Auto-update parent job finish status if all stages are done
+    all_stages = JobStage.query.filter_by(job_id=job.id).all()
+    other_stages_complete = all(s.status == 'Complete' or not s.assignee for s in all_stages if s.stage_key != stage_key)
+    if other_stages_complete and stage_obj.status == 'Complete':
+        job.status = 'Complete'
+        if not job.client_finish_time:
+            job.client_finish_time = datetime.utcnow().strftime('%Y-%m-%d %H:%M')
+
+    db.session.commit()
+    log_audit(user, 'STAGE_UPDATED', f"Updated {stage_key} stage on Job #{job.job_number} -> {stage_obj.status}")
+    return jsonify({
+        'message': f'Stage {stage_key} updated successfully',
+        'stage': stage_obj.to_dict(),
+        'job': job.to_dict()
+    })
 
 
 @jobs_bp.route('/<string:job_identifier>', methods=['PUT'])

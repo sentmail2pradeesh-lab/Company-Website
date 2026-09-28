@@ -13,6 +13,6 @@
       "can_manage_clients": true,
       "can_manage_work_hours": true
     },
-    "password_hash": "scrypt:32768:8:1$BG1gh7cSt2ieSZfk$c1d899098ae5704c2c5f03a70e3ddc51082aa30875c8151979adac05dd2b07b4f7129857d6a39973282fa3e33ecc5d0f1a1b8ac8a1f30d30fd2d36b4b44890cb"
+    "password_hash": "scrypt:32768:8:1$Xo2qEGA73zE6aTBT$043225702cb150c006c6e829bbb1194d967582b122e2102ad20c92c7c7f9f8d76290331990a8144d61b6514c9a67907bfa778763729d9feb46529935fa821126"
   }
 ]

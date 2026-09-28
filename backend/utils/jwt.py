@@ -2,6 +2,7 @@ import jwt
 from datetime import datetime, timedelta
 from functools import wraps
 from flask import request, jsonify, current_app
+from database import db
 from models import User
 
 
@@ -28,7 +29,7 @@ def token_required(f):
         token = auth_header.split(' ', 1)[1]
         try:
             payload = decode_token(token)
-            user = User.query.get(payload['user_id'])
+            user = db.session.get(User, payload['user_id'])
             if not user:
                 return jsonify({'message': 'Invalid token'}), 401
         except jwt.ExpiredSignatureError:

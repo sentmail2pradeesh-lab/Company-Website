@@ -189,16 +189,25 @@ export function JobProvider({ children }) {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
-  // Persist state updates to LocalStorage, SQLite Backend & broadcast real-time
-  const updateJobsState = (newJobs, targetJobToSync = null) => {
+  // Persist state updates to LocalStorage, SQLite/Postgres Backend & broadcast real-time
+  const updateJobsState = (newJobs, targetJobToSync = null, targetStageToSync = null) => {
     const normalized = normalizeJobs(newJobs);
     setJobs([...normalized]);
     localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
     broadcastSync(normalized, productionSheets, editors, clients, workSessions);
 
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
-    if (token && targetJobToSync) {
-      api.put(`/jobs/${targetJobToSync.id || targetJobToSync.jobNumber}`, targetJobToSync).catch(() => {});
+    if (token) {
+      if (targetStageToSync?.jobId && targetStageToSync?.stageKey) {
+        // Granular PATCH updates only the specific stage to prevent overwriting other concurrent editors
+        api
+          .patch(`/jobs/${targetStageToSync.jobId}/stages/${targetStageToSync.stageKey}`, targetStageToSync.data)
+          .catch((err) => {
+            console.error('Stage patch error:', err);
+          });
+      } else if (targetJobToSync) {
+        api.put(`/jobs/${targetJobToSync.id || targetJobToSync.jobNumber}`, targetJobToSync).catch(() => {});
+      }
     }
   };
 
@@ -418,9 +427,10 @@ export function JobProvider({ children }) {
       alert('Permission Denied: Only Manager or Admin can assign team members to job stages.');
       return;
     }
-    let targetJob = null;
+    let targetStagePayload = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
+        const nextStatus = j.stages[stageKey].status === 'Unassigned' ? 'Pending' : j.stages[stageKey].status;
         const updatedJob = {
           ...j,
           stages: {
@@ -428,16 +438,23 @@ export function JobProvider({ children }) {
             [stageKey]: {
               ...j.stages[stageKey],
               assignee: assigneeName,
-              status: j.stages[stageKey].status === 'Unassigned' ? 'Pending' : j.stages[stageKey].status,
+              status: nextStatus,
             },
           },
         };
-        targetJob = updatedJob;
+        targetStagePayload = {
+          jobId,
+          stageKey,
+          data: {
+            assignee: assigneeName,
+            status: nextStatus,
+          },
+        };
         return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated, targetJob);
+    updateJobsState(updated, null, targetStagePayload);
     setAssignModalState(null);
   };
 
@@ -457,9 +474,10 @@ export function JobProvider({ children }) {
       }
     }
     const nowIso = new Date().toISOString();
-    let targetJob = null;
+    let targetStagePayload = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
+        const sTime = j.stages[stageKey].startTime || nowIso;
         const updatedJob = {
           ...j,
           stages: {
@@ -467,16 +485,23 @@ export function JobProvider({ children }) {
             [stageKey]: {
               ...j.stages[stageKey],
               status: 'In-Progress',
-              startTime: j.stages[stageKey].startTime || nowIso,
+              startTime: sTime,
             },
           },
         };
-        targetJob = updatedJob;
+        targetStagePayload = {
+          jobId,
+          stageKey,
+          data: {
+            status: 'In-Progress',
+            startTime: sTime,
+          },
+        };
         return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated, targetJob);
+    updateJobsState(updated, null, targetStagePayload);
   };
 
   const pauseStageTimer = (jobId, stageKey, reason) => {
@@ -489,10 +514,14 @@ export function JobProvider({ children }) {
       }
     }
     const nowIso = new Date().toISOString();
-    let targetJob = null;
+    let targetStagePayload = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
         const currentStage = j.stages[stageKey];
+        const newLogs = [
+          ...(currentStage.pauseLogs || []),
+          { reason: reason || 'Break', timestamp: nowIso, duration: 0 },
+        ];
         const updatedJob = {
           ...j,
           stages: {
@@ -501,19 +530,24 @@ export function JobProvider({ children }) {
               ...currentStage,
               status: 'Paused',
               currentPauseStart: nowIso,
-              pauseLogs: [
-                ...(currentStage.pauseLogs || []),
-                { reason: reason || 'Break', timestamp: nowIso, duration: 0 },
-              ],
+              pauseLogs: newLogs,
             },
           },
         };
-        targetJob = updatedJob;
+        targetStagePayload = {
+          jobId,
+          stageKey,
+          data: {
+            status: 'Paused',
+            currentPauseStart: nowIso,
+            pauseLogs: newLogs,
+          },
+        };
         return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated, targetJob);
+    updateJobsState(updated, null, targetStagePayload);
   };
 
   const resumeStageTimer = (jobId, stageKey) => {
@@ -526,7 +560,7 @@ export function JobProvider({ children }) {
       }
     }
     const now = new Date();
-    let targetJob = null;
+    let targetStagePayload = null;
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
         const currentStage = j.stages[stageKey];
@@ -538,6 +572,7 @@ export function JobProvider({ children }) {
           updatedLogs[updatedLogs.length - 1].duration = diffSeconds;
         }
 
+        const newPausedDuration = (currentStage.pausedDurationSeconds || 0) + diffSeconds;
         const updatedJob = {
           ...j,
           stages: {
@@ -546,17 +581,26 @@ export function JobProvider({ children }) {
               ...currentStage,
               status: 'In-Progress',
               currentPauseStart: null,
-              pausedDurationSeconds: (currentStage.pausedDurationSeconds || 0) + diffSeconds,
+              pausedDurationSeconds: newPausedDuration,
               pauseLogs: updatedLogs,
             },
           },
         };
-        targetJob = updatedJob;
+        targetStagePayload = {
+          jobId,
+          stageKey,
+          data: {
+            status: 'In-Progress',
+            currentPauseStart: null,
+            pausedDurationSeconds: newPausedDuration,
+            pauseLogs: updatedLogs,
+          },
+        };
         return updatedJob;
       }
       return j;
     });
-    updateJobsState(updated, targetJob);
+    updateJobsState(updated, null, targetStagePayload);
   };
 
   const finishStageTimer = (jobId, stageKey, outputFilesCount) => {
@@ -570,15 +614,17 @@ export function JobProvider({ children }) {
     }
     const nowIso = new Date().toISOString();
     let updatedTargetJob = null;
+    let targetStagePayload = null;
 
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
         const currentStage = j.stages[stageKey];
+        const outCount = Number(outputFilesCount) || j.outputTarget;
         const updatedStage = {
           ...currentStage,
           status: 'Complete',
           endTime: nowIso,
-          outputCount: Number(outputFilesCount) || j.outputTarget,
+          outputCount: outCount,
         };
 
         let finishTime = j.clientFinishTime;
@@ -595,12 +641,21 @@ export function JobProvider({ children }) {
           },
         };
         updatedTargetJob = newJobObj;
+        targetStagePayload = {
+          jobId,
+          stageKey,
+          data: {
+            status: 'Complete',
+            endTime: nowIso,
+            outputCount: outCount,
+          },
+        };
         return newJobObj;
       }
       return j;
     });
 
-    updateJobsState(updated, updatedTargetJob);
+    updateJobsState(updated, null, targetStagePayload);
 
     // Auto-create a production sheet entry
     if (updatedTargetJob) {
@@ -690,6 +745,17 @@ export function JobProvider({ children }) {
       console.error('Refresh data error:', e);
     }
   }, []);
+
+  // Periodic active-tab background sync (every 20s for seamless cross-workstation real-time updates)
+  useEffect(() => {
+    if (!user) return;
+    const interval = setInterval(() => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        refreshData();
+      }
+    }, 20000);
+    return () => clearInterval(interval);
+  }, [user, refreshData]);
 
   // Sync jobs from backend API on mount / user change
   useEffect(() => {

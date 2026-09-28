@@ -15,6 +15,6 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://visaeditz.com
+        value: https://vistaeditz.com
       - key: PYTHON_VERSION
         value: 3.11.9

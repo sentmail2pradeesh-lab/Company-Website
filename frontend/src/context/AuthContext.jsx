@@ -116,29 +116,13 @@ export function AuthProvider({ children }) {
       closeLogin();
       return res.data;
     } catch (err) {
-      if (err.response && err.response.data && err.response.data.message) {
+      if (err.response?.data?.message) {
         throw new Error(err.response.data.message);
       }
-      // Demo fallback only if server is completely offline
-      const rawName = fullEmail.split('.')[0].split('@')[0];
-      const displayName = rawName.charAt(0).toUpperCase() + rawName.slice(1);
-      const isMasterAdmin = fullEmail.toLowerCase().includes('arun');
-      
-      const demoUser = {
-        id: Date.now(),
-        email: fullEmail,
-        name: displayName,
-        role: isMasterAdmin ? 'admin' : 'employee',
-        designation: isMasterAdmin ? 'Admin / System Manager' : 'Editor',
-      };
-      const demoToken = 'demo_token_' + Date.now();
-      sessionStorage.setItem('aszen_token', demoToken);
-      sessionStorage.setItem('aszen_user', JSON.stringify(demoUser));
-      sessionStorage.setItem('aszen_login_timestamp', new Date().toISOString());
-
-      setUser(demoUser);
-      closeLogin();
-      return { user: demoUser };
+      if (err.code === 'ECONNABORTED' || err.message?.includes('timeout')) {
+        throw new Error('Server connection timed out. The cloud server is likely waking up from sleep—please wait 20 seconds and try again.');
+      }
+      throw new Error('Unable to connect to the authentication service. Please verify your internet connection or try again shortly.');
     }
   };
 
