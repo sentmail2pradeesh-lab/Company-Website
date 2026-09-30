@@ -28,6 +28,7 @@ import AssignmentsPage from './pages/dashboard/AssignmentsPage';
 import ProductionSheetsPage from './pages/dashboard/ProductionSheetsPage';
 import ClientHistorySummaryPage from './pages/dashboard/ClientHistorySummaryPage';
 import AuditLogsPage from './pages/dashboard/AuditLogsPage';
+import LeaveManagementPage from './pages/dashboard/LeaveManagementPage';
 
 export default function App() {
   return (
@@ -58,6 +59,7 @@ export default function App() {
                   <Route path="assignments" element={<AssignmentsPage />} />
                   <Route path="production-sheets" element={<ProductionSheetsPage />} />
                   <Route path="client-summary" element={<ClientHistorySummaryPage />} />
+                  <Route path="leave" element={<LeaveManagementPage />} />
                   <Route path="audit-logs" element={<AuditLogsPage />} />
                 </Route>
 

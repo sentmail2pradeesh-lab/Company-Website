@@ -428,25 +428,25 @@ export default function ClientHistorySummaryPage() {
             return (
               <div
                 key={job.id}
-                className="bg-white rounded-3xl p-6 border border-slate-200/80 shadow-sm space-y-5"
+                className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4 sm:space-y-5"
               >
                 {/* Job Top Row */}
-                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 pb-4 border-b border-slate-100">
+                <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
                   <div>
                     <div className="flex items-center gap-2 text-xs font-mono font-bold text-indigo-600">
                       Job #{job.id} <span className="text-slate-300">•</span> Date: {jobDate}
                     </div>
-                    <h3 className="text-lg font-extrabold text-slate-900 mt-0.5 font-display">
+                    <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 font-display">
                       Client <span className="text-indigo-600">{job.client}</span> — {job.name}
                     </h3>
                   </div>
 
-                  <div className="flex items-center gap-3">
-                    <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200 text-right">
+                  <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                    <div className="bg-slate-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-slate-200 text-right">
                       <div className="text-[10px] text-slate-400 uppercase font-bold">Total Turnaround</div>
                       <div className="text-xs font-bold font-mono text-emerald-700">{totalTurnaroundText}</div>
                     </div>
-                    <div className="bg-slate-50 px-4 py-2 rounded-2xl border border-slate-200 text-right">
+                    <div className="bg-slate-50 px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl sm:rounded-2xl border border-slate-200 text-right">
                       <div className="text-[10px] text-slate-400 uppercase font-bold">Output Count</div>
                       <div className="text-xs font-bold font-mono text-indigo-600">{job.outputTarget} Files</div>
                     </div>

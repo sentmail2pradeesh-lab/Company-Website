@@ -2,12 +2,13 @@ from flask import Flask
 from flask_cors import CORS
 from config import Config
 from database import db
-from models import User, Blog, WorkSession, Client, Job, JobStage, ProductionSheetEntry, AuditLog
+from models import User, Blog, WorkSession, Client, Job, JobStage, ProductionSheetEntry, AuditLog, LeaveRequest
 from routes.auth import auth_bp
 from routes.blogs import blogs_bp
 from routes.work_hours import work_hours_bp
 from routes.clients import clients_bp
 from routes.jobs import jobs_bp
+from routes.leaves import leaves_bp
 from utils.mail import mail
 
 
@@ -24,6 +25,7 @@ def create_app(config_object=Config):
     app.register_blueprint(work_hours_bp, url_prefix='/api/work-hours')
     app.register_blueprint(clients_bp, url_prefix='/api/clients')
     app.register_blueprint(jobs_bp, url_prefix='/api/jobs')
+    app.register_blueprint(leaves_bp, url_prefix='/api/leaves')
 
 
     @app.route('/')

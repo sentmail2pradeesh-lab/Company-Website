@@ -11,10 +11,10 @@ export default function Workflow() {
   const lineScale = useTransform(scrollYProgress, [0, 1], [0, 1]);
 
   return (
-    <section className="py-24 lg:py-36 bg-obsidian relative overflow-hidden">
+    <section className="py-16 sm:py-24 lg:py-36 bg-obsidian relative overflow-hidden">
       <div className="absolute inset-0 -z-10 bg-dots opacity-30 [mask-image:radial-gradient(ellipse_at_center,black,transparent_75%)]" />
 
-      <div className="mx-auto max-w-7xl px-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading
           badge="How We Work"
           badgeAccent="sky"
@@ -23,7 +23,7 @@ export default function Workflow() {
           subtitle="No surprises, no guesswork — just a transparent, proven process refined over a decade."
         />
 
-        <div ref={ref} className="mt-20 relative">
+        <div ref={ref} className="mt-12 sm:mt-20 relative">
           {/* Desktop: horizontal connector */}
           <div className="hidden lg:block absolute top-10 left-[10%] right-[10%] h-1 bg-line rounded-full overflow-hidden">
             <motion.div
@@ -37,7 +37,7 @@ export default function Workflow() {
             initial="hidden"
             whileInView="show"
             viewport={viewportOnce}
-            className="grid gap-8 lg:grid-cols-5"
+            className="grid gap-6 sm:gap-8 lg:grid-cols-5"
           >
             {WORKFLOW.map((step) => (
               <motion.div key={step.step} variants={fadeUp} className="relative text-center lg:text-left group">

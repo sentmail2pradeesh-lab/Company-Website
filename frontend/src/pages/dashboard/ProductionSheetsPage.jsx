@@ -179,10 +179,10 @@ export default function ProductionSheetsPage() {
         </div>
 
         {/* View Switcher Tabs */}
-        <div className="flex items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full sm:w-auto">
           <button
             onClick={() => setActiveTab('working-hours')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] ${
               activeTab === 'working-hours'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -192,7 +192,7 @@ export default function ProductionSheetsPage() {
           </button>
           <button
             onClick={() => setActiveTab('output-sheets')}
-            className={`px-4 py-2 rounded-lg text-xs font-bold transition-all flex items-center gap-2 ${
+            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] ${
               activeTab === 'output-sheets'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -375,8 +375,8 @@ export default function ProductionSheetsPage() {
             )}
 
             {/* Working Hours Table */}
-            <div className="overflow-x-auto">
-              <table className="w-full text-left text-xs">
+            <div className="overflow-x-auto mobile-touch-scroll">
+              <table className="w-full text-left text-xs min-w-[750px]">
                 <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
                   <tr>
                     <th className="py-3 px-4">Date</th>
@@ -537,8 +537,8 @@ export default function ProductionSheetsPage() {
               </div>
             </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
+          <div className="overflow-x-auto mobile-touch-scroll">
+            <table className="w-full text-left text-xs min-w-[850px]">
               <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
                 <tr>
                   <th className="py-3 px-4">Date</th>

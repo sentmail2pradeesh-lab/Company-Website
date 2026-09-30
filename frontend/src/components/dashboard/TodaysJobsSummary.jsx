@@ -13,25 +13,26 @@ export default function TodaysJobsSummary() {
   };
 
   return (
-    <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-6 flex flex-col h-full min-h-[480px]">
+    <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-4 sm:p-6 flex flex-col h-full min-h-[380px]">
       {/* Top Header Row matching screenshot */}
-      <div className="flex items-center justify-between pb-6">
-        <h2 className="text-lg font-bold text-slate-900 font-sans">
+      <div className="flex items-center justify-between pb-4 sm:pb-6">
+        <h2 className="text-base sm:text-lg font-bold text-slate-900 font-sans">
           Today jobs
         </h2>
         <button
           type="button"
           onClick={handleRefresh}
-          className="text-slate-400 hover:text-indigo-600 transition-colors p-1.5 rounded-lg hover:bg-slate-50 cursor-pointer"
+          className="text-slate-400 hover:text-indigo-600 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 cursor-pointer"
           title="Refresh jobs"
+          aria-label="Refresh jobs"
         >
           <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
         </button>
       </div>
 
       {/* Table Container */}
-      <div className="overflow-x-auto flex-1">
-        <table className="w-full text-left text-xs border border-slate-100">
+      <div className="overflow-x-auto mobile-touch-scroll flex-1">
+        <table className="w-full text-left text-xs border border-slate-100 min-w-[450px]">
           <thead>
             <tr className="border-b border-slate-200 text-slate-700 font-bold text-xs bg-slate-50/50">
               <th className="py-3 px-4 border-r border-slate-100 w-24">ID #</th>
@@ -49,7 +50,7 @@ export default function TodaysJobsSummary() {
                 </td>
               </tr>
             ) : (
-              jobs.slice(0, 10).map((job) => {
+              jobs.slice(0, 15).map((job) => {
                 const qcPendingCount = (job.stages?.fc?.status === 'Complete' || job.stages?.qc?.status === 'Complete') ? 0 : 1;
                 return (
                   <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
@@ -82,4 +83,5 @@ export default function TodaysJobsSummary() {
     </div>
   );
 }
+
 

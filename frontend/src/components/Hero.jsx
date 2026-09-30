@@ -27,7 +27,7 @@ export default function Hero() {
   };
 
   return (
-    <section ref={ref} className="relative overflow-hidden pt-36 lg:pt-40 pb-20 lg:pb-32 bg-obsidian transition-colors">
+    <section ref={ref} className="relative overflow-hidden pt-28 sm:pt-36 lg:pt-40 pb-16 lg:pb-32 bg-obsidian transition-colors">
       {/* Background Video */}
       <div className="absolute inset-0 -z-10 overflow-hidden">
         <video
@@ -48,25 +48,25 @@ export default function Hero() {
       <div className="absolute top-48 -left-32 w-[480px] h-[480px] blob-emerald -z-10 opacity-50 pointer-events-none" />
       <div className="absolute -bottom-20 right-1/4 w-[400px] h-[400px] blob-violet -z-10 opacity-40 pointer-events-none" />
 
-      <motion.div style={{ opacity }} className="mx-auto max-w-7xl px-6 grid lg:grid-cols-2 gap-12 lg:gap-8 items-center">
+      <motion.div style={{ opacity }} className="mx-auto max-w-7xl px-4 sm:px-6 grid lg:grid-cols-2 gap-10 lg:gap-8 items-center">
         {/* Left column */}
         <motion.div variants={staggerContainer(0.14)} initial="hidden" animate="show">
-          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-cyan-400 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+          <motion.div variants={fadeUp} className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-3.5 sm:px-4 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-cyan-400 backdrop-blur-md shadow-[0_0_15px_rgba(6,182,212,0.2)]">
             <span className="h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
             Creative Digital Studio
           </motion.div>
 
-          <motion.h1 variants={fadeUp} className="mt-5 font-display text-[2.5rem] leading-[1.05] sm:text-5xl lg:text-[4rem] xl:text-[4.5rem] font-extrabold tracking-tight text-ink">
+          <motion.h1 variants={fadeUp} className="mt-5 font-display text-[2.15rem] leading-[1.1] sm:text-5xl lg:text-[4rem] xl:text-[4.5rem] font-extrabold tracking-tight text-ink">
             Creative digital solutions that{' '}
             <span className="text-gradient-brand">move brands forward</span>
           </motion.h1>
 
-          <motion.p variants={fadeUp} className="mt-6 max-w-xl text-base md:text-lg text-mist leading-relaxed font-normal">
+          <motion.p variants={fadeUp} className="mt-5 sm:mt-6 max-w-xl text-base md:text-lg text-mist leading-relaxed font-normal">
             From pixel-perfect photo and video editing to high-growth marketing and custom software — Vista Editz crafts premium creative work for real estate, e-commerce, agencies and enterprises.
           </motion.p>
 
-          <motion.div variants={fadeUp} className="mt-8 flex flex-wrap items-center gap-4">
-            <Button size="lg" variant="primary" onClick={() => navigate('/contact')} iconRight="arrowRight">
+          <motion.div variants={fadeUp} className="mt-7 sm:mt-8 flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4">
+            <Button size="lg" variant="primary" onClick={() => navigate('/contact')} iconRight="arrowRight" className="w-full sm:w-auto justify-center">
               Start Your Project
             </Button>
             <Button
@@ -74,6 +74,7 @@ export default function Hero() {
               variant="outline"
               iconLeft="play"
               onClick={() => document.getElementById('services')?.scrollIntoView({ behavior: 'smooth' })}
+              className="w-full sm:w-auto justify-center"
             >
               Explore Work
             </Button>
@@ -118,20 +119,20 @@ export default function Hero() {
               </button>
 
               {/* Video Bottom HUD Controls */}
-              <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between rounded-2xl bg-slate-950/80 backdrop-blur-xl px-4 py-2.5 border border-white/15">
-                <div className="flex items-center gap-3">
-                  <div className="flex items-end gap-1 h-5 w-6">
+              <div className="absolute bottom-3 sm:bottom-4 left-3 sm:left-4 right-3 sm:right-4 flex items-center justify-between rounded-xl sm:rounded-2xl bg-slate-950/85 backdrop-blur-xl px-3 sm:px-4 py-2 sm:py-2.5 border border-white/15">
+                <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                  <div className="flex items-end gap-1 h-5 w-5 sm:w-6 shrink-0">
                     <span className="w-1 bg-indigo-500 rounded-full animate-audio-1" />
                     <span className="w-1 bg-cyan-400 rounded-full animate-audio-2" />
                     <span className="w-1 bg-emerald-400 rounded-full animate-audio-3" />
                     <span className="w-1 bg-blue-500 rounded-full animate-audio-4" />
                   </div>
-                  <div>
-                    <p className="text-xs font-bold text-white leading-none">Vista Edits Reel</p>
-                    <p className="text-[0.68rem] text-slate-400 font-mono mt-0.5">3840x2160 • 60FPS • Color Graded</p>
+                  <div className="truncate">
+                    <p className="text-xs font-bold text-white leading-none truncate">Vista Edits Reel</p>
+                    <p className="text-[0.65rem] sm:text-[0.68rem] text-slate-400 font-mono mt-0.5 hidden xs:block truncate">3840x2160 • 60FPS • Master</p>
                   </div>
                 </div>
-                <span className="text-xs font-bold text-cyan-400 font-mono">LIVE</span>
+                <span className="text-[11px] sm:text-xs font-bold text-cyan-400 font-mono shrink-0 ml-2">LIVE</span>
               </div>
             </div>
           </div>

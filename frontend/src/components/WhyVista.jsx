@@ -15,7 +15,7 @@ function Tile({ item, large }) {
     <motion.div
       variants={fadeUp}
       whileHover={{ y: -6 }}
-      className={`group relative overflow-hidden rounded-[2.5rem] border border-line bg-obsidian-card p-7 md:p-8 shadow-card glass-card-hover backdrop-blur-xl ${
+      className={`group relative overflow-hidden rounded-3xl sm:rounded-[2.5rem] border border-line bg-obsidian-card p-6 sm:p-7 md:p-8 shadow-card glass-card-hover backdrop-blur-xl ${
         large ? 'md:col-span-2 md:row-span-2' : ''
       }`}
     >
@@ -23,24 +23,24 @@ function Tile({ item, large }) {
       <div className="absolute -top-14 -right-14 w-44 h-44 rounded-full bg-gradient-to-br from-pink-500/25 via-purple-500/20 to-cyan-400/20 opacity-0 group-hover:opacity-100 transition-opacity blur-xl pointer-events-none" />
 
       <div className="relative z-10">
-        <span className={`flex h-14 w-14 items-center justify-center rounded-2xl ${ACCENT_BG[item.accent]}`}>
-          <Icon name={item.icon} className="w-7 h-7" />
+        <span className={`flex h-12 w-12 sm:h-14 sm:w-14 items-center justify-center rounded-2xl ${ACCENT_BG[item.accent]}`}>
+          <Icon name={item.icon} className="w-6 h-6 sm:w-7 sm:h-7" />
         </span>
-        <h3 className={`mt-6 font-extrabold font-display text-ink tracking-tight ${large ? 'text-2xl md:text-3xl' : 'text-xl'}`}>
+        <h3 className={`mt-5 sm:mt-6 font-extrabold font-display text-ink tracking-tight ${large ? 'text-2xl md:text-3xl' : 'text-lg sm:text-xl'}`}>
           {item.title}
         </h3>
-        <p className={`mt-3 text-mist leading-relaxed font-normal ${large ? 'text-base max-w-md' : 'text-sm'}`}>
+        <p className={`mt-2.5 sm:mt-3 text-mist leading-relaxed font-normal ${large ? 'text-sm sm:text-base max-w-md' : 'text-sm'}`}>
           {item.desc}
         </p>
 
         {large && (
-          <div className="mt-8 flex items-end gap-8 pt-4 border-t border-line">
+          <div className="mt-6 sm:mt-8 flex items-end gap-6 sm:gap-8 pt-4 border-t border-line flex-wrap sm:flex-nowrap">
             <div>
-              <p className="font-display text-4xl md:text-5xl font-extrabold text-gradient-brand">10+</p>
+              <p className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-gradient-brand">10+</p>
               <p className="text-xs font-bold text-mist mt-1 uppercase tracking-wider">years of craft</p>
             </div>
             <div>
-              <p className="font-display text-4xl md:text-5xl font-extrabold text-gradient-emerald">2M+</p>
+              <p className="font-display text-3xl sm:text-4xl md:text-5xl font-extrabold text-gradient-emerald">2M+</p>
               <p className="text-xs font-bold text-mist mt-1 uppercase tracking-wider">images edited</p>
             </div>
           </div>
@@ -52,8 +52,8 @@ function Tile({ item, large }) {
 
 export default function WhyVista() {
   return (
-    <section id="why" className="py-24 lg:py-36 bg-gradient-to-b from-indigo-50/60 via-purple-50/30 to-slate-50 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="why" className="py-16 sm:py-24 lg:py-36 bg-gradient-to-b from-indigo-50/60 via-purple-50/30 to-slate-50 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading
           badge="Why Vista Edits"
           badgeAccent="emerald"
@@ -67,7 +67,7 @@ export default function WhyVista() {
           initial="hidden"
           whileInView="show"
           viewport={viewportOnce}
-          className="mt-16 grid gap-6 md:grid-cols-3 lg:grid-cols-4 auto-rows-[1fr]"
+          className="mt-12 sm:mt-16 grid gap-5 sm:gap-6 md:grid-cols-3 lg:grid-cols-4 auto-rows-[1fr]"
         >
           {WHY_VISTA.map((item) => (
             <Tile key={item.title} item={item} large={item.span === 'lg'} />

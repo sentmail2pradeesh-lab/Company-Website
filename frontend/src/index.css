@@ -105,6 +105,8 @@ html.light {
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
   }
 
   html.lenis, html.lenis body {
@@ -123,6 +125,16 @@ html.light {
     overflow: hidden;
   }
 
+  html:not(.lenis) {
+    overflow-y: auto !important;
+    overflow-x: hidden;
+  }
+
+  html:not(.lenis) body {
+    overflow-y: visible !important;
+    overflow-x: hidden;
+  }
+
   .lenis.lenis-smooth iframe {
     pointer-events: none;
   }
@@ -132,8 +144,18 @@ html.light {
     background-color: var(--color-obsidian);
     color: var(--color-slate);
     overflow-x: hidden;
+    overflow-y: visible;
+    min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
+  }
+
+  #root {
+    min-height: 100vh;
+    min-height: 100dvh;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
   }
 
   h1, h2, h3, h4, h5 {
@@ -156,16 +178,18 @@ html.light {
 
   /* Scrollbar */
   ::-webkit-scrollbar {
-    width: 10px;
-    height: 10px;
+    width: 8px;
+    height: 8px;
   }
   ::-webkit-scrollbar-track {
-    background: var(--color-obsidian);
+    background: transparent;
   }
   ::-webkit-scrollbar-thumb {
-    background: var(--color-obsidian-elevated);
+    background: rgba(148, 163, 184, 0.4);
     border-radius: 999px;
-    border: 2px solid var(--color-obsidian);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(100, 116, 139, 0.7);
   }
 }
 
@@ -274,6 +298,32 @@ html.light {
     filter: blur(55px);
     will-change: transform;
     transform: translateZ(0);
+  }
+
+  /* Mobile Touch & Scroll Helpers */
+  .touch-none {
+    touch-action: none;
+  }
+
+  .touch-pan-y {
+    touch-action: pan-y;
+  }
+
+  .touch-pan-x {
+    touch-action: pan-x;
+  }
+
+  .mobile-touch-scroll {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  /* Safe area padding for edge-to-edge mobile devices */
+  .pb-safe {
+    padding-bottom: env(safe-area-inset-bottom, 1rem);
+  }
+  .pt-safe {
+    padding-top: env(safe-area-inset-top, 1rem);
   }
 }
 

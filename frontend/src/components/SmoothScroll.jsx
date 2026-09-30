@@ -1,47 +1,80 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useLocation } from 'react-router-dom';
 import Lenis from 'lenis';
 
 export default function SmoothScroll({ children }) {
   const { pathname, hash } = useLocation();
+  const lenisRef = useRef(null);
 
   useEffect(() => {
-    const lenis = new Lenis({
-      duration: 1.2,
-      easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
-      orientation: 'vertical',
-      gestureOrientation: 'vertical',
-      smoothWheel: true,
-      wheelMultiplier: 1.0,
-      touchMultiplier: 1.5,
-    });
+    const isDashboard = pathname.startsWith('/dashboard');
 
-    window.lenis = lenis;
-
-    let reqId;
-    function raf(time) {
-      lenis.raf(time);
-      reqId = requestAnimationFrame(raf);
+    if (isDashboard) {
+      // In dashboard routes: destroy Lenis so native scrolling works 100% smoothly
+      if (window.lenis) {
+        try {
+          window.lenis.destroy();
+        } catch (e) {}
+        delete window.lenis;
+      }
+      if (lenisRef.current) {
+        try {
+          lenisRef.current.destroy();
+        } catch (e) {}
+        lenisRef.current = null;
+      }
+      document.documentElement.classList.remove('lenis', 'lenis-smooth', 'lenis-stopped');
+      document.body.classList.remove('lenis', 'lenis-smooth', 'lenis-stopped');
+      document.documentElement.style.overflowY = 'auto';
+      document.documentElement.style.overflowX = 'hidden';
+      document.body.style.overflowY = 'visible';
+      document.body.style.overflowX = 'hidden';
+      return;
     }
-    reqId = requestAnimationFrame(raf);
 
-    return () => {
-      cancelAnimationFrame(reqId);
-      lenis.destroy();
-      delete window.lenis;
-    };
-  }, []);
+    // Public website pages: initialize Lenis smooth scrolling
+    if (!lenisRef.current) {
+      const lenis = new Lenis({
+        duration: 1.2,
+        easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+        orientation: 'vertical',
+        gestureOrientation: 'vertical',
+        smoothWheel: true,
+        wheelMultiplier: 1.0,
+        touchMultiplier: 1.5,
+      });
+
+      lenisRef.current = lenis;
+      window.lenis = lenis;
+
+      let reqId;
+      function raf(time) {
+        lenis.raf(time);
+        reqId = requestAnimationFrame(raf);
+      }
+      reqId = requestAnimationFrame(raf);
+
+      return () => {
+        cancelAnimationFrame(reqId);
+        lenis.destroy();
+        lenisRef.current = null;
+        delete window.lenis;
+      };
+    }
+  }, [pathname]);
 
   useEffect(() => {
-    if (window.lenis) {
+    if (lenisRef.current) {
       if (hash) {
         const el = document.querySelector(hash);
         if (el) {
-          window.lenis.scrollTo(el, { offset: -80, duration: 1.2 });
+          lenisRef.current.scrollTo(el, { offset: -80, duration: 1.2 });
         }
       } else {
-        window.lenis.scrollTo(0, { immediate: true });
+        lenisRef.current.scrollTo(0, { immediate: true });
       }
+    } else {
+      window.scrollTo({ top: 0, behavior: 'instant' });
     }
   }, [pathname, hash]);
 

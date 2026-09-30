@@ -154,42 +154,49 @@ export default function CreateJobPage() {
   };
 
   return (
-    <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-12">
+    <div className="max-w-6xl mx-auto space-y-6 animate-fadeIn pb-16">
       {/* Page Header */}
       <div className="flex items-center justify-between">
         <div>
           <button
             onClick={() => navigate('/dashboard')}
-            className="inline-flex items-center gap-1.5 text-xs font-bold text-slate-500 hover:text-indigo-600 mb-2 transition-colors"
+            className="inline-flex items-center gap-1.5 text-sm font-bold text-slate-500 hover:text-indigo-600 mb-2 transition-colors cursor-pointer"
           >
-            <FiArrowLeft className="w-3.5 h-3.5" /> Back to Dashboard
+            <FiArrowLeft className="w-4 h-4" /> Back to Dashboard
           </button>
-          <h1 className="text-2xl font-extrabold text-slate-900 font-sans tracking-tight">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-sans tracking-tight">
             Create Job
           </h1>
-          <p className="text-xs text-slate-500 mt-1">
+          <p className="text-sm text-slate-500 mt-1">
             Complete job specification, folder count breakdown, timestamps, and stage assignments.
           </p>
         </div>
       </div>
 
       {/* Form Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs p-6 sm:p-9 space-y-8">
+      <div className="bg-white rounded-3xl border border-slate-200/90 shadow-xs p-5 sm:p-8 md:p-10 space-y-8">
         <form onSubmit={handleSubmit} className="space-y-8">
           {/* Section 1: Client & Job Information */}
-          <div className="space-y-4">
-            <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <FiPlusCircle className="w-4 h-4" /> 1. Client & Job Specification
-            </h3>
+          <div className="space-y-5">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold text-xs">
+                1
+              </span>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase tracking-wide">
+                  Client &amp; Job Specification
+                </h3>
+              </div>
+            </div>
 
             {/* Line 1: Client Details (Client, Category, Job Level) */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Client</label>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">Client</label>
                 <select
                   value={client}
                   onChange={(e) => setClient(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 cursor-pointer transition-all"
                   required
                 >
                   <option value="">Choose Client</option>
@@ -202,11 +209,11 @@ export default function CreateJobPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Category</label>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">Category</label>
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 cursor-pointer transition-all"
                   required
                 >
                   <option value="Photo Editing">Photo Editing</option>
@@ -218,11 +225,11 @@ export default function CreateJobPage() {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">Job Level</label>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">Job Level</label>
                 <select
                   value={level}
                   onChange={(e) => setLevel(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-semibold focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 cursor-pointer transition-all"
                   required
                 >
                   <option value="Basic">Basic</option>
@@ -235,9 +242,9 @@ export default function CreateJobPage() {
             {/* Line 2: Folder Details & Dynamic Multiple Folder Names */}
             {Number(folderCount) <= 1 ? (
               /* Single Folder View */
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5 pt-1">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Folder / Job Name</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-1.5">Folder / Job Name</label>
                   <input
                     type="text"
                     value={name}
@@ -246,27 +253,27 @@ export default function CreateJobPage() {
                       handleFolderNameChange(0, e.target.value);
                     }}
                     placeholder="e.g. 1035 Nonchalant Dr"
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Folder Count</label>
-                  <div className="flex items-center gap-1.5">
+                  <label className="block text-sm font-bold text-slate-800 mb-1.5">Folder Count</label>
+                  <div className="flex items-center gap-2">
                     <input
                       type="number"
                       min="1"
                       value={folderCount}
                       onChange={(e) => handleFolderCountChange(e.target.value)}
                       placeholder="e.g. 1, 2"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:bg-white"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-center"
                       required
                     />
                     <button
                       type="button"
                       onClick={() => handleFolderCountChange(2)}
-                      className="px-3 py-2.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs font-bold border border-indigo-200 shrink-0 transition-colors cursor-pointer"
+                      className="px-4 py-3.5 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 text-xs sm:text-sm font-bold border border-indigo-200 shrink-0 transition-colors cursor-pointer min-h-[48px]"
                       title="Add more folders"
                     >
                       + Add Folders
@@ -275,7 +282,7 @@ export default function CreateJobPage() {
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Total Outputs (Files Count)</label>
+                  <label className="block text-sm font-bold text-slate-800 mb-1.5">Total Outputs (Files Count)</label>
                   <input
                     type="number"
                     value={totalOutputs}
@@ -284,7 +291,7 @@ export default function CreateJobPage() {
                       setTotalOutputs(val);
                       handleFolderTargetChange(0, val);
                     }}
-                    className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:bg-white"
+                    className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all text-center"
                     required
                   />
                 </div>
@@ -292,27 +299,27 @@ export default function CreateJobPage() {
             ) : (
               /* Multiple Folders View */
               <div className="space-y-4 pt-1">
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-5">
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
-                      Project / Order Batch Name <span className="text-slate-400 font-normal">(Optional)</span>
+                    <label className="block text-sm font-bold text-slate-800 mb-1.5">
+                      Project / Order Batch Name <span className="text-slate-400 font-normal text-xs">(Optional)</span>
                     </label>
                     <input
                       type="text"
                       value={name}
                       onChange={(e) => setName(e.target.value)}
                       placeholder="e.g. 1035 Nonchalant Dr (Leave blank to use folder names)"
-                      className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                      className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">Folder Count</label>
-                    <div className="flex items-center gap-1.5">
+                    <label className="block text-sm font-bold text-slate-800 mb-1.5">Folder Count</label>
+                    <div className="flex items-center gap-2">
                       <button
                         type="button"
                         onClick={() => handleFolderCountChange(Math.max(1, Number(folderCount) - 1))}
-                        className="w-10 h-10 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold border border-slate-200 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-12 h-12 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-lg border border-slate-200 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
                         title="Remove a folder"
                       >
                         -
@@ -322,13 +329,13 @@ export default function CreateJobPage() {
                         min="1"
                         value={folderCount}
                         onChange={(e) => handleFolderCountChange(e.target.value)}
-                        className="w-full text-center bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:bg-white"
+                        className="w-full text-center bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-mono font-bold focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 transition-all"
                         required
                       />
                       <button
                         type="button"
                         onClick={() => handleFolderCountChange(Number(folderCount) + 1)}
-                        className="w-10 h-10 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold border border-indigo-200 flex items-center justify-center transition-colors cursor-pointer"
+                        className="w-12 h-12 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-700 font-bold text-lg border border-indigo-200 flex items-center justify-center transition-all cursor-pointer shrink-0 active:scale-95"
                         title="Add a folder"
                       >
                         +
@@ -337,45 +344,45 @@ export default function CreateJobPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    <label className="block text-sm font-bold text-slate-800 mb-1.5">
                       Total Outputs <span className="text-indigo-600 font-bold font-mono">({totalOutputs} Files)</span>
                     </label>
                     <input
                       type="number"
                       value={totalOutputs}
                       readOnly
-                      className="w-full bg-slate-100 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-indigo-900 font-mono font-bold focus:outline-none cursor-not-allowed"
+                      className="w-full bg-indigo-50/60 border border-indigo-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-indigo-900 font-mono font-bold focus:outline-none cursor-not-allowed text-center"
                     />
                   </div>
                 </div>
 
                 {/* Multiple Folder Names & Target Outputs Card */}
-                <div className="p-4 sm:p-5 bg-gradient-to-br from-indigo-50/70 via-slate-50 to-white rounded-2xl border border-indigo-200 shadow-xs space-y-3">
+                <div className="p-4 sm:p-6 bg-gradient-to-br from-indigo-50/60 via-slate-50 to-white rounded-2xl border border-indigo-100 shadow-2xs space-y-4">
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-3">
                     <div>
-                      <div className="text-xs font-extrabold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
+                      <div className="text-sm font-extrabold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
                         📁 Multiple Folder Names &amp; Output Targets ({folderTargets.length} Folders)
                       </div>
-                      <p className="text-[11px] text-slate-500 mt-0.5">
+                      <p className="text-xs text-slate-500 mt-0.5 font-medium">
                         Please specify the unique folder name and target files count for each folder.
                       </p>
                     </div>
                     <button
                       type="button"
                       onClick={() => handleFolderCountChange(Number(folderCount) + 1)}
-                      className="px-3 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center gap-1 transition-all shadow-xs self-start sm:self-auto cursor-pointer"
+                      className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs sm:text-sm font-bold flex items-center gap-1.5 transition-all shadow-xs self-stretch sm:self-auto justify-center cursor-pointer min-h-[42px] active:scale-95"
                     >
                       + Add Another Folder
                     </button>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 pt-1">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5 pt-1">
                     {folderTargets.map((ft, idx) => (
                       <div
                         key={idx}
-                        className="p-3.5 bg-white rounded-xl border border-indigo-100 hover:border-indigo-300 shadow-2xs transition-all space-y-2"
+                        className="p-4 bg-white rounded-xl border border-indigo-100 hover:border-indigo-300 shadow-2xs transition-all space-y-2.5"
                       >
-                        <div className="flex items-center justify-between border-b border-slate-100 pb-1.5">
+                        <div className="flex items-center justify-between border-b border-slate-100 pb-2">
                           <span className="text-xs font-bold text-indigo-900 flex items-center gap-1.5">
                             <span className="w-5 h-5 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center text-[10px] font-mono font-bold">
                               {idx + 1}
@@ -390,7 +397,7 @@ export default function CreateJobPage() {
                                 setFolderTargets(updated);
                                 setFolderCount(updated.length);
                               }}
-                              className="text-[10px] text-rose-500 hover:text-rose-700 font-bold hover:underline cursor-pointer"
+                              className="text-xs text-rose-500 hover:text-rose-700 font-bold hover:underline cursor-pointer py-1 px-1.5"
                             >
                               Remove
                             </button>
@@ -399,20 +406,20 @@ export default function CreateJobPage() {
 
                         <div className="space-y-2">
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
                               Folder Name
                             </label>
                             <input
                               type="text"
-                              placeholder={`e.g. Folder ${idx + 1}, Living Room, Exterior...`}
+                              placeholder={`e.g. Folder ${idx + 1}, Living Room...`}
                               value={ft.name}
                               onChange={(e) => handleFolderNameChange(idx, e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white font-semibold"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm min-h-[44px] text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white font-medium transition-all"
                               required
                             />
                           </div>
                           <div>
-                            <label className="block text-[10px] font-bold text-slate-600 mb-0.5">
+                            <label className="block text-xs font-bold text-slate-700 mb-1">
                               Target Files Count
                             </label>
                             <input
@@ -420,7 +427,7 @@ export default function CreateJobPage() {
                               min="0"
                               value={ft.count}
                               onChange={(e) => handleFolderTargetChange(idx, e.target.value)}
-                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs font-mono font-bold text-indigo-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                              className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm min-h-[44px] font-mono font-bold text-indigo-600 focus:outline-none focus:border-indigo-500 focus:bg-white text-center transition-all"
                               required
                             />
                           </div>
@@ -434,49 +441,63 @@ export default function CreateJobPage() {
           </div>
 
           {/* Section 2: Folder Timestamps */}
-          <div className="space-y-4 pt-2">
-            <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <FiClock className="w-4 h-4" /> 2. Folder Creation & Target Timestamps
-            </h3>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-5 pt-2">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold text-xs">
+                2
+              </span>
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase tracking-wide">
+                  Folder Creation &amp; Target Timestamps
+                </h3>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+              <div>
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">
                   Folder Created Time (Received)
                 </label>
                 <input
                   type="datetime-local"
                   value={folderCreatedTime}
                   onChange={(e) => setFolderCreatedTime(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono transition-all"
                   required
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1">
+                <label className="block text-sm font-bold text-slate-800 mb-1.5">
                   Client Target Delivery Time
                 </label>
                 <input
                   type="datetime-local"
                   value={targetTime}
                   onChange={(e) => setTargetTime(e.target.value)}
-                  className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl px-4 py-3.5 text-sm sm:text-[15px] min-h-[48px] text-slate-900 focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 font-mono transition-all"
                 />
               </div>
             </div>
           </div>
 
           {/* Section 3: Stage Personnel Assignments */}
-          <div className="space-y-4 pt-2">
-            <h3 className="text-xs font-bold text-indigo-600 uppercase tracking-wider flex items-center gap-1.5 border-b border-slate-100 pb-2">
-              <FiUsers className="w-4 h-4" /> 3. Stage Assignments & Files Count
-            </h3>
+          <div className="space-y-5 pt-2">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold text-xs">
+                3
+              </span>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase tracking-wide">
+                  Stage Assignments &amp; Files Count
+                </h3>
+              </div>
+            </div>
 
             <div className="space-y-4">
               {/* STAGE LINE 1: Blending Stage in One Single Line */}
-              <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2">
-                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">
+              <div className="p-4 sm:p-5 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                <span className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block">
                   Blending Stage (Line 1)
                 </span>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
@@ -484,7 +505,7 @@ export default function CreateJobPage() {
                     <select
                       value={blendingAssignee}
                       onChange={(e) => setBlendingAssignee(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500 font-medium"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
                     >
                       <option value="">Choose Blending Designer</option>
                       {editors.map((ed) => (
@@ -500,26 +521,26 @@ export default function CreateJobPage() {
                       placeholder="Blending Files"
                       value={blendingFiles}
                       onChange={(e) => setBlendingFiles(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[15px] min-h-[48px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                     />
                   </div>
                 </div>
               </div>
 
               {/* STAGE LINE 2: Path Details (Path 1 & Path 2 in One Single Line) */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
+              <div className="space-y-2">
+                <span className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block">
                   Path Details (Line 2)
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   {/* Path 1 */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase">Path 1 Stage</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <span className="text-xs font-bold text-slate-700 uppercase">Path 1 Stage</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={path1Assignee}
                         onChange={(e) => setPath1Assignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Pather 1</option>
                         {editors.map((ed) => (
@@ -530,22 +551,22 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="Path 1 Files"
+                        placeholder="Files"
                         value={path1Files}
                         onChange={(e) => setPath1Files(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
 
                   {/* Path 2 */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase">Path 2 Stage</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <span className="text-xs font-bold text-slate-700 uppercase">Path 2 Stage</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={path2Assignee}
                         onChange={(e) => setPath2Assignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Pather 2</option>
                         {editors.map((ed) => (
@@ -556,10 +577,10 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="Path 2 Files"
+                        placeholder="Files"
                         value={path2Files}
                         onChange={(e) => setPath2Files(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
@@ -567,19 +588,19 @@ export default function CreateJobPage() {
               </div>
 
               {/* STAGE LINE 3: Editing Details (Editor 1 & Editor 2 in One Single Line) */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-extrabold text-slate-800 uppercase tracking-wider block">
+              <div className="space-y-2">
+                <span className="text-xs sm:text-sm font-extrabold text-slate-800 uppercase tracking-wider block">
                   Editing Details (Line 3)
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   {/* Editor 1 */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2">
-                    <span className="text-[11px] font-bold text-slate-700 uppercase">Editor 1 Stage</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <span className="text-xs font-bold text-slate-700 uppercase">Editor 1 Stage</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={editor1Assignee}
                         onChange={(e) => setEditor1Assignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Editor 1</option>
                         {editors.map((ed) => (
@@ -590,22 +611,22 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="Editor 1 Files"
+                        placeholder="Files"
                         value={editor1Files}
                         onChange={(e) => setEditor1Files(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
 
                   {/* Editor 2 */}
-                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200 space-y-2">
-                    <span className="text-[11px] font-bold text-indigo-700 uppercase">Editor 2 Stage</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-slate-50/80 rounded-2xl border border-slate-200/90 space-y-2.5">
+                    <span className="text-xs font-bold text-indigo-700 uppercase">Editor 2 Stage</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={editor2Assignee}
                         onChange={(e) => setEditor2Assignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Editor 2</option>
                         {editors.map((ed) => (
@@ -616,10 +637,10 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="Editor 2 Files"
+                        placeholder="Files"
                         value={editor2Files}
                         onChange={(e) => setEditor2Files(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500 font-bold"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
@@ -627,19 +648,19 @@ export default function CreateJobPage() {
               </div>
 
               {/* STAGE LINE 4: QC Details (LC Stage & FC Stage in One Separate Line) */}
-              <div className="space-y-1.5">
-                <span className="text-xs font-extrabold text-indigo-700 uppercase tracking-wider block">
-                  QC Details (Line 4 — LC & FC)
+              <div className="space-y-2">
+                <span className="text-xs sm:text-sm font-extrabold text-indigo-700 uppercase tracking-wider block">
+                  QC Details (Line 4 — LC &amp; FC)
                 </span>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 sm:gap-4">
                   {/* LC */}
-                  <div className="p-4 bg-purple-50/50 rounded-2xl border border-purple-200/70 space-y-2">
-                    <span className="text-[11px] font-bold text-purple-900 uppercase">LC Stage (Lightroom Correction)</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-purple-50/60 rounded-2xl border border-purple-200/80 space-y-2.5">
+                    <span className="text-xs font-bold text-purple-900 uppercase">LC Stage (Lightroom Correction)</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={lcAssignee}
                         onChange={(e) => setLcAssignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose LC Personnel</option>
                         {editors.map((ed) => (
@@ -650,22 +671,22 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="LC Files"
+                        placeholder="Files"
                         value={lcFiles}
                         onChange={(e) => setLcFiles(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
 
                   {/* FC */}
-                  <div className="p-4 bg-emerald-50/50 rounded-2xl border border-emerald-200/70 space-y-2">
-                    <span className="text-[11px] font-bold text-emerald-900 uppercase">FC Stage (Final Verification)</span>
-                    <div className="grid grid-cols-3 gap-2">
+                  <div className="p-4 bg-emerald-50/60 rounded-2xl border border-emerald-200/80 space-y-2.5">
+                    <span className="text-xs font-bold text-emerald-900 uppercase">FC Stage (Final Verification)</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
                       <select
                         value={fcAssignee}
                         onChange={(e) => setFcAssignee(e.target.value)}
-                        className="col-span-2 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                        className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose FC Personnel</option>
                         {editors.map((ed) => (
@@ -676,10 +697,10 @@ export default function CreateJobPage() {
                       </select>
                       <input
                         type="number"
-                        placeholder="FC Files"
+                        placeholder="Files"
                         value={fcFiles}
                         onChange={(e) => setFcFiles(e.target.value)}
-                        className="col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs font-mono text-slate-800 focus:outline-none focus:border-indigo-500 font-bold"
+                        className="sm:col-span-1 bg-white border border-slate-200 rounded-xl px-3 py-3 text-sm min-h-[46px] font-mono font-bold text-slate-900 focus:outline-none focus:border-indigo-500 text-center"
                       />
                     </div>
                   </div>
@@ -689,31 +710,40 @@ export default function CreateJobPage() {
           </div>
 
           {/* Section 4: Special Instruction */}
-          <div className="space-y-2 pt-2">
-            <label className="block text-xs font-bold text-slate-800 uppercase tracking-wider">Instruction</label>
+          <div className="space-y-4 pt-2">
+            <div className="flex items-center gap-2.5 border-b border-slate-100 pb-3">
+              <span className="w-7 h-7 rounded-lg bg-indigo-50 text-indigo-600 flex items-center justify-center font-extrabold text-xs">
+                4
+              </span>
+              <div>
+                <h3 className="text-sm sm:text-base font-extrabold text-slate-900 uppercase tracking-wide">
+                  Special Instructions &amp; Notes
+                </h3>
+              </div>
+            </div>
             <textarea
               rows="3"
               value={instruction}
               onChange={(e) => setInstruction(e.target.value)}
-              placeholder="Special instructions or client notes..."
-              className="w-full bg-slate-50 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs text-slate-900 focus:outline-none focus:border-indigo-500 focus:bg-white"
+              placeholder="Provide special instructions, custom client guidelines, color preferences, or delivery notes..."
+              className="w-full bg-slate-50 hover:bg-slate-100/70 focus:bg-white border border-slate-200 rounded-xl p-4 text-sm sm:text-[15px] min-h-[100px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 resize-none transition-all"
             />
           </div>
 
           {/* Actions */}
-          <div className="flex items-center gap-3 pt-4 border-t border-slate-100">
-            <button
-              type="submit"
-              className="px-6 py-2.5 rounded-xl bg-[#00CBB8] hover:bg-[#00b5a4] text-white text-xs font-bold shadow-xs transition-all flex items-center gap-1.5"
-            >
-              <FiCheck className="w-4 h-4" /> Submit Job
-            </button>
+          <div className="flex flex-col-reverse sm:flex-row items-stretch sm:items-center gap-4 pt-6 border-t border-slate-100">
             <button
               type="button"
               onClick={() => navigate('/dashboard/jobs')}
-              className="px-5 py-2.5 rounded-xl bg-slate-200 hover:bg-slate-300 text-slate-700 text-xs font-semibold transition-colors"
+              className="w-full sm:w-auto px-7 py-3.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-sm font-bold transition-all flex items-center justify-center min-h-[48px] cursor-pointer"
             >
               Cancel
+            </button>
+            <button
+              type="submit"
+              className="w-full sm:w-auto px-9 py-3.5 rounded-xl bg-[#00CBB8] hover:bg-[#00b5a4] text-white text-sm sm:text-base font-bold shadow-lg shadow-[#00CBB8]/25 transition-all flex items-center justify-center gap-2 min-h-[48px] cursor-pointer active:scale-95"
+            >
+              <FiCheck className="w-5 h-5" /> Submit Job
             </button>
           </div>
         </form>

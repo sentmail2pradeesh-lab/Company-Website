@@ -32,8 +32,8 @@ export default function ContactSection() {
   ];
 
   return (
-    <section id="contact" className="py-24 lg:py-36 bg-gradient-to-b from-slate-100/70 via-indigo-50/40 to-slate-100 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
-      <div className="mx-auto max-w-7xl px-6">
+    <section id="contact" className="py-16 sm:py-24 lg:py-36 bg-gradient-to-b from-slate-100/70 via-indigo-50/40 to-slate-100 dark:from-obsidian dark:via-obsidian dark:to-obsidian relative overflow-hidden transition-colors">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <SectionHeading
           badge="Contact"
           badgeAccent="emerald"
@@ -47,29 +47,29 @@ export default function ContactSection() {
           initial="hidden"
           whileInView="show"
           viewport={viewportOnce}
-          className="mt-16 grid gap-8 lg:grid-cols-5"
+          className="mt-12 sm:mt-16 grid gap-6 sm:gap-8 lg:grid-cols-5"
         >
           {/* Left info */}
           <motion.div variants={fadeUp} className="lg:col-span-2">
-            <div className="rounded-[2.5rem] border border-line bg-obsidian-card p-8 shadow-float glass-card backdrop-blur-2xl h-full flex flex-col justify-between">
+            <div className="rounded-3xl sm:rounded-[2.5rem] border border-line bg-obsidian-card p-5 sm:p-8 shadow-float glass-card backdrop-blur-2xl h-full flex flex-col justify-between">
               <div className="space-y-6">
                 {infoItems.map((item) => (
-                  <div key={item.label} className="flex items-start gap-4">
-                    <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
+                  <div key={item.label} className="flex items-start gap-3.5 sm:gap-4">
+                    <span className="flex h-11 w-11 sm:h-12 sm:w-12 shrink-0 items-center justify-center rounded-2xl bg-cyan-500/15 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 shadow-[0_0_15px_rgba(6,182,212,0.2)]">
                       <Icon name={item.icon} className="w-5 h-5" />
                     </span>
-                    <div>
+                    <div className="min-w-0">
                       <p className="text-xs font-bold uppercase tracking-wider text-mist">{item.label}</p>
                       {item.href ? (
-                        <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-base font-bold text-ink hover:text-cyan-400 transition-colors">{item.value}</a>
+                        <a href={item.href} target="_blank" rel="noopener noreferrer" className="text-sm sm:text-base font-bold text-ink hover:text-cyan-400 transition-colors break-words">{item.value}</a>
                       ) : (
-                        <p className="text-base font-bold text-ink">{item.value}</p>
+                        <p className="text-sm sm:text-base font-bold text-ink break-words">{item.value}</p>
                       )}
                     </div>
                   </div>
                 ))}
               </div>
-              <div className="mt-10 pt-6 border-t border-line">
+              <div className="mt-8 sm:mt-10 pt-6 border-t border-line">
                 <p className="text-xs font-bold uppercase tracking-wider text-mist mb-4">Official Links & Socials</p>
                 <div className="space-y-2.5">
                   {COMPANY.socials.map((s) => (
@@ -99,7 +99,7 @@ export default function ContactSection() {
 
           {/* Right form */}
           <motion.div variants={fadeUp} className="lg:col-span-3">
-            <div className="rounded-[2.5rem] border border-line bg-obsidian-card p-8 md:p-10 shadow-float glass-card backdrop-blur-2xl">
+            <div className="rounded-3xl sm:rounded-[2.5rem] border border-line bg-obsidian-card p-5 sm:p-8 md:p-10 shadow-float glass-card backdrop-blur-2xl">
               {submitted ? (
                 <motion.div
                   className="flex flex-col items-center justify-center py-16 text-center"
@@ -116,8 +116,8 @@ export default function ContactSection() {
                   </Button>
                 </motion.div>
               ) : (
-                <form onSubmit={handleSubmit} className="space-y-6">
-                  <div className="grid gap-6 sm:grid-cols-2">
+                <form onSubmit={handleSubmit} className="space-y-5 sm:space-y-6">
+                  <div className="grid gap-5 sm:gap-6 sm:grid-cols-2">
                     <Input label="Full Name" name="name" value={form.name} onChange={ch} placeholder="John Doe" required />
                     <Input label="Email" type="email" name="email" value={form.email} onChange={ch} placeholder="you@company.com" required />
                   </div>
@@ -129,7 +129,7 @@ export default function ContactSection() {
                       value={form.service}
                       onChange={ch}
                       required
-                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all cursor-pointer"
+                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3 sm:py-3.5 text-base sm:text-sm text-ink outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all cursor-pointer min-h-[44px]"
                     >
                       <option value="" className="bg-obsidian-card text-mist">Select a service</option>
                       {serviceOptions.map((o) => <option key={o} value={o} className="bg-obsidian-card text-ink">{o}</option>)}
@@ -142,10 +142,10 @@ export default function ContactSection() {
                       placeholder="Tell us about your project…"
                       rows={5}
                       required
-                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all resize-none"
+                      className="w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3 sm:py-3.5 text-base sm:text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all resize-none"
                     />
                   </div>
-                  <Button type="submit" disabled={loading} variant="primary" iconRight="arrowRight" className="w-full">
+                  <Button type="submit" disabled={loading} variant="primary" iconRight="arrowRight" className="w-full min-h-[44px]">
                     {loading ? 'Sending…' : 'Send Inquiry'}
                   </Button>
                 </form>

@@ -45,7 +45,7 @@ export default function BeforeAfterSlider({
   return (
     <div
       ref={ref}
-      className={`relative overflow-hidden select-none cursor-ew-resize group ${rounded} ${className}`}
+      className={`relative overflow-hidden select-none cursor-ew-resize group touch-none ${rounded} ${className}`}
       onMouseDown={onDown}
       onMouseMove={onMove}
       onMouseUp={onUp}
@@ -63,21 +63,21 @@ export default function BeforeAfterSlider({
       </div>
 
       {/* Labels */}
-      <span className="absolute top-3 left-3 rounded-full bg-ink/55 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white pointer-events-none">
+      <span className="absolute top-2.5 sm:top-3 left-2.5 sm:left-3 rounded-full bg-ink/70 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-white pointer-events-none shadow-sm">
         {beforeLabel}
       </span>
-      <span className="absolute top-3 right-3 rounded-full bg-emerald/85 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-semibold uppercase tracking-wider text-white pointer-events-none">
+      <span className="absolute top-2.5 sm:top-3 right-2.5 sm:right-3 rounded-full bg-emerald-500/90 backdrop-blur-sm px-2.5 py-1 text-[0.65rem] font-bold uppercase tracking-wider text-white pointer-events-none shadow-sm">
         {afterLabel}
       </span>
 
       {/* Handle */}
       <motion.div
-        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_0_1px_rgba(30,58,138,0.15)] pointer-events-none"
+        className="absolute top-0 bottom-0 w-0.5 bg-white shadow-[0_0_0_1px_rgba(30,58,138,0.2)] pointer-events-none"
         style={{ left: `${pos}%` }}
       >
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-float">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-10 w-10 items-center justify-center rounded-full bg-white shadow-float border border-slate-200">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" className="text-royal">
-            <path d="M9 7L4 12l5 5M15 7l5 5-5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M9 7L4 12l5 5M15 7l5 5-5 5" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
           </svg>
         </div>
       </motion.div>

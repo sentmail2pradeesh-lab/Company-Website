@@ -33,13 +33,13 @@ function PhotoService() {
           <p className="mt-3 text-mist leading-relaxed font-normal">
             HDR blending, sky replacement, virtual staging and retouching for real estate, e-commerce and portrait work.
           </p>
-          <div className="mt-6 grid grid-cols-2 gap-3">
+          <div className="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-2.5 sm:gap-3">
             {highlights.map((h) => (
               <div
                 key={h.label}
                 className="group flex items-center gap-3 rounded-2xl border border-line bg-slate-500/5 p-3 transition-all hover:border-cyan-500/40 hover:bg-slate-500/10"
               >
-                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 group-hover:scale-110 transition-transform">
+                <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/15 text-cyan-400 border border-cyan-500/30 group-hover:scale-110 transition-transform shrink-0">
                   <Icon name={h.icon} className="w-4 h-4" />
                 </span>
                 <span className="text-xs font-bold text-ink">{h.label}</span>
@@ -71,7 +71,7 @@ function VideoService() {
                 <span key={i} className="h-1.5 flex-1 rounded-full bg-slate-500/20" />
               ))}
             </div>
-            <div className="flex gap-2 overflow-hidden py-1">
+            <div className="flex gap-2 overflow-x-auto py-1 mobile-touch-scroll scrollbar-none">
               {VIDEO_TAGS.map((tag, i) => (
                 <motion.span
                   key={tag}
@@ -79,7 +79,7 @@ function VideoService() {
                   whileInView={{ opacity: 1, scale: 1 }}
                   viewport={viewportOnce}
                   transition={{ delay: i * 0.06 }}
-                  className="rounded-xl bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-400 whitespace-nowrap"
+                  className="rounded-xl bg-cyan-500/10 border border-cyan-500/20 px-3 py-1.5 text-xs font-bold text-cyan-400 whitespace-nowrap shrink-0"
                 >
                   {tag}
                 </motion.span>
@@ -104,7 +104,7 @@ function VideoService() {
           <motion.button
             whileHover={{ scale: 1.1 }}
             whileTap={{ scale: 0.95 }}
-            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-400 text-white shadow-glow border border-white/30"
+            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex h-16 w-16 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-400 text-white shadow-glow border border-white/30 cursor-pointer"
             aria-label="Play preview"
           >
             <Icon name="play" className="w-6 h-6 ml-0.5" />
@@ -135,7 +135,7 @@ function SoftwareService() {
             <span className="h-3 w-3 rounded-full bg-emerald-500/80" />
             <span className="ml-3 text-xs font-mono text-mist">app.tsx</span>
           </div>
-          <pre className="p-6 text-sm font-mono leading-relaxed overflow-x-auto text-slate-100">
+          <pre className="p-4 sm:p-6 text-xs sm:text-sm font-mono leading-relaxed overflow-x-auto text-slate-100 mobile-touch-scroll">
             <code>
               <span className="text-cyan-400">const</span> <span className="text-emerald-400">product</span> <span className="text-mist">=</span> {'{\n'}
               <span className="text-cyan-400">  name</span>: <span className="text-indigo-400">'Vista Edits'</span>,{'\n'}
@@ -162,7 +162,7 @@ function SoftwareService() {
                 whileInView={{ opacity: 1, y: 0 }}
                 viewport={viewportOnce}
                 transition={{ delay: i * 0.05 }}
-                className="rounded-full border border-line bg-slate-500/5 px-4 py-1.5 text-xs font-bold text-ink hover:border-emerald-500/40 hover:text-emerald-400 transition-all cursor-default"
+                className="rounded-full border border-line bg-slate-500/5 px-3.5 sm:px-4 py-1.5 text-xs font-bold text-ink hover:border-emerald-500/40 hover:text-emerald-400 transition-all cursor-default"
               >
                 {b}
               </motion.span>
@@ -188,18 +188,18 @@ function MarketingService() {
           </p>
           <div className="mt-6 flex flex-wrap gap-2.5">
             {MARKETING_TAGS.map((t) => (
-              <span key={t} className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-4 py-1.5 text-xs font-bold text-cyan-400">
+              <span key={t} className="rounded-full bg-cyan-500/10 border border-cyan-500/20 px-3.5 sm:px-4 py-1.5 text-xs font-bold text-cyan-400">
                 {t}
               </span>
             ))}
           </div>
         </div>
 
-        <div className="order-1 lg:order-2 rounded-[2.5rem] p-6 shadow-float border border-line glass-card">
+        <div className="order-1 lg:order-2 rounded-[2rem] sm:rounded-[2.5rem] p-4 sm:p-6 shadow-float border border-line glass-card">
           <div className="flex items-center justify-between mb-5">
             <div>
               <p className="text-xs text-mist font-bold uppercase tracking-wider">Campaign performance</p>
-              <p className="text-2xl font-extrabold font-display text-ink mt-1">$48,920</p>
+              <p className="text-xl sm:text-2xl font-extrabold font-display text-ink mt-1">$48,920</p>
             </div>
             <span className="rounded-full bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 text-xs font-bold text-emerald-400">+128%</span>
           </div>
@@ -215,15 +215,15 @@ function MarketingService() {
               />
             ))}
           </div>
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-3 gap-2 sm:gap-3">
             {[
               { label: 'CTR', value: '8.4%' },
               { label: 'Leads', value: '1.2K' },
               { label: 'ROAS', value: '4.8x' },
             ].map((k) => (
-              <div key={k.label} className="rounded-2xl border border-line bg-slate-500/5 p-3 text-center">
-                <p className="text-base font-extrabold text-ink">{k.value}</p>
-                <p className="text-[0.7rem] text-mist font-bold mt-0.5">{k.label}</p>
+              <div key={k.label} className="rounded-2xl border border-line bg-slate-500/5 p-2 sm:p-3 text-center">
+                <p className="text-sm sm:text-base font-extrabold text-ink">{k.value}</p>
+                <p className="text-[0.65rem] sm:text-[0.7rem] text-mist font-bold mt-0.5">{k.label}</p>
               </div>
             ))}
           </div>
@@ -241,9 +241,9 @@ function ServiceShell({ index, serviceName, route, variant, children }) {
       initial="hidden"
       whileInView="show"
       viewport={viewportOnce}
-      className="relative will-change-transform"
+      className="relative will-change-transform overflow-hidden sm:overflow-visible"
     >
-      <span className="pointer-events-none absolute -top-12 right-0 font-display text-[8rem] md:text-[12rem] font-extrabold leading-none opacity-5 select-none -z-10 text-ink">
+      <span className="pointer-events-none absolute -top-12 right-0 font-display text-[7rem] md:text-[12rem] font-extrabold leading-none opacity-5 select-none -z-10 text-ink">
         {index}
       </span>
 

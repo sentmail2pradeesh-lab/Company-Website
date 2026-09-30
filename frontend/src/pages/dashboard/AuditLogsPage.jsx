@@ -109,15 +109,15 @@ export default function AuditLogsPage() {
               placeholder="Search logs by action, user, or details..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+              className="w-full bg-white border border-slate-200 rounded-xl pl-9 pr-4 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[40px] sm:min-h-0"
             />
           </div>
-          <span className="text-xs font-bold text-slate-500 px-2">{filteredLogs.length} Records</span>
+          <span className="text-xs font-bold text-slate-500 px-2 shrink-0">{filteredLogs.length} Records</span>
         </div>
 
         {/* Logs Table */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs text-slate-600">
+        <div className="overflow-x-auto mobile-touch-scroll">
+          <table className="w-full text-left text-xs text-slate-600 min-w-[700px]">
             <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
               <tr>
                 <th className="py-3.5 px-6">Timestamp</th>

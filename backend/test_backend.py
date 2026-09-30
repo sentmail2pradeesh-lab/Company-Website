@@ -93,6 +93,44 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(path1_stage.status, 'Pending')
         self.assertEqual(path1_stage.assignee, 'Sarah Path')
 
+    def test_leave_request_flow(self):
+        token = self.get_admin_token()
+        headers = {'Authorization': f'Bearer {token}'}
+
+        # 1. Apply for leave
+        res = self.client.post('/api/leaves', headers=headers, json={
+            'leaveType': 'Leave',
+            'startDate': '2026-10-05',
+            'endDate': '2026-10-06',
+            'days': 2,
+            'isHalfDay': False,
+            'reason': 'Family function',
+            'backupEmployee': 'Dhanush',
+            'emergencyContact': '+91 9988776655'
+        })
+        self.assertEqual(res.status_code, 201)
+        leave = res.get_json()['leaveRequest']
+        self.assertEqual(leave['status'], 'Pending')
+        self.assertEqual(leave['days'], 2)
+        leave_id = leave['id']
+
+        # 2. List leaves
+        res_list = self.client.get('/api/leaves', headers=headers)
+        self.assertEqual(res_list.status_code, 200)
+        leaves_data = res_list.get_json()['leaveRequests']
+        self.assertTrue(any(l['id'] == leave_id for l in leaves_data))
+
+        # 3. Approve leave
+        patch_res = self.client.patch(f'/api/leaves/{leave_id}/status', headers=headers, json={
+            'status': 'Approved',
+            'managerNotes': 'Approved, have a great time.'
+        })
+        self.assertEqual(patch_res.status_code, 200)
+        updated_leave = patch_res.get_json()['leaveRequest']
+        self.assertEqual(updated_leave['status'], 'Approved')
+        self.assertEqual(updated_leave['managerNotes'], 'Approved, have a great time.')
+
 
 if __name__ == '__main__':
     unittest.main()
+

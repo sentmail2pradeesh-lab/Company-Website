@@ -1,6 +1,14 @@
 import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
 import api from '../api/axios';
-import { INITIAL_EDITORS, INITIAL_CLIENTS, INITIAL_JOBS, INITIAL_PRODUCTION_SHEETS, INITIAL_WORK_SESSIONS } from '../data/mockJobs';
+import {
+  INITIAL_EDITORS,
+  INITIAL_CLIENTS,
+  INITIAL_JOBS,
+  INITIAL_PRODUCTION_SHEETS,
+  INITIAL_WORK_SESSIONS,
+  INITIAL_ACTIVITIES,
+  INITIAL_LEAVE_REQUESTS,
+} from '../data/mockJobs';
 import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
 
@@ -124,6 +132,15 @@ export function JobProvider({ children }) {
     return saved ? JSON.parse(saved) : INITIAL_WORK_SESSIONS;
   });
 
+  const [activities, setActivities] = useState(() => {
+    const saved = localStorage.getItem('aszen_activities');
+    return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
+  });
+
+  const [leaveRequests, setLeaveRequests] = useState(() => {
+    const saved = localStorage.getItem('aszen_leave_requests');
+    return saved ? JSON.parse(saved) : INITIAL_LEAVE_REQUESTS;
+  });
 
   // Modal active states
   const [timerModalState, setTimerModalState] = useState(null); // { jobId, stageKey }
@@ -133,7 +150,7 @@ export function JobProvider({ children }) {
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
   // Real-time BroadcastChannel for 0ms cross-window / cross-tab updates
-  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions) => {
+  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions, newActivities, newLeaves) => {
     try {
       if ('BroadcastChannel' in window) {
         const channel = new BroadcastChannel('aszen_dashboard_realtime');
@@ -144,6 +161,8 @@ export function JobProvider({ children }) {
           editors: newEditors,
           clients: newClients,
           workSessions: newSessions,
+          activities: newActivities,
+          leaveRequests: newLeaves,
           timestamp: Date.now(),
         });
         setTimeout(() => {
@@ -168,6 +187,10 @@ export function JobProvider({ children }) {
         if (data.editors) setEditors([...(data.editors || [])]);
         if (data.clients) setClients([...(data.clients || [])]);
         if (data.workSessions) setWorkSessions([...(data.workSessions || [])]);
+        if (data.activities) setActivities([...(data.activities || [])]);
+        if (data.leaveRequests) setLeaveRequests([...(data.leaveRequests || [])]);
+      } else if (data && data.type === 'ACTIVITY_LOGGED' && data.activity) {
+        setActivities((prev) => [data.activity, ...prev.filter((a) => a.id !== data.activity.id).slice(0, 99)]);
       }
     };
 
@@ -184,6 +207,8 @@ export function JobProvider({ children }) {
       if (e.key === 'aszen_editors' && e.newValue) setEditors(JSON.parse(e.newValue));
       if (e.key === 'aszen_clients' && e.newValue) setClients(JSON.parse(e.newValue));
       if (e.key === 'aszen_work_sessions' && e.newValue) setWorkSessions(JSON.parse(e.newValue));
+      if (e.key === 'aszen_activities' && e.newValue) setActivities(JSON.parse(e.newValue));
+      if (e.key === 'aszen_leave_requests' && e.newValue) setLeaveRequests(JSON.parse(e.newValue));
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -194,7 +219,7 @@ export function JobProvider({ children }) {
     const normalized = normalizeJobs(newJobs);
     setJobs([...normalized]);
     localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
-    broadcastSync(normalized, productionSheets, editors, clients, workSessions);
+    broadcastSync(normalized, productionSheets, editors, clients, workSessions, activities, leaveRequests);
 
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     if (token) {
@@ -238,8 +263,197 @@ export function JobProvider({ children }) {
   const updateWorkSessionsState = (newSessions) => {
     setWorkSessions(newSessions);
     localStorage.setItem('aszen_work_sessions', JSON.stringify(newSessions));
-    broadcastSync(jobs, productionSheets, editors, clients, newSessions);
+    broadcastSync(jobs, productionSheets, editors, clients, newSessions, activities, leaveRequests);
   };
+
+  const updateActivitiesState = (newActivities) => {
+    setActivities(newActivities);
+    localStorage.setItem('aszen_activities', JSON.stringify(newActivities));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, newActivities, leaveRequests);
+  };
+
+  const updateLeaveRequestsState = (newLeaves) => {
+    setLeaveRequests(newLeaves);
+    localStorage.setItem('aszen_leave_requests', JSON.stringify(newLeaves));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, newLeaves);
+  };
+
+  const formatTimeAmPm = (dateObj = new Date()) => {
+    return dateObj.toLocaleTimeString('en-US', {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: true,
+    }).toLowerCase();
+  };
+
+  const logActivity = useCallback((data) => {
+    const actor = data.actorName || user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const actorRole = data.actorRole || user?.designation || user?.role || 'Employee';
+    const now = new Date();
+    const newAct = {
+      id: `act-${Date.now()}-${Math.random().toString(36).substring(2, 6)}`,
+      timestamp: now.toISOString(),
+      timeStr: data.timeStr || formatTimeAmPm(now),
+      jobId: String(data.jobId || ''),
+      actionType: data.actionType || 'GENERAL_ACTIVITY',
+      actorName: actor,
+      actorEmail: data.actorEmail || user?.email || '',
+      actorRole: actorRole,
+      targetEmployee: data.targetEmployee || actor,
+      previousAssignee: data.previousAssignee || '',
+      text: data.text || `Action performed by ${actor}`,
+      badgeColor: data.badgeColor || 'teal',
+    };
+
+    setActivities((prev) => {
+      const updated = [newAct, ...prev.slice(0, 99)];
+      localStorage.setItem('aszen_activities', JSON.stringify(updated));
+      return updated;
+    });
+
+    try {
+      if ('BroadcastChannel' in window) {
+        const channel = new BroadcastChannel('aszen_dashboard_realtime');
+        channel.postMessage({ type: 'ACTIVITY_LOGGED', activity: newAct });
+        setTimeout(() => { try { channel.close(); } catch {} }, 200);
+      }
+    } catch {}
+
+    return newAct;
+  }, [user]);
+
+  const applyLeave = async (leaveData) => {
+    const applicantName = leaveData.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Employee');
+    const applicantEmail = leaveData.userEmail || user?.email || '';
+    const newId = `LR-${Math.floor(100 + Math.random() * 900)}`;
+
+    const newLeave = {
+      id: newId,
+      userEmail: applicantEmail,
+      userName: applicantName,
+      userRole: user?.designation || user?.role || 'Editor',
+      leaveType: 'Leave',
+      startDate: leaveData.startDate,
+      endDate: leaveData.endDate || leaveData.startDate,
+      days: Number(leaveData.days) || 1.0,
+      isHalfDay: !!leaveData.isHalfDay,
+      halfDayPeriod: leaveData.halfDayPeriod || '',
+      reason: leaveData.reason || '',
+      backupEmployee: leaveData.backupEmployee || '',
+      emergencyContact: leaveData.emergencyContact || '',
+      status: 'Pending',
+      appliedAt: new Date().toISOString(),
+      reviewedBy: '',
+      reviewedAt: null,
+      managerNotes: '',
+    };
+
+    const updated = [newLeave, ...leaveRequests];
+    setLeaveRequests(updated);
+    localStorage.setItem('aszen_leave_requests', JSON.stringify(updated));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, updated);
+
+    logActivity({
+      actionType: 'LEAVE_REQUESTED',
+      jobId: newId,
+      actorName: applicantName,
+      actorEmail: applicantEmail,
+      targetEmployee: applicantName,
+      text: `Leave Request #${newId} :: ${applicantName} applied for ${newLeave.days} day(s) leave`,
+    });
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      try {
+        await api.post('/leaves', newLeave);
+      } catch (e) {
+        console.warn('Backend leave sync notice:', e.message);
+      }
+    }
+
+    return newLeave;
+  };
+
+  const updateLeaveStatus = async (leaveId, status, managerNotes = '') => {
+    const reviewer = user?.name || (user?.email ? user.email.split('@')[0] : 'Manager');
+    let targetLeave = null;
+
+    const updated = leaveRequests.map((l) => {
+      if (l.id === leaveId) {
+        targetLeave = {
+          ...l,
+          status,
+          reviewedBy: reviewer,
+          reviewedAt: new Date().toISOString(),
+          managerNotes: managerNotes || l.managerNotes,
+        };
+        return targetLeave;
+      }
+      return l;
+    });
+
+    setLeaveRequests(updated);
+    localStorage.setItem('aszen_leave_requests', JSON.stringify(updated));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, updated);
+
+    if (targetLeave) {
+      logActivity({
+        actionType: status === 'Approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
+        jobId: leaveId,
+        actorName: reviewer,
+        actorEmail: user?.email || '',
+        targetEmployee: targetLeave.userName,
+        text: `Leave Request #${leaveId} :: ${targetLeave.userName} ${targetLeave.days} Day leave ${status} by ${reviewer}${managerNotes ? ` (${managerNotes})` : ''}`,
+      });
+
+      const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+      if (token) {
+        try {
+          await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
+        } catch (e) {
+          console.warn('Backend leave status sync notice:', e.message);
+        }
+      }
+    }
+
+    return targetLeave;
+  };
+
+  const cancelLeave = (leaveId) => {
+    return updateLeaveStatus(leaveId, 'Cancelled', 'Cancelled by applicant');
+  };
+
+  const getLeaveBalances = (userEmail) => {
+    const email = (userEmail || user?.email || '').toLowerCase();
+    const approved = leaveRequests.filter(
+      (l) => (l.userEmail || '').toLowerCase() === email && l.status === 'Approved'
+    );
+    const pending = leaveRequests.filter(
+      (l) => (l.userEmail || '').toLowerCase() === email && l.status === 'Pending'
+    );
+
+    const usedDays = approved.reduce((sum, l) => sum + (Number(l.days) || 1), 0);
+    const pendingDays = pending.reduce((sum, l) => sum + (Number(l.days) || 1), 0);
+    const total = 18;
+    const available = Math.max(0, total - usedDays);
+
+    return {
+      total,
+      used: usedDays,
+      available,
+      pending: pendingDays,
+      // For backwards compatibility:
+      casual: { total, used: usedDays, available },
+      sick: { total, used: usedDays, available },
+      paid: { total, used: usedDays, available },
+      compOff: { total, used: usedDays, available },
+    };
+  };
+
+  const pendingLeaveCount = useMemo(() => {
+    return leaveRequests.filter((l) => l.status === 'Pending').length;
+  }, [leaveRequests]);
+
 
 
   const userRole = (user?.role || 'employee').toLowerCase();
@@ -403,6 +617,15 @@ export function JobProvider({ children }) {
 
     updateJobsState([formattedJob, ...jobs]);
     setIsCreateModalOpen(false);
+
+    logActivity({
+      actionType: 'JOB_CREATED',
+      jobId: newId,
+      actorName: user?.name || 'Staff',
+      actorRole: user?.designation || user?.role || 'Staff',
+      text: `Job #${newId} :: Order and Job Created by ${user?.name || 'Staff'}`,
+    });
+
     return formattedJob;
   };
 
@@ -428,8 +651,10 @@ export function JobProvider({ children }) {
       return;
     }
     let targetStagePayload = null;
+    let prevAssignee = '';
     const updated = jobs.map((j) => {
       if (j.id === jobId) {
+        prevAssignee = j.stages[stageKey]?.assignee || '';
         const nextStatus = j.stages[stageKey].status === 'Unassigned' ? 'Pending' : j.stages[stageKey].status;
         const updatedJob = {
           ...j,
@@ -456,6 +681,19 @@ export function JobProvider({ children }) {
     });
     updateJobsState(updated, null, targetStagePayload);
     setAssignModalState(null);
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const isQc = stageKey === 'lc' || stageKey === 'fc' || stageKey === 'qc';
+    logActivity({
+      actionType: isQc ? 'QC_UPDATED' : 'STAGE_ASSIGNED',
+      jobId,
+      actorName: actor,
+      targetEmployee: assigneeName,
+      previousAssignee: prevAssignee,
+      text: isQc
+        ? `Job #${jobId} :: QC Updated from ${prevAssignee || 'Unassigned'} to ${assigneeName} by ${actor}`
+        : `Job #${jobId} :: ${stageKey.toUpperCase()} Assigned to ${assigneeName} by ${actor}`,
+    });
   };
 
   // Timer Actions (Start, Pause, Resume, Finish)
@@ -1151,6 +1389,14 @@ export function JobProvider({ children }) {
         isManagementModalOpen,
         setIsManagementModalOpen,
         refreshData,
+        activities,
+        logActivity,
+        leaveRequests,
+        applyLeave,
+        updateLeaveStatus,
+        cancelLeave,
+        getLeaveBalances,
+        pendingLeaveCount,
       }}
     >
       {children}

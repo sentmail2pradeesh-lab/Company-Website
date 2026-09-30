@@ -7,11 +7,12 @@ import TaskTimerModal from './TaskTimerModal';
 import ClientTurnaroundModal from './ClientTurnaroundModal';
 import JobAssignmentModal from './JobAssignmentModal';
 import ChangePasswordModal from './ChangePasswordModal';
-import { FiPlus, FiSettings, FiLogOut, FiClock, FiKey, FiUser } from 'react-icons/fi';
+import { FiPlus, FiSettings, FiLogOut, FiClock, FiKey, FiUser, FiMenu } from 'react-icons/fi';
 
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isChangePassOpen, setIsChangePassOpen] = useState(false);
   const { canManageClients, canManageEmployees, canCreateJob, workSessions } = useJobs();
@@ -77,54 +78,72 @@ export default function DashboardLayout() {
 
   return (
     <div className="min-h-screen bg-[#F0F3FA] text-slate-800 font-sans selection:bg-indigo-500/20 selection:text-indigo-900">
-      {/* ASZEN Design Clean White Top Navigation Header */}
-      <header className="fixed top-0 left-0 right-0 h-16 z-40 bg-white text-slate-800 border-b border-slate-200/80 px-4 sm:px-8 flex items-center justify-between shadow-xs">
-        {/* Left Side Navigation Links */}
-        <div className={`flex items-center gap-8 transition-all duration-300 ${isSidebarCollapsed ? 'pl-24' : 'pl-64'}`}>
-          <nav className="flex items-center gap-8 text-sm font-semibold">
-            <NavLink
-              to="/dashboard"
-              end
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`
-              }
-            >
-              Dashboard
-            </NavLink>
+      {/* Top Navigation Header */}
+      <header className="fixed top-0 left-0 right-0 h-16 z-30 bg-white text-slate-800 border-b border-slate-200/80 px-3 sm:px-6 lg:px-8 flex items-center justify-between shadow-xs">
+        {/* Mobile Hamburger & Logo + Desktop Left Navigation Links */}
+        <div className="flex items-center gap-3 sm:gap-6">
+          {/* Mobile Hamburger Button */}
+          <button
+            type="button"
+            onClick={() => setIsMobileSidebarOpen(true)}
+            className="lg:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 min-h-[44px] min-w-[44px] flex items-center justify-center cursor-pointer"
+            aria-label="Open sidebar menu"
+          >
+            <FiMenu className="w-6 h-6" />
+          </button>
 
-            {canCreateJob && (
+          {/* Mobile Mini Logo */}
+          <Link to="/dashboard" className="lg:hidden flex items-center shrink-0">
+            <img src="/vistaeditz_logo.svg" alt="Vista Editz" className="h-7 w-auto" />
+          </Link>
+
+          {/* Desktop Left Side Navigation Links */}
+          <div className={`hidden lg:flex items-center gap-8 transition-all duration-300 ${isSidebarCollapsed ? 'pl-20' : 'pl-60'}`}>
+            <nav className="flex items-center gap-8 text-sm font-semibold">
               <NavLink
-                to="/dashboard/create-job"
+                to="/dashboard"
+                end
                 className={({ isActive }) =>
                   `transition-colors ${
                     isActive ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
                   }`
                 }
               >
-                Create Job
+                Dashboard
               </NavLink>
-            )}
 
-            <NavLink
-              to="/dashboard/jobs"
-              className={({ isActive }) =>
-                `transition-colors ${
-                  isActive ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
-                }`
-              }
-            >
-              Todays Job
-            </NavLink>
-          </nav>
+              {canCreateJob && (
+                <NavLink
+                  to="/dashboard/create-job"
+                  className={({ isActive }) =>
+                    `transition-colors ${
+                      isActive ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+                    }`
+                  }
+                >
+                  Create Job
+                </NavLink>
+              )}
+
+              <NavLink
+                to="/dashboard/jobs"
+                className={({ isActive }) =>
+                  `transition-colors ${
+                    isActive ? 'text-indigo-600 font-bold' : 'text-slate-600 hover:text-slate-900'
+                  }`
+                }
+              >
+                Todays Job
+              </NavLink>
+            </nav>
+          </div>
         </div>
 
         {/* Right Side Quick User Profile Badge & Work Session Timer */}
-        <div className="flex items-center gap-3">
-          {/* Active Work Session Live Badge (Exempt for Admin management authority) */}
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Active Work Session Live Badge */}
           {user?.role !== 'admin' && user?.email?.toLowerCase() !== 'arun@aszen.com' && (
-            <div className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
+            <div className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
@@ -138,7 +157,7 @@ export default function DashboardLayout() {
           {(canManageClients || canManageEmployees) && (
             <Link
               to="/dashboard/management"
-              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all"
+              className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all"
               title="Admin & Personnel Control Panel"
             >
               <FiSettings className="w-3.5 h-3.5" /> <span>Personnel Panel</span>
@@ -158,7 +177,7 @@ export default function DashboardLayout() {
           <div className="relative">
             <button
               onClick={() => setIsUserMenuOpen((v) => !v)}
-              className="bg-[#FF4D5A] hover:bg-[#E03E4B] text-white px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer"
+              className="bg-[#FF4D5A] hover:bg-[#E03E4B] text-white px-3 sm:px-4 py-2 rounded-full font-bold text-xs flex items-center gap-1.5 shadow-xs transition-all cursor-pointer min-h-[38px]"
             >
               <span>Hi, {formattedDisplayName}</span>
               <span className={`text-[10px] transition-transform ${isUserMenuOpen ? 'rotate-180' : ''}`}>∨</span>
@@ -194,13 +213,18 @@ export default function DashboardLayout() {
         </div>
       </header>
 
-      {/* Sidebar Navigation */}
-      <DashboardSidebar isCollapsed={isSidebarCollapsed} setIsCollapsed={setIsSidebarCollapsed} />
+      {/* Sidebar Navigation (Drawer on mobile, fixed on desktop) */}
+      <DashboardSidebar
+        isCollapsed={isSidebarCollapsed}
+        setIsCollapsed={setIsSidebarCollapsed}
+        isMobileOpen={isMobileSidebarOpen}
+        setIsMobileOpen={setIsMobileSidebarOpen}
+      />
 
       {/* Main Page Area */}
       <main
-        className={`pt-20 pb-12 px-4 sm:px-8 transition-all duration-300 ${
-          isSidebarCollapsed ? 'ml-20' : 'ml-64'
+        className={`pt-20 pb-12 px-3 sm:px-6 lg:px-8 transition-all duration-300 ml-0 ${
+          isSidebarCollapsed ? 'lg:ml-20' : 'lg:ml-64'
         }`}
       >
         <Outlet />

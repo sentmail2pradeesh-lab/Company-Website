@@ -267,4 +267,49 @@ class AuditLog(db.Model):
         }
 
 
+class LeaveRequest(db.Model):
+    __tablename__ = 'leave_requests'
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id'), nullable=True)
+    user_email = db.Column(db.String(255), nullable=False, index=True)
+    user_name = db.Column(db.String(255), nullable=False)
+    leave_type = db.Column(db.String(50), nullable=False, default='Leave')
+    start_date = db.Column(db.String(10), nullable=False)  # YYYY-MM-DD
+    end_date = db.Column(db.String(10), nullable=False)    # YYYY-MM-DD
+    days = db.Column(db.Float, nullable=False, default=1.0)
+    is_half_day = db.Column(db.Boolean, default=False)
+    half_day_period = db.Column(db.String(20), nullable=True)  # 'First Half', 'Second Half'
+    reason = db.Column(db.Text, nullable=False)
+    backup_employee = db.Column(db.String(255), nullable=True)
+    emergency_contact = db.Column(db.String(50), nullable=True)
+    status = db.Column(db.String(50), default='Pending', index=True)  # 'Pending', 'Approved', 'Rejected', 'Cancelled'
+    reviewed_by = db.Column(db.String(255), nullable=True)
+    reviewed_at = db.Column(db.DateTime, nullable=True)
+    manager_notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'userEmail': self.user_email,
+            'userName': self.user_name,
+            'leaveType': self.leave_type,
+            'startDate': self.start_date,
+            'endDate': self.end_date,
+            'days': self.days,
+            'isHalfDay': self.is_half_day,
+            'halfDayPeriod': self.half_day_period,
+            'reason': self.reason,
+            'backupEmployee': self.backup_employee or '',
+            'emergencyContact': self.emergency_contact or '',
+            'status': self.status,
+            'reviewedBy': self.reviewed_by or '',
+            'reviewedAt': self.reviewed_at.isoformat() if self.reviewed_at else None,
+            'managerNotes': self.manager_notes or '',
+            'createdAt': self.created_at.isoformat() if self.created_at else None,
+        }
+
+
+
 

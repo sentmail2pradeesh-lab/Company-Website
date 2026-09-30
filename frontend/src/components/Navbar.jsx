@@ -191,20 +191,44 @@ export default function Navbar() {
       <AnimatePresence>
         {mobile && (
           <motion.div
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -8 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -10 }}
-            className="fixed inset-0 z-40 bg-obsidian/95 backdrop-blur-2xl lg:hidden pointer-events-auto"
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-40 bg-obsidian/95 backdrop-blur-2xl lg:hidden pointer-events-auto flex flex-col"
           >
-            <div className="flex flex-col pt-24 px-6 gap-2 overflow-y-auto h-full pb-12">
+            {/* Mobile Drawer Header */}
+            <div className="flex items-center justify-between px-6 pt-5 pb-4 border-b border-line shrink-0">
+              <Logo onClick={() => setMobile(false)} />
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={toggleTheme}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-500/10 text-ink border border-line"
+                  aria-label="Toggle Light/Dark Theme"
+                >
+                  <Icon name={theme === 'dark' ? 'sun' : 'moon'} className="w-4 h-4 text-cyan-400" />
+                </button>
+                <button
+                  onClick={() => setMobile(false)}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-slate-500/15 border border-line text-ink hover:bg-slate-500/25 transition-colors cursor-pointer"
+                  aria-label="Close menu"
+                >
+                  <Icon name="close" className="w-5 h-5 text-ink" />
+                </button>
+              </div>
+            </div>
+
+            {/* Mobile Drawer Navigation Links */}
+            <div className="flex-1 overflow-y-auto px-6 py-6 space-y-2.5 mobile-touch-scroll pb-safe">
               {NAV_LINKS.map((l, i) => (
                 l.dropdown ? (
                   <div key={l.label}>
                     <button
+                      type="button"
                       onClick={() => setDropdown((v) => !v)}
-                      className="w-full flex items-center justify-between px-4 py-3 text-left text-base font-bold text-ink rounded-2xl bg-slate-500/10 border border-line transition-colors"
+                      className="w-full flex items-center justify-between px-4 py-3.5 text-left text-base font-bold text-ink rounded-2xl bg-slate-500/10 border border-line transition-colors min-h-[48px]"
                     >
-                      {l.label}
+                      <span>{l.label}</span>
                       <Icon name="chevronDown" className={`w-4 h-4 text-cyan-400 transition-transform ${dropdown ? 'rotate-180' : ''}`} />
                     </button>
                     <AnimatePresence>
@@ -219,10 +243,11 @@ export default function Navbar() {
                             <Link
                               key={s.slug}
                               to={s.route}
-                              className="flex items-center gap-3 px-4 py-2.5 text-sm font-semibold text-slate-300 hover:text-white rounded-xl bg-slate-500/5 border border-line transition-colors"
+                              onClick={() => setMobile(false)}
+                              className="flex items-center gap-3 px-4 py-3 text-sm font-semibold text-slate-300 hover:text-white rounded-xl bg-slate-500/5 border border-line transition-colors min-h-[44px]"
                             >
-                              <Icon name={s.icon} className="w-4 h-4 text-cyan-400" />
-                              {s.name}
+                              <Icon name={s.icon} className="w-4 h-4 text-cyan-400 shrink-0" />
+                              <span>{s.name}</span>
                             </Link>
                           ))}
                         </motion.div>
@@ -232,13 +257,14 @@ export default function Navbar() {
                 ) : (
                   <motion.div
                     key={l.label}
-                    initial={{ opacity: 0, x: -12 }}
+                    initial={{ opacity: 0, x: -10 }}
                     animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: i * 0.06 }}
+                    transition={{ delay: i * 0.05 }}
                   >
                     <Link
                       to={l.href}
-                      className={`block px-4 py-3 text-base font-bold rounded-2xl transition-colors border ${
+                      onClick={() => setMobile(false)}
+                      className={`flex items-center px-4 py-3.5 text-base font-bold rounded-2xl transition-colors border min-h-[48px] ${
                         isActive(l.href)
                           ? 'text-cyan-400 bg-cyan-500/10 border-cyan-500/20'
                           : 'text-ink bg-slate-500/10 border-line hover:bg-slate-500/20'
@@ -250,20 +276,24 @@ export default function Navbar() {
                 )
               ))}
 
-              <div className="mt-6 flex flex-col gap-3 px-1">
+              <div className="mt-6 flex flex-col gap-3 pt-4 border-t border-line">
                 <Link
                   to="/dashboard"
                   onClick={() => setMobile(false)}
-                  className="flex h-10 items-center justify-center gap-2 rounded-2xl bg-indigo-600/20 text-cyan-400 border border-indigo-500/30 text-sm font-bold transition-all"
+                  className="flex h-12 items-center justify-center gap-2 rounded-2xl bg-indigo-600/20 text-cyan-400 border border-indigo-500/30 text-sm font-bold transition-all"
                 >
-                  <Icon name="grid" className="w-4 h-4" /> Dashboard
+                  <Icon name="grid" className="w-4 h-4" /> Dashboard System
                 </Link>
                 {user ? (
-                  <Button variant="outline" onClick={() => { logout(); setMobile(false); }}>Logout</Button>
+                  <Button variant="outline" className="w-full min-h-[44px]" onClick={() => { logout(); setMobile(false); }}>
+                    Logout ({user.name || user.email})
+                  </Button>
                 ) : (
-                  <Button variant="outline" onClick={() => { openLogin(); setMobile(false); }}>Login</Button>
+                  <Button variant="outline" className="w-full min-h-[44px]" onClick={() => { openLogin(); setMobile(false); }}>
+                    Staff Login
+                  </Button>
                 )}
-                <Button variant="primary" onClick={() => { setMobile(false); navigate('/contact'); }}>
+                <Button variant="primary" className="w-full min-h-[44px]" onClick={() => { setMobile(false); navigate('/contact'); }}>
                   Get Started
                 </Button>
               </div>

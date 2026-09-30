@@ -98,7 +98,7 @@ export default function TodaysJobsPage() {
     if (!stageObj || !stageObj.assignee) {
       if (!canAssignJob) {
         return (
-          <span className="px-2 py-1 rounded-md text-[10px] bg-slate-100 text-slate-400 font-medium italic block text-center">
+          <span className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 text-slate-400 font-medium italic block text-center">
             Unassigned
           </span>
         );
@@ -106,9 +106,9 @@ export default function TodaysJobsPage() {
       return (
         <button
           onClick={() => setAssignModalState({ jobId, stageKey })}
-          className="px-2 py-1 rounded-md text-[10px] bg-slate-100 text-slate-500 hover:bg-slate-200 border border-slate-200 font-medium flex items-center justify-center gap-1 transition-colors mx-auto"
+          className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 text-slate-600 hover:bg-slate-200 border border-slate-200 font-bold flex items-center justify-center gap-1 transition-all mx-auto cursor-pointer"
         >
-          <FiUserPlus className="w-3 h-3" /> Assign
+          <FiUserPlus className="w-3.5 h-3.5" /> Assign
         </button>
       );
     }
@@ -117,22 +117,22 @@ export default function TodaysJobsPage() {
     const isAllowedToUpdate = canUpdateStage(assignee);
 
     const pillStyles = {
-      Pending: 'bg-[#FF4D5A] text-white',
-      'In-Progress': 'bg-[#834BFF] text-white',
-      Paused: 'bg-purple-600 text-white',
-      Complete: 'bg-[#00CBB8] text-white',
+      Pending: 'bg-[#FF4D5A] text-white shadow-xs',
+      'In-Progress': 'bg-[#834BFF] text-white shadow-xs',
+      Paused: 'bg-purple-600 text-white shadow-xs',
+      Complete: 'bg-[#00CBB8] text-white shadow-xs',
     };
 
     return (
       <div className="flex flex-col items-center justify-center text-center gap-1 py-1">
-        <div className="font-semibold text-slate-900 text-xs">
+        <div className="font-bold text-slate-900 text-xs sm:text-[13px]">
           {assignee}
         </div>
 
         {isAllowedToUpdate ? (
           <button
             onClick={() => setTimerModalState({ jobId, stageKey })}
-            className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide transition-all hover:scale-105 cursor-pointer ${
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold tracking-wide transition-all hover:scale-105 cursor-pointer shadow-xs ${
               pillStyles[status] || 'bg-slate-200 text-slate-700'
             }`}
             title={`Click to update stage for ${assignee}`}
@@ -141,7 +141,7 @@ export default function TodaysJobsPage() {
           </button>
         ) : (
           <span
-            className={`px-3 py-0.5 rounded-md text-[10px] font-bold tracking-wide cursor-default ${
+            className={`px-3 py-1 rounded-lg text-[11px] font-bold tracking-wide cursor-default ${
               pillStyles[status] || 'bg-slate-200 text-slate-700'
             }`}
             title={`Assigned to ${assignee}`}
@@ -153,38 +153,37 @@ export default function TodaysJobsPage() {
     );
   };
 
-
   return (
-    <div className="space-y-6 animate-fadeIn">
+    <div className="space-y-6 animate-fadeIn pb-12">
       {/* Header Controls */}
       <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-slate-900 font-display flex items-center gap-2">
+          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 font-sans tracking-tight flex items-center gap-2.5">
             Todays Jobs{' '}
             <button
               type="button"
               onClick={handleRefresh}
-              className="p-1 rounded-lg hover:bg-slate-100 text-indigo-600 transition-colors cursor-pointer"
+              className="p-1.5 rounded-xl hover:bg-slate-200/70 text-indigo-600 transition-colors cursor-pointer"
               title="Refresh jobs"
             >
               <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin' : 'hover:rotate-180'}`} />
             </button>
           </h1>
-          <p className="text-xs text-slate-500 mt-0.5">
+          <p className="text-sm text-slate-500 mt-1 font-medium">
             Multi-stage production sheet table with Blending, Path 1, Path 2, Editors, LC, and FC active timers
           </p>
         </div>
 
         <button
           onClick={() => navigate('/dashboard/create-job')}
-          className="px-4 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all hover:scale-[1.02]"
+          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
         >
           <FiPlus className="w-4 h-4" /> Create Job
         </button>
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-4 overflow-hidden">
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-4 overflow-hidden">
         {/* Toolbar */}
         <div className="p-5 pb-0 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
           {/* Search Input */}
@@ -195,7 +194,7 @@ export default function TodaysJobsPage() {
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               placeholder="Search by Job ID, Client, or Folder Name..."
-              className="w-full bg-slate-50 text-slate-800 pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+              className="w-full bg-slate-50 text-slate-900 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all font-medium"
             />
           </div>
 
@@ -210,7 +209,7 @@ export default function TodaysJobsPage() {
               <button
                 key={st.id}
                 onClick={() => setFilterStatus(st.id)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-bold whitespace-nowrap transition-all ${
+                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
                   filterStatus === st.id
                     ? 'bg-slate-900 text-white shadow-xs'
                     : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
@@ -222,12 +221,12 @@ export default function TodaysJobsPage() {
           </div>
 
           {/* Stage Sub-Filter Dropdown (Blending -> FC) */}
-          <div className="flex items-center gap-2 text-xs text-slate-600 shrink-0">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 shrink-0">
             <span className="font-bold text-slate-700">Stage:</span>
             <select
               value={filterStage}
               onChange={(e) => setFilterStage(e.target.value)}
-              className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+              className="bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
             >
               <option value="ALL">All Stages (Blending → FC)</option>
               <option value="blending">Blending Stage</option>
@@ -241,12 +240,12 @@ export default function TodaysJobsPage() {
           </div>
 
           {/* Show Entries Dropdown */}
-          <div className="flex items-center gap-2 text-xs text-slate-500 shrink-0">
+          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 shrink-0">
             <span>Show</span>
             <select
               value={entriesPerPage}
               onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-              className="bg-slate-50 text-slate-700 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none"
+              className="bg-slate-50 text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-semibold focus:outline-none cursor-pointer"
             >
               <option value={5}>5</option>
               <option value={10}>10</option>
@@ -256,79 +255,79 @@ export default function TodaysJobsPage() {
           </div>
         </div>
 
-        {/* Jobs Data Table (Req 1 Order: Blending, Path 1, Path 2, Editor 1, Editor 2, LC, FC) */}
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
+        {/* Jobs Data Table */}
+        <div className="overflow-x-auto mobile-touch-scroll">
+          <table className="w-full text-left text-xs sm:text-sm min-w-[950px]">
+            <thead className="bg-slate-900 text-white uppercase tracking-wider font-bold border-b border-slate-800 text-[11px] sm:text-xs">
               <tr>
-                <th className="py-3 px-3">ID #</th>
-                <th className="py-3 px-3">Client</th>
-                <th className="py-3 px-3 min-w-[140px]">Folder Name</th>
-                <th className="py-3 px-3 text-center">Output</th>
-                <th className="py-3 px-3 text-center">Blending</th>
-                <th className="py-3 px-3 text-center">Path 1</th>
-                <th className="py-3 px-3 text-center">Path 2</th>
-                <th className="py-3 px-3 text-center">Editor 1</th>
-                <th className="py-3 px-3 text-center">Editor 2</th>
-                <th className="py-3 px-3 text-center">LC</th>
-                <th className="py-3 px-3 text-center">FC</th>
-                <th className="py-3 px-3 text-center">Actions</th>
+                <th className="py-3.5 px-3.5">ID #</th>
+                <th className="py-3.5 px-3.5">Client</th>
+                <th className="py-3.5 px-3.5 min-w-[140px]">Folder Name</th>
+                <th className="py-3.5 px-3.5 text-center">Output</th>
+                <th className="py-3.5 px-3.5 text-center">Blending</th>
+                <th className="py-3.5 px-3.5 text-center">Path 1</th>
+                <th className="py-3.5 px-3.5 text-center">Path 2</th>
+                <th className="py-3.5 px-3.5 text-center">Editor 1</th>
+                <th className="py-3.5 px-3.5 text-center">Editor 2</th>
+                <th className="py-3.5 px-3.5 text-center">LC</th>
+                <th className="py-3.5 px-3.5 text-center">FC</th>
+                <th className="py-3.5 px-3.5 text-center">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700 bg-white">
               {paginatedJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-8 text-center text-slate-400 text-xs">
+                  <td colSpan={12} className="py-12 text-center text-slate-400 text-sm">
                     No jobs match the current search filter.
                   </td>
                 </tr>
               ) : (
                 paginatedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3 px-3 font-mono font-bold text-indigo-600">
+                    <td className="py-3.5 px-3.5 font-mono font-bold text-indigo-600 text-xs sm:text-sm">
                       #{job.id}
                     </td>
-                    <td className="py-3 px-3 font-extrabold text-slate-900">
+                    <td className="py-3.5 px-3.5 font-extrabold text-slate-900 text-xs sm:text-sm">
                       {job.client}
                     </td>
-                    <td className="py-3 px-3 text-slate-700">
-                      <div className="line-clamp-2">{job.name}</div>
+                    <td className="py-3.5 px-3.5 text-slate-800">
+                      <div className="line-clamp-2 font-medium">{job.name}</div>
                     </td>
-                    <td className="py-3 px-3 text-center font-mono font-bold text-slate-900">
+                    <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-900 text-sm">
                       {job.outputTarget}
                     </td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'blending', job.stages.blending)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'path1', job.stages.path1)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'path2', job.stages.path2)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'editor1', job.stages.editor1)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'editor2', job.stages.editor2)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'lc', job.stages.lc)}</td>
-                    <td className="py-3 px-3">{renderStageBadge(job.id, 'fc', job.stages.fc)}</td>
-                    <td className="py-3 px-3 text-center">
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'blending', job.stages.blending)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'path1', job.stages.path1)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'path2', job.stages.path2)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'editor1', job.stages.editor1)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'editor2', job.stages.editor2)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'lc', job.stages.lc)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'fc', job.stages.fc)}</td>
+                    <td className="py-3.5 px-3.5 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {canAssignJob && (
                           <button
                             onClick={() => setEditModalState({ jobId: job.id })}
-                            className="p-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-100"
+                            className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-100 cursor-pointer"
                             title="Modify / Edit Job Specifications"
                           >
-                            <FiEdit2 className="w-3.5 h-3.5" />
+                            <FiEdit2 className="w-4 h-4" />
                           </button>
                         )}
                         <button
                           onClick={() => setClientModalState({ jobId: job.id })}
-                          className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors"
+                          className="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-600 transition-colors cursor-pointer"
                           title="View Turnaround Timestamps"
                         >
-                          <FiClock className="w-3.5 h-3.5" />
+                          <FiClock className="w-4 h-4" />
                         </button>
                         {canAssignJob && (
                           <button
                             onClick={() => deleteJob(job.id)}
-                            className="p-1.5 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors border border-rose-100"
+                            className="p-2 rounded-xl bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors border border-rose-100 cursor-pointer"
                             title="Delete Job"
                           >
-                            <FiTrash2 className="w-3.5 h-3.5" />
+                            <FiTrash2 className="w-4 h-4" />
                           </button>
                         )}
                       </div>
@@ -341,7 +340,7 @@ export default function TodaysJobsPage() {
         </div>
 
         {/* Pagination Footer */}
-        <div className="p-5 pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+        <div className="p-5 pt-2 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm text-slate-500">
           <div>
             Showing {filteredJobs.length === 0 ? 0 : (currentPage - 1) * entriesPerPage + 1} to{' '}
             {Math.min(currentPage * entriesPerPage, filteredJobs.length)} of {filteredJobs.length} entries

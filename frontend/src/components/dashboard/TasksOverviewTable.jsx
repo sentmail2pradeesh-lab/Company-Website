@@ -4,7 +4,7 @@ import { useJobs } from '../../context/JobContext';
 export default function TasksOverviewTable() {
   const { jobs, editors } = useJobs();
 
-  // Compute live workload matrix per editor dynamically from job creation file counts (Memoized)
+  // Compute live workload matrix per editor matching screenshot
   const editorWorkload = useMemo(() => {
     return editors.map((editor) => {
       let blendingCount = 0;
@@ -36,7 +36,7 @@ export default function TasksOverviewTable() {
           editingCount += (stages.editor2.filesCount !== undefined ? Number(stages.editor2.filesCount) : 0);
         }
 
-        // Check LC (Lightroom Correction) & FC / QC
+        // Check LC & FC
         if (stages.lc?.assignee === editor.name) {
           lcFcCount += (stages.lc.filesCount !== undefined ? Number(stages.lc.filesCount) : (Number(j.outputTarget) || 0));
         }
@@ -55,7 +55,6 @@ export default function TasksOverviewTable() {
         path: pathCount,
         editing: editingCount,
         lc: lcFcCount,
-        totalActive: blendingCount + pathCount + editingCount + lcFcCount,
       };
     });
   }, [jobs, editors]);
@@ -69,8 +68,8 @@ export default function TasksOverviewTable() {
       </div>
 
       {/* Clean Table Container */}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left text-xs">
+      <div className="overflow-x-auto mobile-touch-scroll">
+        <table className="w-full text-left text-xs min-w-[320px]">
           <thead>
             <tr className="border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider bg-slate-50/60">
               <th className="py-2.5 px-4">Editor</th>
@@ -83,8 +82,10 @@ export default function TasksOverviewTable() {
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
             {editorWorkload.map((item, idx) => (
               <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                <td className="py-2.5 px-4 font-semibold text-slate-800">
-                  <span className="block truncate max-w-[110px]" title={item.name}>{item.name}</span>
+                <td className="py-2.5 px-4 font-semibold text-slate-800 capitalize">
+                  <span className="block truncate max-w-[110px]" title={item.name}>
+                    {item.name}
+                  </span>
                 </td>
                 <td className="py-2.5 px-2 text-center font-mono text-slate-600">
                   {item.blend}

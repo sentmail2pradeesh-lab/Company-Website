@@ -39,24 +39,24 @@ export default function Blogs() {
     <>
       <Navbar />
 
-      <section className="relative pt-36 pb-16 lg:pt-44 lg:pb-24 bg-obsidian overflow-hidden">
+      <section className="relative pt-28 sm:pt-36 pb-12 sm:pb-16 lg:pt-44 lg:pb-24 bg-obsidian overflow-hidden">
         <div className="absolute inset-0 -z-10 bg-grid [mask-image:radial-gradient(ellipse_at_top,black_20%,transparent_75%)]" />
         <div className="absolute -top-32 right-0 w-[450px] h-[450px] blob-royal opacity-50 -z-10 pointer-events-none" />
-        <div className="mx-auto max-w-3xl px-6 text-center">
+        <div className="mx-auto max-w-3xl px-4 sm:px-6 text-center">
           <span className="inline-flex items-center gap-2 rounded-full border border-cyan-500/30 bg-cyan-500/10 px-4 py-1.5 text-xs font-bold uppercase tracking-[0.16em] text-cyan-400 backdrop-blur-md">
             Insights
           </span>
-          <h1 className="mt-6 font-display text-4xl md:text-6xl font-extrabold tracking-tight text-ink leading-[1.08]">
+          <h1 className="mt-5 sm:mt-6 font-display text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight text-ink leading-[1.1]">
             The <span className="text-gradient-brand">Vista Edits</span> Blog
           </h1>
-          <p className="mt-4 text-mist text-lg leading-relaxed font-normal">
+          <p className="mt-3 sm:mt-4 text-mist text-base sm:text-lg leading-relaxed font-normal">
             Trends, tips and behind-the-scenes craft from our team of specialists.
           </p>
         </div>
       </section>
 
-      <section className="py-16 lg:py-24 bg-obsidian border-t border-line">
-        <div className="mx-auto max-w-7xl px-6">
+      <section className="py-12 sm:py-16 lg:py-24 bg-obsidian border-t border-line">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6">
           {loading ? (
             <p className="text-center text-mist">Loading blogs…</p>
           ) : (
@@ -65,7 +65,7 @@ export default function Blogs() {
               initial="hidden"
               whileInView="show"
               viewport={viewportOnce}
-              className="grid gap-8 md:grid-cols-2 lg:grid-cols-3"
+              className="grid gap-6 sm:gap-8 md:grid-cols-2 lg:grid-cols-3"
             >
               {blogs.map((blog) => (
                 <motion.article

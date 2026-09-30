@@ -45,7 +45,7 @@ export default function ContactPopup() {
     setLoading(false);
   };
 
-  const inputCls = 'w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all hover:border-slate-500/30';
+  const inputCls = 'w-full rounded-2xl border border-line bg-obsidian-card px-4 py-3.5 text-base sm:text-sm text-ink placeholder:text-mist outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all hover:border-slate-500/30';
 
   return (
     <AnimatePresence>
@@ -59,22 +59,22 @@ export default function ContactPopup() {
             onClick={handleClose}
           />
           <motion.aside
-            className="fixed top-0 right-0 z-[70] h-full w-full max-w-md bg-obsidian-card border-l border-line shadow-float flex flex-col glass-card"
+            className="fixed top-0 right-0 z-[70] h-full w-full sm:max-w-md bg-obsidian-card border-l border-line shadow-float flex flex-col glass-card"
             initial={{ x: '100%' }}
             animate={{ x: 0 }}
             exit={{ x: '100%' }}
             transition={{ type: 'spring', damping: 30, stiffness: 280 }}
           >
             {/* Header */}
-            <div className="flex items-start justify-between p-6 border-b border-line">
+            <div className="flex items-start justify-between p-5 sm:p-6 border-b border-line gap-3">
               <div>
                 <h2 className="text-xl font-bold font-display text-ink">Let's talk</h2>
-                <p className="text-sm text-mist mt-1 font-normal">Share your project — we'll reply within 24 hours.</p>
+                <p className="text-xs sm:text-sm text-mist mt-1 font-normal">Share your project — we'll reply within 24 hours.</p>
               </div>
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex h-9 w-9 items-center justify-center rounded-xl bg-slate-500/10 hover:bg-slate-500/20 transition-colors text-ink border border-line"
+                className="flex h-10 w-10 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-xl bg-slate-500/10 hover:bg-slate-500/20 transition-colors text-ink border border-line cursor-pointer"
                 aria-label="Close"
               >
                 <Icon name="close" className="w-5 h-5" />
@@ -82,7 +82,7 @@ export default function ContactPopup() {
             </div>
 
             {/* Body */}
-            <div className="flex-1 overflow-y-auto p-6">
+            <div className="flex-1 overflow-y-auto p-5 sm:p-6 pb-safe mobile-touch-scroll">
               {submitted ? (
                 <motion.div
                   className="flex h-full flex-col items-center justify-center text-center"

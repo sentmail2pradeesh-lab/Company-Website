@@ -136,7 +136,7 @@ export default function LoginPopup() {
   return (
     <AnimatePresence>
       {isLoginOpen && (
-        <div className="fixed inset-0 z-[70] flex items-center justify-center p-4 overflow-y-auto">
+        <div className="fixed inset-0 z-[70] flex items-center justify-center p-3 sm:p-4 overflow-y-auto">
           <motion.div
             className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs"
             initial={{ opacity: 0 }}
@@ -145,16 +145,16 @@ export default function LoginPopup() {
             onClick={handleClose}
           />
           <motion.div
-            className="relative z-10 w-full max-w-md my-auto rounded-3xl bg-white p-7 md:p-8 shadow-2xl border border-slate-200"
+            className="relative z-10 w-full max-w-md my-auto rounded-2xl sm:rounded-3xl bg-white p-5 sm:p-7 md:p-8 shadow-2xl border border-slate-200 max-h-[92vh] overflow-y-auto mobile-touch-scroll"
             initial={{ opacity: 0, scale: 0.95, y: 10 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.25, ease: [0.22, 1, 0.36, 1] }}
           >
             {/* Header with Close */}
-            <div className="flex items-start justify-between mb-4">
+            <div className="flex items-start justify-between mb-4 gap-2">
               <div>
-                <h2 className="text-2xl font-bold font-display text-slate-900">
+                <h2 className="text-xl sm:text-2xl font-bold font-display text-slate-900">
                   {view === 'register' ? 'Employee Registration' : view === 'forgot' ? 'Reset Password' : 'Staff Sign In'}
                 </h2>
                 <p className="text-xs text-slate-500 mt-1 font-medium">
@@ -168,7 +168,7 @@ export default function LoginPopup() {
               <button
                 type="button"
                 onClick={handleClose}
-                className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors text-slate-500 cursor-pointer"
+                className="flex h-9 w-9 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-xl bg-slate-100 hover:bg-slate-200 transition-colors text-slate-500 cursor-pointer"
                 aria-label="Close"
               >
                 <Icon name="close" className="w-4 h-4" />
@@ -177,11 +177,11 @@ export default function LoginPopup() {
 
             {/* Navigation Tabs between Sign In and Register */}
             {view !== 'forgot' && (
-              <div className="flex rounded-xl bg-slate-100 p-1 mb-5 text-xs font-bold">
+              <div className="flex rounded-xl bg-slate-100 p-1 mb-5 text-xs font-bold gap-1">
                 <button
                   type="button"
                   onClick={() => { setView('login'); setMessage({ type: '', text: '' }); }}
-                  className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`flex-1 py-2.5 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[40px] ${
                     view === 'login'
                       ? 'bg-white text-indigo-600 shadow-xs'
                       : 'text-slate-500 hover:text-slate-900'
@@ -192,13 +192,13 @@ export default function LoginPopup() {
                 <button
                   type="button"
                   onClick={() => { setView('register'); setMessage({ type: '', text: '' }); }}
-                  className={`flex-1 py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+                  className={`flex-1 py-2.5 sm:py-2 rounded-lg flex items-center justify-center gap-1.5 transition-all cursor-pointer min-h-[40px] text-center ${
                     view === 'register'
                       ? 'bg-white text-indigo-600 shadow-xs'
                       : 'text-slate-500 hover:text-slate-900'
                   }`}
                 >
-                  <FiUserPlus className="w-3.5 h-3.5" /> Register as Employee
+                  <FiUserPlus className="w-3.5 h-3.5 shrink-0" /> Register
                 </button>
               </div>
             )}
@@ -292,7 +292,7 @@ export default function LoginPopup() {
                   <select
                     value={regDesignation}
                     onChange={(e) => setRegDesignation(e.target.value)}
-                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-indigo-500"
+                    className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-base sm:text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                   >
                     <option value="Editor">Editor</option>
                     <option value="Senior Editor">Senior Editor</option>

@@ -9,15 +9,15 @@ export default function Footer() {
   return (
     <footer className="dark bg-slate-950 border-t border-slate-800 text-slate-300">
       {/* Grid */}
-      <div className="mx-auto max-w-7xl px-6 py-16">
-        <div className="grid gap-12 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 py-12 sm:py-16">
+        <div className="grid gap-8 sm:gap-12 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
           {/* Brand column */}
           <div className="sm:col-span-2 lg:col-span-1">
-            <Logo className="mb-5" />
+            <Logo className="mb-4 sm:mb-5" />
             <p className="text-[15px] font-normal text-slate-400 leading-relaxed max-w-xs">
               Premium creative digital solutions for real estate, e-commerce, agencies and enterprises worldwide.
             </p>
-            <div className="mt-6 flex gap-2.5">
+            <div className="mt-5 sm:mt-6 flex gap-2.5">
               {COMPANY.socials.map((s) => (
                 <a
                   key={s.name}
@@ -36,8 +36,8 @@ export default function Footer() {
 
           {/* Services */}
           <div>
-            <h4 className="text-base font-extrabold text-white mb-5 font-display tracking-tight">Services</h4>
-            <ul className="space-y-3.5">
+            <h4 className="text-base font-extrabold text-white mb-4 sm:mb-5 font-display tracking-tight">Services</h4>
+            <ul className="space-y-3 sm:space-y-3.5">
               {SERVICES.map((s) => (
                 <li key={s.slug}>
                   <Link
@@ -53,8 +53,8 @@ export default function Footer() {
 
           {/* Company */}
           <div>
-            <h4 className="text-base font-extrabold text-white mb-5 font-display tracking-tight">Company</h4>
-            <ul className="space-y-3.5">
+            <h4 className="text-base font-extrabold text-white mb-4 sm:mb-5 font-display tracking-tight">Company</h4>
+            <ul className="space-y-3 sm:space-y-3.5">
               {[
                 { label: 'About', href: '/#why' },
                 { label: 'Blogs', href: '/blogs' },
@@ -74,7 +74,7 @@ export default function Footer() {
 
           {/* Newsletter */}
           <div>
-            <h4 className="text-base font-extrabold text-white mb-5 font-display tracking-tight">Stay updated</h4>
+            <h4 className="text-base font-extrabold text-white mb-4 sm:mb-5 font-display tracking-tight">Stay updated</h4>
             <p className="text-[15px] font-normal text-slate-400 mb-4 leading-relaxed">
               Design tips, case studies and company news — once a month.
             </p>
@@ -89,9 +89,9 @@ export default function Footer() {
                 type="email"
                 required
                 placeholder="you@company.com"
-                className="flex-1 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all"
+                className="flex-1 min-w-0 rounded-2xl border border-slate-800 bg-slate-900 px-4 py-3 text-base sm:text-sm text-white placeholder:text-slate-500 outline-none focus:border-cyan-400 focus:ring-2 focus:ring-cyan-400/20 transition-all min-h-[44px]"
               />
-              <Button size="sm" variant="primary" type="submit" className="shrink-0">
+              <Button size="sm" variant="primary" type="submit" className="shrink-0 min-h-[44px] min-w-[44px] flex items-center justify-center">
                 <Icon name="arrowRight" className="w-4 h-4" />
               </Button>
             </form>
@@ -101,9 +101,8 @@ export default function Footer() {
 
       {/* Bottom bar */}
       <div className="border-t border-slate-900 bg-slate-950/80 backdrop-blur-md">
-        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-sm font-bold text-slate-400 sm:flex-row">
+        <div className="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-4 sm:px-6 py-5 sm:py-6 text-xs sm:text-sm font-bold text-slate-400 sm:flex-row text-center sm:text-left">
           <p>© {new Date().getFullYear()} {COMPANY.legalName}. All rights reserved.</p>
-
         </div>
       </div>
     </footer>

@@ -149,6 +149,30 @@ export default function GallerySection() {
     setCurrentIndex((prev) => (prev + 1) % filteredItems.length);
   };
 
+  // Touch swipe support for mobile carousel
+  const touchStartX = useRef(0);
+  const touchEndX = useRef(0);
+
+  const onTouchStart = (e) => {
+    touchStartX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchMove = (e) => {
+    touchEndX.current = e.targetTouches[0].clientX;
+  };
+
+  const onTouchEnd = () => {
+    if (!touchStartX.current || !touchEndX.current) return;
+    const distance = touchStartX.current - touchEndX.current;
+    if (distance > 45) {
+      handleNext();
+    } else if (distance < -45) {
+      handlePrev();
+    }
+    touchStartX.current = 0;
+    touchEndX.current = 0;
+  };
+
   // Keyboard controls for lightbox
   useEffect(() => {
     const handleKeyDown = (e) => {
@@ -243,9 +267,12 @@ export default function GallerySection() {
         {/* CAROUSEL VIEW */}
         {viewMode === 'carousel' && (
           <div
-            className="mt-10 relative"
+            className="mt-10 relative touch-pan-y"
             onMouseEnter={() => setIsPlaying(false)}
             onMouseLeave={() => setIsPlaying(true)}
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
           >
             {/* Slide Container */}
             <div className="overflow-hidden rounded-3xl border border-slate-800 bg-slate-950/70 p-4 md:p-6 backdrop-blur-xl shadow-2xl">
@@ -263,7 +290,8 @@ export default function GallerySection() {
                       animate={{ opacity: 1, scale: 1 }}
                       exit={{ opacity: 0, scale: 0.95 }}
                       transition={{ duration: 0.4 }}
-                      className={`group relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all duration-500 shadow-lg ${
+                      onClick={() => setSelectedImage(item)}
+                      className={`group relative rounded-2xl overflow-hidden bg-slate-900 border border-slate-800 hover:border-cyan-500/50 transition-all duration-500 shadow-lg cursor-pointer ${
                         offset !== 0 ? 'hidden md:block' : ''
                       } ${offset === 2 ? 'hidden lg:block' : ''}`}
                     >
@@ -284,22 +312,21 @@ export default function GallerySection() {
                           </span>
                         </div>
 
-                        {/* Zoom Button Center */}
-                        <button
-                          onClick={() => setSelectedImage(item)}
-                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-cyan-500/90 text-slate-950 flex items-center justify-center opacity-0 group-hover:opacity-100 scale-75 group-hover:scale-100 transition-all duration-300 shadow-lg hover:bg-cyan-400 z-20"
+                        {/* Zoom Button Center (Visible on touch, hover on desktop) */}
+                        <div
+                          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-11 h-11 sm:w-12 sm:h-12 rounded-full bg-cyan-500/95 text-slate-950 flex items-center justify-center opacity-90 sm:opacity-0 sm:group-hover:opacity-100 scale-90 sm:scale-75 sm:group-hover:scale-100 transition-all duration-300 shadow-lg z-20 pointer-events-none"
                           title="View Full Image"
                         >
                           <FiMaximize2 className="w-5 h-5 stroke-[2.5]" />
-                        </button>
+                        </div>
                       </div>
 
                       {/* Details Content */}
-                      <div className="p-5">
-                        <h4 className="font-display font-bold text-lg text-white group-hover:text-cyan-400 transition-colors line-clamp-1">
+                      <div className="p-4 sm:p-5">
+                        <h4 className="font-display font-bold text-base sm:text-lg text-white group-hover:text-cyan-400 transition-colors line-clamp-1">
                           {item.title}
                         </h4>
-                        <p className="mt-2 text-xs text-slate-400 line-clamp-2 leading-relaxed">
+                        <p className="mt-1.5 sm:mt-2 text-xs text-slate-400 line-clamp-2 leading-relaxed">
                           {item.description}
                         </p>
                       </div>
@@ -310,38 +337,46 @@ export default function GallerySection() {
             </div>
 
             {/* Navigation Arrows & Progress */}
-            <div className="mt-8 flex items-center justify-between">
-              {/* Pagination Dots */}
+            <div className="mt-6 sm:mt-8 flex items-center justify-between gap-4">
+              {/* Pagination Dots (Desktop) & Counter (Mobile) */}
               <div className="flex items-center gap-2">
-                {filteredItems.map((_, idx) => (
-                  <button
-                    key={idx}
-                    onClick={() => setCurrentIndex(idx)}
-                    className={`h-2 rounded-full transition-all duration-300 ${
-                      currentIndex === idx
-                        ? 'w-8 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]'
-                        : 'w-2 bg-slate-700 hover:bg-slate-500'
-                    }`}
-                    title={`Slide ${idx + 1}`}
-                  />
-                ))}
+                <span className="sm:hidden text-xs font-mono font-bold text-cyan-400 bg-slate-800/80 px-3 py-1.5 rounded-lg border border-slate-700">
+                  {currentIndex + 1} / {filteredItems.length}
+                </span>
+
+                <div className="hidden sm:flex items-center gap-1.5 max-w-[200px] md:max-w-none overflow-x-auto py-1">
+                  {filteredItems.map((_, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setCurrentIndex(idx)}
+                      className={`h-2 rounded-full transition-all duration-300 shrink-0 ${
+                        currentIndex === idx
+                          ? 'w-7 bg-cyan-400 shadow-[0_0_10px_rgba(6,182,212,0.6)]'
+                          : 'w-2 bg-slate-700 hover:bg-slate-500'
+                      }`}
+                      title={`Slide ${idx + 1}`}
+                    />
+                  ))}
+                </div>
               </div>
 
               {/* Prev / Next Buttons */}
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 <button
                   onClick={handlePrev}
-                  className="w-11 h-11 rounded-xl bg-slate-800 text-white flex items-center justify-center border border-slate-700 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400 transition-all duration-300 shadow-md"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800 text-white flex items-center justify-center border border-slate-700 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400 transition-all duration-300 shadow-md cursor-pointer"
                   title="Previous Slide"
+                  aria-label="Previous Slide"
                 >
-                  <FiChevronLeft className="w-6 h-6" />
+                  <FiChevronLeft className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
                 <button
                   onClick={handleNext}
-                  className="w-11 h-11 rounded-xl bg-slate-800 text-white flex items-center justify-center border border-slate-700 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400 transition-all duration-300 shadow-md"
+                  className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-800 text-white flex items-center justify-center border border-slate-700 hover:bg-cyan-500 hover:text-slate-950 hover:border-cyan-400 transition-all duration-300 shadow-md cursor-pointer"
                   title="Next Slide"
+                  aria-label="Next Slide"
                 >
-                  <FiChevronRight className="w-6 h-6" />
+                  <FiChevronRight className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
@@ -391,51 +426,52 @@ export default function GallerySection() {
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-4 md:p-8"
+              className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-2xl flex items-center justify-center p-3 sm:p-6 md:p-8"
               onClick={() => setSelectedImage(null)}
             >
               {/* Modal Container */}
               <motion.div
-                initial={{ scale: 0.9, opacity: 0 }}
+                initial={{ scale: 0.95, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.9, opacity: 0 }}
+                exit={{ scale: 0.95, opacity: 0 }}
                 transition={{ type: 'spring', damping: 25, stiffness: 300 }}
-                className="relative max-w-5xl w-full bg-slate-900 border border-slate-800 rounded-3xl overflow-hidden shadow-2xl"
+                className="relative max-w-5xl w-full bg-slate-900 border border-slate-800 rounded-2xl sm:rounded-3xl overflow-hidden shadow-2xl max-h-[92vh] flex flex-col"
                 onClick={(e) => e.stopPropagation()}
               >
                 {/* Close Button */}
                 <button
                   onClick={() => setSelectedImage(null)}
-                  className="absolute top-4 right-4 z-30 p-3 rounded-full bg-slate-950/80 text-white hover:bg-red-500 hover:text-white transition-colors border border-slate-700"
+                  className="absolute top-3 right-3 sm:top-4 sm:right-4 z-30 p-2.5 sm:p-3 rounded-full bg-slate-950/85 text-white hover:bg-red-500 hover:text-white transition-colors border border-slate-700 shadow-lg cursor-pointer"
                   title="Close Modal"
+                  aria-label="Close image preview"
                 >
                   <FiX className="w-5 h-5" />
                 </button>
 
                 {/* Modal Image Area */}
-                <div className="relative bg-slate-950 flex items-center justify-center max-h-[70vh] overflow-hidden">
+                <div className="relative bg-slate-950 flex items-center justify-center max-h-[50vh] sm:max-h-[65vh] overflow-hidden shrink-0">
                   <img
                     src={selectedImage.src}
                     alt={selectedImage.title}
-                    className="max-h-[70vh] w-auto object-contain mx-auto"
+                    className="max-h-[50vh] sm:max-h-[65vh] w-auto max-w-full object-contain mx-auto"
                   />
                 </div>
 
                 {/* Modal Footer Description */}
-                <div className="p-6 md:p-8 bg-slate-900 flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-t border-slate-800">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="px-3 py-1 text-xs font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 rounded-md">
+                <div className="p-4 sm:p-6 md:p-8 bg-slate-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-slate-800 overflow-y-auto">
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2.5 sm:gap-3 flex-wrap">
+                      <span className="px-2.5 py-1 text-xs font-semibold text-cyan-400 bg-cyan-500/10 border border-cyan-500/30 rounded-md">
                         {selectedImage.category}
                       </span>
                       <span className="text-xs text-slate-400 font-mono">
                         Asset #{selectedImage.id} of {GALLERY_ITEMS.length}
                       </span>
                     </div>
-                    <h3 className="font-display text-xl md:text-2xl font-bold text-white mt-2">
+                    <h3 className="font-display text-lg sm:text-xl md:text-2xl font-bold text-white mt-1.5 sm:mt-2">
                       {selectedImage.title}
                     </h3>
-                    <p className="text-sm text-slate-300 mt-1 max-w-2xl">
+                    <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl leading-relaxed">
                       {selectedImage.description}
                     </p>
                   </div>
@@ -445,7 +481,7 @@ export default function GallerySection() {
                     to="/contact"
                     variant="primary"
                     size="sm"
-                    className="shrink-0"
+                    className="shrink-0 w-full sm:w-auto justify-center"
                     onClick={() => setSelectedImage(null)}
                   >
                     Request Similar Edit

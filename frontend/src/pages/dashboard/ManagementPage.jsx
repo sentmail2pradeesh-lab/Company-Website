@@ -268,7 +268,7 @@ export default function ManagementPage() {
       {/* Main Content Card */}
       <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
         {/* Navigation Tabs */}
-        <div className="flex border-b border-slate-200 bg-slate-50/80 px-6 pt-4">
+        <div className="flex border-b border-slate-200 bg-slate-50/80 px-4 sm:px-6 pt-3 sm:pt-4 overflow-x-auto mobile-touch-scroll">
           <button
             onClick={() => setActiveTab('employees')}
             className={`pb-3 px-5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
@@ -313,7 +313,7 @@ export default function ManagementPage() {
                       placeholder="e.g. Rahul, Sneha"
                       value={empName}
                       onChange={(e) => setEmpName(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                       required
                     />
                   </div>
@@ -323,7 +323,7 @@ export default function ManagementPage() {
                     <select
                       value={empRole}
                       onChange={(e) => setEmpRole(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                     >
                       <option value="Editor">Editor</option>
                       <option value="Senior Editor">Senior Editor</option>
@@ -340,7 +340,7 @@ export default function ManagementPage() {
                       placeholder="e.g. employee@aszen.com"
                       value={empEmail}
                       onChange={(e) => setEmpEmail(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                     />
                   </div>
                 </div>
@@ -431,7 +431,7 @@ export default function ManagementPage() {
                             </div>
 
                             {/* Action Buttons */}
-                            <div className="flex items-center gap-2 shrink-0 self-end sm:self-center">
+                            <div className="flex items-center gap-2 shrink-0 self-start sm:self-center flex-wrap">
                               {/* Permissions Accordion Toggle */}
                               <button
                                 onClick={() => setExpandedEmpId(isExpanded ? null : emp.id)}
@@ -608,7 +608,7 @@ export default function ManagementPage() {
                       placeholder="e.g. BE, RE, EPIC"
                       value={clientCode}
                       onChange={(e) => setClientCode(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 font-mono font-bold focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 font-mono font-bold focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                       required
                     />
                   </div>
@@ -620,7 +620,7 @@ export default function ManagementPage() {
                       placeholder="e.g. Blue Sky Edits"
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                       required
                     />
                   </div>
@@ -632,7 +632,7 @@ export default function ManagementPage() {
                       placeholder="e.g. orders@bluesky.com"
                       value={clientContact}
                       onChange={(e) => setClientContact(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-xs text-slate-800 focus:outline-none focus:border-indigo-500"
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                     />
                   </div>
                 </div>
