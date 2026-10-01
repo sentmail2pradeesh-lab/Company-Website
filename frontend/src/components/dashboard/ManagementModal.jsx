@@ -168,35 +168,41 @@ export default function ManagementModal() {
               {/* Employees List */}
               <div className="space-y-2">
                 <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Active Employees & Designations</h3>
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
-                  {editors.map((emp) => (
-                    <div key={emp.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-2">
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-900 flex flex-wrap items-center gap-1.5 sm:gap-2">
-                          <span className="truncate">{emp.name}</span>
-                          <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                            emp.designation === 'Manager' || emp.role === 'manager'
-                              ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                              : emp.designation === 'Senior Editor'
-                              ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                              : 'bg-slate-100 text-slate-700 border border-slate-200'
-                          }`}>
-                            {emp.designation || emp.role || 'Editor'}
-                          </span>
+                {editors.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    No employee records registered yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                    {editors.map((emp) => (
+                      <div key={emp.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-2">
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 flex flex-wrap items-center gap-1.5 sm:gap-2">
+                            <span className="truncate">{emp.name}</span>
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                              emp.designation === 'Manager' || emp.role === 'manager'
+                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                : emp.designation === 'Senior Editor'
+                                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                : 'bg-slate-100 text-slate-700 border border-slate-200'
+                            }`}>
+                              {emp.designation || emp.role || 'Editor'}
+                            </span>
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">{emp.email || 'No Email'}</div>
                         </div>
-                        <div className="text-[11px] text-slate-500 truncate">{emp.email || 'No Email'}</div>
+                        <button
+                          onClick={() => deleteEmployee(emp.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0"
+                          title="Delete Employee"
+                          aria-label="Delete employee"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => deleteEmployee(emp.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0"
-                        title="Delete Employee"
-                        aria-label="Delete employee"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
 
             </div>

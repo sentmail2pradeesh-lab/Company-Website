@@ -93,6 +93,7 @@ export default function JobAssignmentModal() {
               onChange={(e) => setSelectedAssignee(e.target.value)}
               className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none focus:border-indigo-500 font-medium min-h-[42px] sm:min-h-0"
             >
+              <option value="">-- Unassigned --</option>
               {editors.map((ed) => (
                 <option key={ed.id} value={ed.name}>
                   {ed.name} — {ed.role} ({getActiveCount(ed.name)} active tasks)

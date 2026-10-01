@@ -12,36 +12,130 @@ import {
 import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
 
+const LEGACY_MOCK_EMAILS = [
+  'shwetha@aszen.com',
+  'qa_perm_test@aszen.com',
+  'testeditor@aszen.com',
+  'karan@aszen.com',
+  'varun@aszen.com',
+  'siva@aszen.com',
+  'dhanush@aszen.com',
+  'chaithra@aszen.com',
+  'sanjay@aszen.com',
+  'david@aszen.com',
+  'pallabi@aszen.com',
+  'madhura@aszen.com',
+  'selvi@aszen.com',
+  'yogapriya@aszen.com',
+  'ajith@aszen.com',
+  'lalitha@aszen.com',
+  'arun@aszen.com',
+];
+
+const LEGACY_MOCK_NAMES = [
+  'david',
+  'siva',
+  'varun',
+  'sanjay',
+  'pallabi',
+  'chaithra',
+  'madhura',
+  'selvi',
+  'yoga priya',
+  'ajith',
+  'lalitha',
+  'dhanush',
+  'karan',
+  'arun',
+];
+
 const JobContext = createContext(null);
 
 export function JobProvider({ children }) {
   const { user } = useAuth();
 
-  // Clear legacy mock data from local storage if old IDs (e.g. 1001, 19723) exist
+  // Permanently purge previous-system legacy users & associated mock data from browser localStorage
   useEffect(() => {
     try {
-      const savedJobs = localStorage.getItem('aszen_jobs');
-      if (savedJobs) {
-        const parsed = JSON.parse(savedJobs);
-        if (parsed.some((j) => ['1001', '#1001', '19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(j.id))) {
-          localStorage.removeItem('aszen_jobs');
-          localStorage.removeItem('aszen_prod_sheets');
-          setJobs([]);
-          setProductionSheets([]);
-        }
-      }
-
-      // Purge legacy test employees (Shwetha, QA Perm Tester) from cached local storage
+      // 1. Purge previous-system legacy employees from cached local storage
       const savedEditors = localStorage.getItem('aszen_editors');
       if (savedEditors) {
         const parsed = JSON.parse(savedEditors);
         if (Array.isArray(parsed)) {
           const cleaned = parsed.filter(
-            (e) => !['qa_perm_test@aszen.com', 'shwetha@aszen.com'].includes((e.email || '').toLowerCase().trim())
+            (e) =>
+              !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim()) &&
+              !LEGACY_MOCK_NAMES.includes((e.name || '').toLowerCase().trim())
           );
           if (cleaned.length !== parsed.length) {
             localStorage.setItem('aszen_editors', JSON.stringify(cleaned));
             setEditors(cleaned);
+          }
+        }
+      }
+
+      // 2. Purge legacy mock jobs (1001-1004) and production sheets
+      const savedJobs = localStorage.getItem('aszen_jobs');
+      if (savedJobs) {
+        const parsed = JSON.parse(savedJobs);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (j) => !['1001', '#1001', '1002', '#1002', '1003', '#1003', '1004', '#1004', '19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(String(j.id || j.jobNumber || ''))
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('aszen_jobs', JSON.stringify(cleaned));
+            setJobs(normalizeJobs(cleaned));
+          }
+        }
+      }
+
+      // 3. Purge legacy mock activities
+      const savedActivities = localStorage.getItem('aszen_activities');
+      if (savedActivities) {
+        const parsed = JSON.parse(savedActivities);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (a) =>
+              !LEGACY_MOCK_EMAILS.includes((a.actorEmail || '').toLowerCase().trim()) &&
+              !LEGACY_MOCK_NAMES.includes((a.actorName || '').toLowerCase().trim()) &&
+              !['1001', '1002', '1003', '1004', 'LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
+              !['act-1', 'act-2', 'act-3', 'act-4', 'act-5', 'act-6', 'act-7', 'act-8', 'act-9', 'act-10', 'act-11', 'act-12'].includes(String(a.id || ''))
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('aszen_activities', JSON.stringify(cleaned));
+            setActivities(cleaned);
+          }
+        }
+      }
+
+      // 4. Purge legacy mock leave requests (LR-101 to LR-104)
+      const savedLeaves = localStorage.getItem('aszen_leave_requests');
+      if (savedLeaves) {
+        const parsed = JSON.parse(savedLeaves);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (l) =>
+              !LEGACY_MOCK_EMAILS.includes((l.userEmail || '').toLowerCase().trim()) &&
+              !['LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(l.id || ''))
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('aszen_leave_requests', JSON.stringify(cleaned));
+            setLeaveRequests(cleaned);
+          }
+        }
+      }
+
+      // 5. Purge legacy work sessions of previous-system test accounts
+      const savedSessions = localStorage.getItem('aszen_work_sessions');
+      if (savedSessions) {
+        const parsed = JSON.parse(savedSessions);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (s) => !LEGACY_MOCK_EMAILS.includes((s.user_email || '').toLowerCase().trim())
+          );
+          if (cleaned.length !== parsed.length) {
+            localStorage.setItem('aszen_work_sessions', JSON.stringify(cleaned));
+            setWorkSessions(cleaned);
           }
         }
       }
@@ -108,13 +202,41 @@ export function JobProvider({ children }) {
 
   // State Management
   const [jobs, setJobs] = useState(() => {
-    const saved = localStorage.getItem('aszen_jobs');
-    return saved ? normalizeJobs(JSON.parse(saved)) : INITIAL_JOBS;
+    try {
+      const saved = localStorage.getItem('aszen_jobs');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (j) => !['1001', '#1001', '1002', '#1002', '1003', '#1003', '1004', '#1004', '19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(String(j.id || j.jobNumber || '')) && !String(j.id || j.jobNumber || '').startsWith('1578')
+          );
+          if (cleaned.length > 0) {
+            return normalizeJobs(cleaned);
+          }
+        }
+      }
+    } catch {}
+    localStorage.setItem('aszen_jobs', JSON.stringify([]));
+    return [];
   });
 
   const [editors, setEditors] = useState(() => {
-    const saved = localStorage.getItem('aszen_editors');
-    return saved ? JSON.parse(saved) : INITIAL_EDITORS;
+    try {
+      const saved = localStorage.getItem('aszen_editors');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const cleaned = parsed.filter(
+            (e) =>
+              !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim()) &&
+              !LEGACY_MOCK_NAMES.includes((e.name || '').toLowerCase().trim())
+          );
+          return cleaned;
+        }
+      }
+    } catch {}
+    localStorage.setItem('aszen_editors', JSON.stringify([]));
+    return [];
   });
 
   const [clients, setClients] = useState(() => {
@@ -128,18 +250,58 @@ export function JobProvider({ children }) {
   });
 
   const [workSessions, setWorkSessions] = useState(() => {
-    const saved = localStorage.getItem('aszen_work_sessions');
-    return saved ? JSON.parse(saved) : INITIAL_WORK_SESSIONS;
+    try {
+      const saved = localStorage.getItem('aszen_work_sessions');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          return parsed.filter((s) => !LEGACY_MOCK_EMAILS.includes((s.user_email || '').toLowerCase().trim()));
+        }
+      }
+    } catch {}
+    return [];
   });
 
   const [activities, setActivities] = useState(() => {
-    const saved = localStorage.getItem('aszen_activities');
-    return saved ? JSON.parse(saved) : INITIAL_ACTIVITIES;
+    try {
+      const saved = localStorage.getItem('aszen_activities');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (a) =>
+              !LEGACY_MOCK_EMAILS.includes((a.actorEmail || '').toLowerCase().trim()) &&
+              !LEGACY_MOCK_NAMES.includes((a.actorName || '').toLowerCase().trim()) &&
+              !['1001', '1002', '1003', '1004', 'LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
+              !['act-1', 'act-2', 'act-3', 'act-4', 'act-5', 'act-6', 'act-7', 'act-8', 'act-9', 'act-10', 'act-11', 'act-12'].includes(String(a.id || ''))
+          );
+          if (cleaned.length > 0) {
+            return cleaned;
+          }
+        }
+      }
+    } catch {}
+    localStorage.setItem('aszen_activities', JSON.stringify([]));
+    return [];
   });
 
   const [leaveRequests, setLeaveRequests] = useState(() => {
-    const saved = localStorage.getItem('aszen_leave_requests');
-    return saved ? JSON.parse(saved) : INITIAL_LEAVE_REQUESTS;
+    try {
+      const saved = localStorage.getItem('aszen_leave_requests');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed)) {
+          const cleaned = parsed.filter(
+            (l) =>
+              !LEGACY_MOCK_EMAILS.includes((l.userEmail || '').toLowerCase().trim()) &&
+              !['LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(l.id || ''))
+          );
+          return cleaned;
+        }
+      }
+    } catch {}
+    localStorage.setItem('aszen_leave_requests', JSON.stringify([]));
+    return [];
   });
 
   // Modal active states
@@ -321,6 +483,11 @@ export function JobProvider({ children }) {
 
     return newAct;
   }, [user]);
+
+  const resetToSystemActivities = useCallback(() => {
+    localStorage.setItem('aszen_activities', JSON.stringify([]));
+    setActivities([]);
+  }, []);
 
   const applyLeave = async (leaveData) => {
     const applicantName = leaveData.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Employee');
@@ -643,6 +810,16 @@ export function JobProvider({ children }) {
       }
     }
     updateJobsState(jobs.filter((j) => j.id !== jobId && j.jobNumber !== jobId));
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    logActivity({
+      actionType: 'JOB_DELETED',
+      jobId: String(jobId),
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: actor,
+      text: `Job #${jobId} :: Job Deleted by ${actor}`,
+    });
   };
 
   const assignStage = (jobId, stageKey, assigneeName) => {
@@ -683,16 +860,28 @@ export function JobProvider({ children }) {
     setAssignModalState(null);
 
     const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
-    const isQc = stageKey === 'lc' || stageKey === 'fc' || stageKey === 'qc';
+    const stageLabels = {
+      blending: 'Blending',
+      path1: 'Path 1',
+      path2: 'Path 2',
+      editor1: 'Editor 1',
+      editor2: 'Editor 2',
+      lc: 'LC Stage',
+      fc: 'FC Stage',
+      qc: 'QC Stage',
+    };
+    const stageLabel = stageLabels[stageKey] || stageKey.toUpperCase();
+    const isReassign = Boolean(prevAssignee && prevAssignee !== assigneeName);
     logActivity({
-      actionType: isQc ? 'QC_UPDATED' : 'STAGE_ASSIGNED',
+      actionType: isReassign ? 'STAGE_REASSIGNED' : 'STAGE_ASSIGNED',
       jobId,
       actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
       targetEmployee: assigneeName,
       previousAssignee: prevAssignee,
-      text: isQc
-        ? `Job #${jobId} :: QC Updated from ${prevAssignee || 'Unassigned'} to ${assigneeName} by ${actor}`
-        : `Job #${jobId} :: ${stageKey.toUpperCase()} Assigned to ${assigneeName} by ${actor}`,
+      text: isReassign
+        ? `Job #${jobId} :: ${stageLabel} reassigned from ${prevAssignee} to ${assigneeName} by ${actor}`
+        : `Job #${jobId} :: ${stageLabel} assigned to ${assigneeName} by ${actor}`,
     });
   };
 
@@ -740,6 +929,29 @@ export function JobProvider({ children }) {
       return j;
     });
     updateJobsState(updated, null, targetStagePayload);
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const stageLabels = {
+      blending: 'Blending',
+      path1: 'Path 1',
+      path2: 'Path 2',
+      editor1: 'Editor 1',
+      editor2: 'Editor 2',
+      lc: 'LC Stage',
+      fc: 'FC Stage',
+      qc: 'QC Stage',
+    };
+    const stageLabel = stageLabels[stageKey] || stageKey.toUpperCase();
+    const stageObj = job?.stages ? job.stages[stageKey] : null;
+    const assignee = stageObj?.assignee || actor;
+    logActivity({
+      actionType: 'STAGE_STARTED',
+      jobId,
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: assignee,
+      text: `Job #${jobId} :: ${stageLabel} started by ${actor}`,
+    });
   };
 
   const pauseStageTimer = (jobId, stageKey, reason) => {
@@ -786,6 +998,29 @@ export function JobProvider({ children }) {
       return j;
     });
     updateJobsState(updated, null, targetStagePayload);
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const stageLabels = {
+      blending: 'Blending',
+      path1: 'Path 1',
+      path2: 'Path 2',
+      editor1: 'Editor 1',
+      editor2: 'Editor 2',
+      lc: 'LC Stage',
+      fc: 'FC Stage',
+      qc: 'QC Stage',
+    };
+    const stageLabel = stageLabels[stageKey] || stageKey.toUpperCase();
+    const stageObj = job?.stages ? job.stages[stageKey] : null;
+    const assignee = stageObj?.assignee || actor;
+    logActivity({
+      actionType: 'STAGE_PAUSED',
+      jobId,
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: assignee,
+      text: `Job #${jobId} :: ${stageLabel} paused (${reason || 'Break'}) by ${actor}`,
+    });
   };
 
   const resumeStageTimer = (jobId, stageKey) => {
@@ -839,6 +1074,29 @@ export function JobProvider({ children }) {
       return j;
     });
     updateJobsState(updated, null, targetStagePayload);
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const stageLabels = {
+      blending: 'Blending',
+      path1: 'Path 1',
+      path2: 'Path 2',
+      editor1: 'Editor 1',
+      editor2: 'Editor 2',
+      lc: 'LC Stage',
+      fc: 'FC Stage',
+      qc: 'QC Stage',
+    };
+    const stageLabel = stageLabels[stageKey] || stageKey.toUpperCase();
+    const stageObj = job?.stages ? job.stages[stageKey] : null;
+    const assignee = stageObj?.assignee || actor;
+    logActivity({
+      actionType: 'STAGE_RESUMED',
+      jobId,
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: assignee,
+      text: `Job #${jobId} :: ${stageLabel} resumed by ${actor}`,
+    });
   };
 
   const finishStageTimer = (jobId, stageKey, outputFilesCount) => {
@@ -895,6 +1153,17 @@ export function JobProvider({ children }) {
 
     updateJobsState(updated, null, targetStagePayload);
 
+    const stageLabels = {
+      blending: 'Blending',
+      lc: 'LC Stage',
+      path1: 'Path 1',
+      path2: 'Path 2',
+      editor1: 'Editor 1',
+      editor2: 'Editor 2',
+      qc: 'QC Stage',
+      fc: 'FC Stage',
+    };
+
     // Auto-create a production sheet entry
     if (updatedTargetJob) {
       const stageObj = updatedTargetJob.stages[stageKey];
@@ -902,17 +1171,6 @@ export function JobProvider({ children }) {
       const endMs = Date.now();
       const grossMinutes = Math.max(1, Math.round((endMs - startMs) / 60000));
       const pauseMins = Math.round((stageObj.pausedDurationSeconds || 0) / 60);
-
-      const stageLabels = {
-        blending: 'Blending',
-        lc: 'LC',
-        path1: 'Path 1',
-        path2: 'Path 2',
-        editor1: 'Editor 1',
-        editor2: 'Editor 2',
-        qc: 'QC',
-        fc: 'FC',
-      };
 
       const newEntry = {
         id: `ps-${Date.now().toString().slice(-4)}`,
@@ -929,6 +1187,19 @@ export function JobProvider({ children }) {
       };
       updateProdSheetsState([newEntry, ...productionSheets], updated, newEntry);
     }
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    const stageObj = updatedTargetJob ? updatedTargetJob.stages[stageKey] : null;
+    const assignee = stageObj?.assignee || actor;
+    const fileCount = Number(outputFilesCount) || (updatedTargetJob ? updatedTargetJob.outputTarget : 0);
+    logActivity({
+      actionType: 'STAGE_COMPLETED',
+      jobId,
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: assignee,
+      text: `Job #${jobId} :: ${stageLabels[stageKey] || stageKey} completed by ${actor}${fileCount ? ` (${fileCount} files)` : ''}`,
+    });
 
     setTimerModalState(null);
   };
@@ -949,6 +1220,17 @@ export function JobProvider({ children }) {
       return j;
     });
     updateJobsState(updated, targetJob);
+
+    const actor = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+    logActivity({
+      actionType: 'TURNAROUND_UPDATED',
+      jobId,
+      actorName: actor,
+      actorRole: user?.designation || user?.role || 'Staff',
+      targetEmployee: actor,
+      text: `Job #${jobId} :: Target Delivery Time updated by ${actor}`,
+    });
+
     setClientModalState(null);
   };
 
@@ -1104,7 +1386,8 @@ export function JobProvider({ children }) {
               .filter(
                 (u) =>
                   u.role !== 'admin' &&
-                  !['qa_perm_test@aszen.com', 'shwetha@aszen.com'].includes((u.email || '').toLowerCase().trim())
+                  !LEGACY_MOCK_EMAILS.includes((u.email || '').toLowerCase().trim()) &&
+                  !LEGACY_MOCK_NAMES.includes((u.name || '').toLowerCase().trim())
               )
               .map((u) => ({
                 id: u.id,
@@ -1173,7 +1456,14 @@ export function JobProvider({ children }) {
           is_approved: created.is_approved !== false,
           permissions: created.permissions || defaultPerms,
         };
-        updateEditorsState([newEmp, ...editors]);
+        const updatedList = [newEmp, ...editors.filter((e) => e.email !== newEmp.email && e.id !== newEmp.id)];
+        updateEditorsState(updatedList);
+        logActivity({
+          actionType: 'USER_CREATED',
+          actorName: user?.name || 'Admin',
+          targetEmployee: newEmp.name,
+          text: `User Profile #${newEmp.id} :: New Employee ${newEmp.name} (${newEmp.role}) added to users list by ${user?.name || 'Admin'}`,
+        });
         return newEmp;
       }
     } catch (err) {
@@ -1190,7 +1480,14 @@ export function JobProvider({ children }) {
       is_approved: empData.is_approved !== undefined ? empData.is_approved : true,
       permissions: defaultPerms,
     };
-    updateEditorsState([newEmp, ...editors]);
+    const updatedList = [newEmp, ...editors.filter((e) => e.email !== newEmp.email && e.id !== newEmp.id)];
+    updateEditorsState(updatedList);
+    logActivity({
+      actionType: 'USER_CREATED',
+      actorName: user?.name || 'Admin',
+      targetEmployee: newEmp.name,
+      text: `User Profile #${newEmp.id} :: New Employee ${newEmp.name} (${newEmp.role}) added to users list by ${user?.name || 'Admin'}`,
+    });
     return newEmp;
   };
 
@@ -1270,7 +1567,7 @@ export function JobProvider({ children }) {
     const newSession = {
       id: `ws-${Date.now().toString().slice(-4)}`,
       user_name: sessionData.user_name || 'Employee',
-      user_email: sessionData.user_email || `${(sessionData.user_name || 'employee').toLowerCase()}@aszen.com`,
+      user_email: sessionData.user_email || `${(sessionData.user_name || 'employee').toLowerCase().replace(/\s+/g, '')}@vistaeditz.com`,
       user_role: 'employee',
       date: sessionData.date || new Date().toISOString().slice(0, 10),
       login_time: loginDt,
@@ -1391,6 +1688,7 @@ export function JobProvider({ children }) {
         refreshData,
         activities,
         logActivity,
+        resetToSystemActivities,
         leaveRequests,
         applyLeave,
         updateLeaveStatus,

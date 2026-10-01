@@ -358,7 +358,14 @@ def sync_users():
 
     for item in users_list:
         email = (item.get('email') or '').lower().strip()
-        if not email or email == 'arun@aszen.com' or email in ['shwetha@aszen.com', 'qa_perm_test@aszen.com']:
+        legacy_excluded = [
+            'arun@aszen.com', 'shwetha@aszen.com', 'qa_perm_test@aszen.com', 'testeditor@aszen.com',
+            'karan@aszen.com', 'varun@aszen.com', 'siva@aszen.com', 'dhanush@aszen.com',
+            'chaithra@aszen.com', 'sanjay@aszen.com', 'david@aszen.com', 'pallabi@aszen.com',
+            'madhura@aszen.com', 'selvi@aszen.com', 'yogapriya@aszen.com', 'ajith@aszen.com',
+            'lalitha@aszen.com'
+        ]
+        if not email or email in legacy_excluded:
             continue
 
         existing = User.query.filter_by(email=email).first()

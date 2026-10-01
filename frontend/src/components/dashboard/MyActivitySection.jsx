@@ -1,10 +1,11 @@
 import { useState, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import { FiActivity, FiFilter, FiUser, FiRefreshCw } from 'react-icons/fi';
 
 export default function MyActivitySection() {
-  const { activities, editors } = useJobs();
+  const { activities, editors, refreshData, resetToSystemActivities } = useJobs();
   const { user } = useAuth();
 
   const userRole = (user?.role || 'employee').toLowerCase();
@@ -14,6 +15,13 @@ export default function MyActivitySection() {
   // Filter state: 'my' (only current user), 'all' (entire team), or specific employee name
   const [filterMode, setFilterMode] = useState(isManagerOrAdmin ? 'all' : 'my');
   const [selectedStaff, setSelectedStaff] = useState('ALL');
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    if (refreshData) await refreshData();
+    setTimeout(() => setIsRefreshing(false), 400);
+  };
 
   const filteredActivities = useMemo(() => {
     let list = activities || [];
@@ -69,6 +77,15 @@ export default function MyActivitySection() {
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
               {filteredActivities.length}
             </span>
+            <button
+              type="button"
+              onClick={handleRefresh}
+              className="text-slate-400 hover:text-indigo-600 transition-colors w-6 h-6 flex items-center justify-center rounded hover:bg-slate-100 cursor-pointer ml-1"
+              title="Refresh Activity Stream"
+              aria-label="Refresh Activity Stream"
+            >
+              <FiRefreshCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
+            </button>
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5">
             {filterMode === 'my'
@@ -135,13 +152,12 @@ export default function MyActivitySection() {
             <FiActivity className="w-8 h-8 text-slate-300 mb-2 animate-pulse" />
             <p className="text-xs font-semibold text-slate-600">No activity recorded yet</p>
             <p className="text-[11px] text-slate-400 mt-0.5">
-              Actions taken on jobs, QC reviews, and leave requests will stream here.
+              Actions taken on jobs, stage updates, and leave requests will stream here.
             </p>
           </div>
         ) : (
           <div className="relative space-y-4 before:absolute before:left-[72px] sm:before:left-[80px] before:top-2 before:bottom-2 before:w-[1.5px] before:bg-slate-200/80">
             {filteredActivities.map((act) => {
-              // Extract or format text parts
               return (
                 <div
                   key={act.id}
@@ -171,24 +187,37 @@ export default function MyActivitySection() {
   );
 }
 
-// Helper to highlight Job #, employee names, and actions gracefully
+// Helper to highlight Job #, Leave Request #, employee names, and actions gracefully
 function FormattedActivityText({ text }) {
   if (!text) return null;
 
-  // Pattern matching: "Job #15780 :: QC Updated from varun to Dhanush by siva"
+  // Pattern matching: "Job #1001 :: LC Stage reassigned from varun to Dhanush by siva"
   const parts = text.split('::');
 
   if (parts.length === 2) {
     const prefix = parts[0].trim();
     const body = parts[1].trim();
+    const isJob = prefix.startsWith('Job');
+    const isLeave = prefix.startsWith('Leave');
+    const destination = isJob ? '/dashboard/todays-jobs' : isLeave ? '/dashboard/leaves' : null;
 
     return (
-      <span>
-        <span className="font-bold text-slate-900 font-mono tracking-tight mr-1.5 bg-slate-100 text-indigo-700 px-1.5 py-0.5 rounded-md text-[11px] border border-slate-200/60">
-          {prefix}
-        </span>
-        <span className="text-slate-400 font-bold mr-1.5">::</span>
-        <span className="text-slate-800">{body}</span>
+      <span className="inline-flex items-center flex-wrap gap-1.5">
+        {destination ? (
+          <Link
+            to={destination}
+            className="font-bold font-mono tracking-tight bg-slate-100 hover:bg-indigo-50 hover:text-indigo-600 text-indigo-700 px-1.5 py-0.5 rounded text-[11px] border border-slate-200/70 transition-colors inline-block cursor-pointer shadow-2xs"
+            title={`Open ${isJob ? "Today's Jobs" : 'Leave Requests'}`}
+          >
+            {prefix}
+          </Link>
+        ) : (
+          <span className="font-bold font-mono tracking-tight bg-slate-100 text-slate-800 px-1.5 py-0.5 rounded text-[11px] border border-slate-200/60">
+            {prefix}
+          </span>
+        )}
+        <span className="text-slate-400 font-bold">::</span>
+        <span className="text-slate-800 font-medium">{body}</span>
       </span>
     );
   }

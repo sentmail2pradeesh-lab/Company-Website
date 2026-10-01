@@ -26,8 +26,8 @@ export default function WorkSessionModal({ isOpen, onClose, editingSession }) {
       });
     } else {
       setFormData({
-        user_name: editors[0]?.name || 'Lalithaa',
-        user_email: editors[0]?.email || 'Lalithaa@aszen.com',
+        user_name: editors[0]?.name || '',
+        user_email: editors[0]?.email || '',
         date: new Date().toISOString().slice(0, 10),
         login_time: `${new Date().toISOString().slice(0, 10)}T09:00`,
         logout_time: `${new Date().toISOString().slice(0, 10)}T17:30`,
@@ -111,6 +111,7 @@ export default function WorkSessionModal({ isOpen, onClose, editingSession }) {
               onChange={(e) => handleEmployeeSelect(e.target.value)}
               className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-900 dark:text-white font-semibold focus:outline-none focus:border-indigo-500"
             >
+              <option value="">-- Select Employee --</option>
               {editors.map((emp) => (
                 <option key={emp.id} value={emp.name}>
                   {emp.name} ({emp.email})

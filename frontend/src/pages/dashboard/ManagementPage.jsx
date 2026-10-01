@@ -337,7 +337,7 @@ export default function ManagementPage() {
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Email Address</label>
                     <input
                       type="email"
-                      placeholder="e.g. employee@aszen.com"
+                      placeholder="e.g. employee@vistaeditz.com"
                       value={empEmail}
                       onChange={(e) => setEmpEmail(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"

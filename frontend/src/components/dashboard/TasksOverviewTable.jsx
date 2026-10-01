@@ -67,8 +67,8 @@ export default function TasksOverviewTable() {
         <span className="text-xs font-medium text-purple-200">Active Workload</span>
       </div>
 
-      {/* Clean Table Container */}
-      <div className="overflow-x-auto mobile-touch-scroll">
+      {/* Clean Table Container with vertical scrolling for growing roster */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[380px] mobile-touch-scroll">
         <table className="w-full text-left text-xs min-w-[320px]">
           <thead>
             <tr className="border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider bg-slate-50/60">
@@ -80,27 +80,35 @@ export default function TasksOverviewTable() {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-            {editorWorkload.map((item, idx) => (
-              <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
-                <td className="py-2.5 px-4 font-semibold text-slate-800 capitalize">
-                  <span className="block truncate max-w-[110px]" title={item.name}>
-                    {item.name}
-                  </span>
-                </td>
-                <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                  {item.blend}
-                </td>
-                <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                  {item.path}
-                </td>
-                <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                  {item.editing}
-                </td>
-                <td className="py-2.5 px-3 text-center font-mono font-bold text-indigo-600">
-                  {item.lc}
+            {editorWorkload.length === 0 ? (
+              <tr>
+                <td colSpan="5" className="py-8 text-center text-slate-400 font-medium text-xs">
+                  No active personnel registered yet
                 </td>
               </tr>
-            ))}
+            ) : (
+              editorWorkload.map((item, idx) => (
+                <tr key={idx} className="hover:bg-slate-50/80 transition-colors">
+                  <td className="py-2.5 px-4 font-semibold text-slate-800 capitalize">
+                    <span className="block truncate max-w-[110px]" title={item.name}>
+                      {item.name}
+                    </span>
+                  </td>
+                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
+                    {item.blend}
+                  </td>
+                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
+                    {item.path}
+                  </td>
+                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
+                    {item.editing}
+                  </td>
+                  <td className="py-2.5 px-3 text-center font-mono font-bold text-indigo-600">
+                    {item.lc}
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

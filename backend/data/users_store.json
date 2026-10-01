@@ -13,23 +13,6 @@
       "can_manage_clients": true,
       "can_manage_work_hours": true
     },
-    "password_hash": "scrypt:32768:8:1$zbrOmO5iLy9DWJ6o$70a3047d1aa161ad17e37e537648f699ed4a458debfb79cb447701cfa6b89b4bd3dbf2fc321f45d5a1b49b8f5c1730280f1c9af0898afc44749343a0cf130140"
-  },
-  {
-    "email": "karan@aszen.com",
-    "name": "Karan",
-    "role": "employee",
-    "designation": "Senior Editor",
-    "is_approved": true,
-    "permissions": {
-      "can_create_job": false,
-      "can_edit_job": false,
-      "can_delete_job": false,
-      "can_create_employee": false,
-      "can_manage_clients": false,
-      "can_manage_work_hours": false
-    },
-    "password_hash": "scrypt:32768:8:1$jFywBHAvNJQEe6Ta$df4d2f9b23bbfee73770bc784d10f3172380a4dd8552fe508f2ef4b6dc39a34e3a59618d7d27efccc0d8b3ee64a601480bb048c385c30b4e6462cb670454d9be",
-    "raw_password": "Aszen@123"
+    "password_hash": "scrypt:32768:8:1$ktIyOU6Bgfz7m6o4$753a746297be1bd79c6d9d9740c411a72c288199eb37c9140418888c166a985133b8b68c0f27cbc807cd175a2d9f3efd7534cc7d2f95934be609b48637f7ef4d"
   }
 ]

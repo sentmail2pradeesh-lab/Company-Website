@@ -75,14 +75,28 @@ def seed_users():
     import json
     from utils.user_store import load_stored_users, save_user_to_store, remove_user_from_store
 
-    # Purge any legacy test accounts permanently so they never reappear
-    legacy_test_emails = ['shwetha@aszen.com', 'qa_perm_test@aszen.com']
+    # Purge any legacy previous-system accounts permanently so they never reappear
+    legacy_test_emails = [
+        'shwetha@aszen.com', 'qa_perm_test@aszen.com', 'testeditor@aszen.com',
+        'karan@aszen.com', 'varun@aszen.com', 'siva@aszen.com', 'dhanush@aszen.com',
+        'chaithra@aszen.com', 'sanjay@aszen.com', 'david@aszen.com', 'pallabi@aszen.com',
+        'madhura@aszen.com', 'selvi@aszen.com', 'yogapriya@aszen.com', 'ajith@aszen.com',
+        'lalitha@aszen.com'
+    ]
     for test_email in legacy_test_emails:
         test_u = User.query.filter_by(email=test_email).first()
         if test_u:
             db.session.delete(test_u)
             db.session.commit()
         remove_user_from_store(test_email)
+
+    # Clean legacy work sessions and leave requests associated with previous system data
+    try:
+        WorkSession.query.filter(WorkSession.user_email.in_(legacy_test_emails)).delete(synchronize_session=False)
+        LeaveRequest.query.filter(LeaveRequest.user_email.in_(legacy_test_emails)).delete(synchronize_session=False)
+        db.session.commit()
+    except Exception:
+        pass
 
     # 1. Master Admin account
     admin_email = "arun@aszen.com"
