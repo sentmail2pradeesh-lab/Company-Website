@@ -13,40 +13,9 @@ import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
 
 const LEGACY_MOCK_EMAILS = [
-  'shwetha@aszen.com',
   'qa_perm_test@aszen.com',
   'testeditor@aszen.com',
-  'karan@aszen.com',
-  'varun@aszen.com',
-  'siva@aszen.com',
-  'dhanush@aszen.com',
-  'chaithra@aszen.com',
-  'sanjay@aszen.com',
-  'david@aszen.com',
-  'pallabi@aszen.com',
-  'madhura@aszen.com',
-  'selvi@aszen.com',
-  'yogapriya@aszen.com',
-  'ajith@aszen.com',
-  'lalitha@aszen.com',
-  'arun@aszen.com',
-];
-
-const LEGACY_MOCK_NAMES = [
-  'david',
-  'siva',
-  'varun',
-  'sanjay',
-  'pallabi',
-  'chaithra',
-  'madhura',
-  'selvi',
-  'yoga priya',
-  'ajith',
-  'lalitha',
-  'dhanush',
-  'karan',
-  'arun',
+  'devtester@aszen.com',
 ];
 
 const JobContext = createContext(null);
@@ -63,9 +32,7 @@ export function JobProvider({ children }) {
         const parsed = JSON.parse(savedEditors);
         if (Array.isArray(parsed)) {
           const cleaned = parsed.filter(
-            (e) =>
-              !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim()) &&
-              !LEGACY_MOCK_NAMES.includes((e.name || '').toLowerCase().trim())
+            (e) => !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim())
           );
           if (cleaned.length !== parsed.length) {
             localStorage.setItem('aszen_editors', JSON.stringify(cleaned));
@@ -97,7 +64,6 @@ export function JobProvider({ children }) {
           const cleaned = parsed.filter(
             (a) =>
               !LEGACY_MOCK_EMAILS.includes((a.actorEmail || '').toLowerCase().trim()) &&
-              !LEGACY_MOCK_NAMES.includes((a.actorName || '').toLowerCase().trim()) &&
               !['1001', '1002', '1003', '1004', 'LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
               !['act-1', 'act-2', 'act-3', 'act-4', 'act-5', 'act-6', 'act-7', 'act-8', 'act-9', 'act-10', 'act-11', 'act-12'].includes(String(a.id || ''))
           );
@@ -1400,8 +1366,7 @@ export function JobProvider({ children }) {
               .filter(
                 (u) =>
                   u.role !== 'admin' &&
-                  !LEGACY_MOCK_EMAILS.includes((u.email || '').toLowerCase().trim()) &&
-                  !LEGACY_MOCK_NAMES.includes((u.name || '').toLowerCase().trim())
+                  !LEGACY_MOCK_EMAILS.includes((u.email || '').toLowerCase().trim())
               )
               .map((u) => ({
                 id: u.id,
@@ -1413,8 +1378,27 @@ export function JobProvider({ children }) {
                 permissions: u.permissions || {},
               }));
 
-            setEditors(mapped);
-            localStorage.setItem('aszen_editors', JSON.stringify(mapped));
+            setEditors((prevEditors) => {
+              const mergedMap = new Map();
+              mapped.forEach((u) => mergedMap.set((u.email || u.id).toString().toLowerCase(), u));
+              (prevEditors || []).forEach((local) => {
+                const key = (local.email || local.id).toString().toLowerCase();
+                if (!mergedMap.has(key)) {
+                  mergedMap.set(key, local);
+                  api.post('/auth/users', {
+                    name: local.name,
+                    email: local.email,
+                    designation: local.designation || local.role || 'Editor',
+                    password: 'Aszen@123',
+                    is_approved: local.is_approved !== false,
+                    permissions: local.permissions || {},
+                  }).catch(() => {});
+                }
+              });
+              const finalEditors = Array.from(mergedMap.values());
+              localStorage.setItem('aszen_editors', JSON.stringify(finalEditors));
+              return finalEditors;
+            });
           }
         })
         .catch(() => {
@@ -1450,11 +1434,13 @@ export function JobProvider({ children }) {
       can_manage_clients: false,
       can_manage_work_hours: false,
     };
+    const cleanName = (empData.name || '').trim();
+    const cleanEmail = (empData.email || '').trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
     try {
       if (token) {
         const res = await api.post('/auth/users', {
-          name: empData.name,
-          email: empData.email,
+          name: cleanName,
+          email: cleanEmail,
           designation: empData.designation || empData.role || 'Editor',
           password: empData.password || 'Aszen@123',
           is_approved: empData.is_approved !== undefined ? empData.is_approved : true,
@@ -1487,10 +1473,10 @@ export function JobProvider({ children }) {
     // Demo fallback
     const newEmp = {
       id: `e-${Date.now().toString().slice(-4)}`,
-      name: empData.name || 'New Employee',
+      name: cleanName || 'New Employee',
       role: empData.designation || empData.role || 'Editor',
       designation: empData.designation || 'Editor',
-      email: empData.email || '',
+      email: cleanEmail,
       is_approved: empData.is_approved !== undefined ? empData.is_approved : true,
       permissions: defaultPerms,
     };

@@ -315,11 +315,19 @@ def create_user():
             'can_manage_work_hours': False,
         }
 
-    if not email or not name:
-        return jsonify({'message': 'Name and Email are required.'}), 400
+    if not name or not name.strip():
+        return jsonify({'message': 'Employee name is required.'}), 400
 
+    name = name.strip()
+    if not email or not email.strip():
+        clean_name = ''.join(c for c in name.lower().replace(' ', '.') if c.isalnum() or c == '.')
+        email = f"{clean_name or 'employee'}@vistaeditz.com"
+
+    email = email.lower().strip()
     if User.query.filter_by(email=email).first():
-        return jsonify({'message': 'User with this email already exists.'}), 409
+        # Ensure unique email if auto-generated
+        import time
+        email = f"{email.split('@')[0]}.{int(time.time()) % 1000}@vistaeditz.com"
 
     new_user = User(
         email=email,

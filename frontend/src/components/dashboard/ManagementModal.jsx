@@ -43,14 +43,16 @@ export default function ManagementModal() {
 
   const handleAddEmployee = (e) => {
     e.preventDefault();
-    if (!empName.trim() || !empEmail.trim()) return;
+    const cleanName = empName.trim();
+    if (!cleanName) return;
+    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
     const isDev = empDesignation === 'Developer';
     addEmployee({
-      name: empName.trim(),
-      email: empEmail.trim(),
+      name: cleanName,
+      email: cleanEmail,
       designation: empDesignation,
       role: isDev ? 'developer' : empDesignation === 'Manager' ? 'manager' : 'employee',
-      password: empPassword,
+      password: empPassword || 'Aszen@123',
     });
     setEmpName('');
     setEmpDesignation('Editor');
@@ -147,11 +149,10 @@ export default function ManagementModal() {
                   </select>
                   <input
                     type="email"
-                    placeholder="Email Address"
+                    placeholder="Email Address (Optional)"
                     value={empEmail}
                     onChange={(e) => setEmpEmail(e.target.value)}
                     className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
-                    required
                   />
                   <input
                     type="password"

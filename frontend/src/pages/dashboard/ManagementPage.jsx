@@ -169,7 +169,9 @@ export default function ManagementPage() {
 
   const handleAddEmployee = async (e) => {
     e.preventDefault();
-    if (!empName.trim()) return;
+    const cleanName = empName.trim();
+    if (!cleanName) return;
+    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
     const isDev = empRole === 'Developer';
     const finalPerms = isDev
       ? {
@@ -184,9 +186,9 @@ export default function ManagementPage() {
 
     try {
       await addEmployee({
-        name: empName.trim(),
+        name: cleanName,
         role: empRole,
-        email: empEmail.trim(),
+        email: cleanEmail,
         is_approved: true,
         permissions: finalPerms,
       });
@@ -201,7 +203,7 @@ export default function ManagementPage() {
         can_manage_clients: false,
         can_manage_work_hours: false,
       });
-      showToast(`Employee "${empName.trim()}" added and saved permanently!`);
+      showToast(`Employee "${cleanName}" saved permanently!`);
     } catch (err) {
       showToast('Failed to add employee record', 'error');
     }
@@ -416,7 +418,9 @@ export default function ManagementPage() {
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Email Address</label>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Email Address <span className="text-slate-400 font-normal">(Optional - auto-generated if blank)</span>
+                    </label>
                     <input
                       type="email"
                       placeholder="e.g. employee@vistaeditz.com"

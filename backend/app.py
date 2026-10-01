@@ -77,11 +77,7 @@ def seed_users():
 
     # Purge any legacy previous-system accounts permanently so they never reappear
     legacy_test_emails = [
-        'shwetha@aszen.com', 'qa_perm_test@aszen.com', 'testeditor@aszen.com',
-        'karan@aszen.com', 'varun@aszen.com', 'siva@aszen.com', 'dhanush@aszen.com',
-        'chaithra@aszen.com', 'sanjay@aszen.com', 'david@aszen.com', 'pallabi@aszen.com',
-        'madhura@aszen.com', 'selvi@aszen.com', 'yogapriya@aszen.com', 'ajith@aszen.com',
-        'lalitha@aszen.com'
+        'shwetha@aszen.com', 'qa_perm_test@aszen.com', 'testeditor@aszen.com', 'devtester@aszen.com'
     ]
     for test_email in legacy_test_emails:
         test_u = User.query.filter_by(email=test_email).first()
