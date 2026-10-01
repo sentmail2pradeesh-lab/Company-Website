@@ -3,7 +3,8 @@ import { useJobs } from '../../context/JobContext';
 import { FiUserCheck, FiX, FiCheck } from 'react-icons/fi';
 
 export default function JobAssignmentModal() {
-  const { assignModalState, setAssignModalState, jobs, editors, assignStage, canAssignJob } = useJobs();
+  const { assignModalState, setAssignModalState, jobs, assignableEditors: rawAssignable, editors, assignStage, canAssignJob } = useJobs();
+  const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   const jobId = assignModalState?.jobId;
   const stageKey = assignModalState?.stageKey;
@@ -14,9 +15,9 @@ export default function JobAssignmentModal() {
 
   useEffect(() => {
     if (stage) {
-      setSelectedAssignee(stage.assignee || editors[0]?.name || '');
+      setSelectedAssignee(stage.assignee || assignableEditors[0]?.name || '');
     }
-  }, [stage, editors]);
+  }, [stage, assignableEditors]);
 
   useEffect(() => {
     if (assignModalState) {
@@ -94,7 +95,7 @@ export default function JobAssignmentModal() {
               className="w-full bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs focus:outline-none focus:border-indigo-500 font-medium min-h-[42px] sm:min-h-0"
             >
               <option value="">-- Unassigned --</option>
-              {editors.map((ed) => (
+              {assignableEditors.map((ed) => (
                 <option key={ed.id} value={ed.name}>
                   {ed.name} — {ed.designation || ed.role} ({getActiveCount(ed.name)} active tasks)
                 </option>

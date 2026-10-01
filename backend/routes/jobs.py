@@ -41,8 +41,8 @@ def get_jobs():
 @token_required
 def create_job():
     user = request.current_user
-    is_senior_or_dev = (user.designation or '').strip().lower() in ['senior editor', 'developer'] or user.role == 'developer'
-    if user.role not in ['admin', 'manager', 'developer'] and not is_senior_or_dev and not user.has_permission('can_create_job'):
+    is_senior = (user.designation or '').strip().lower() == 'senior editor'
+    if user.role not in ['admin', 'manager'] and not is_senior and not user.has_permission('can_create_job'):
         return jsonify({'message': 'Permission denied. You do not have permission to create jobs.'}), 403
 
     data = request.get_json() or {}
@@ -124,9 +124,9 @@ def update_job_stage(job_identifier, stage_key):
         stage_obj = JobStage(job_id=job.id, stage_key=stage_key)
         db.session.add(stage_obj)
 
-    # Permission check
-    is_senior_or_dev = (user.designation or '').strip().lower() in ['senior editor', 'developer'] or user.role == 'developer'
-    can_edit_all = user.role in ['admin', 'manager', 'developer'] or is_senior_or_dev or user.has_permission('can_edit_job')
+    # Permission check: developers do not interfere in tasks like blending
+    is_senior = (user.designation or '').strip().lower() == 'senior editor'
+    can_edit_all = user.role in ['admin', 'manager'] or is_senior or user.has_permission('can_edit_job')
     is_assignee = user.name and stage_obj.assignee and user.name.strip().lower() == stage_obj.assignee.strip().lower()
 
     if not can_edit_all and not is_assignee:

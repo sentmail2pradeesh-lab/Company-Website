@@ -13,23 +13,6 @@
       "can_manage_clients": true,
       "can_manage_work_hours": true
     },
-    "password_hash": "scrypt:32768:8:1$pNrwEJtapB8RMEma$24ec0e4634b50ddd8f1bc6104fa6bbb7f38d4ee97430e702f030fda23297fbc762e67a29c2f8c030bdcf02c394a27d1a913d5622ea7df98170add776324d70de"
-  },
-  {
-    "email": "devtester@aszen.com",
-    "name": "Dev Tester",
-    "role": "developer",
-    "designation": "Developer",
-    "is_approved": true,
-    "permissions": {
-      "can_create_job": true,
-      "can_edit_job": true,
-      "can_delete_job": true,
-      "can_create_employee": true,
-      "can_manage_clients": true,
-      "can_manage_work_hours": true
-    },
-    "password_hash": "scrypt:32768:8:1$ZkPXmvgm3uKWsXDI$d6abdee9cad3c83ecc1d333370f512ce1964a49e3d76615910c19a90b28ab9686e4ac9f87eeffe609d04b8534b0a12022e394bede4b962aef854250745a984cb",
-    "raw_password": "Password@123"
+    "password_hash": "scrypt:32768:8:1$b6FiIdSfsX5ZmRi8$e65406bcf2dc80ecb7f1040899081a9c5fba8428fde920bb57bede42c2b6e1c05b6eeaa6e27a079145ab51ca554e303f0a7b87e217c0b3cfa2a761453281df46"
   }
 ]

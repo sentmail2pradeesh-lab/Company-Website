@@ -628,23 +628,31 @@ export function JobProvider({ children }) {
   const isDeveloper = userRole === 'developer' || userDesignation.toLowerCase() === 'developer';
   const isSeniorEditor = userDesignation.toLowerCase() === 'senior editor';
   const perms = user?.permissions || {};
-  const isApproved = userRole === 'admin' || isDeveloper || user?.is_approved !== false;
+  const isApproved = userRole === 'admin' || user?.is_approved !== false;
 
-  // Role, Designation & Dynamic Permissions Matrix (Admin & Developer can manage platform operations)
-  const canCreateJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_create_job);
-  const canAssignJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_edit_job);
+  // Role, Designation & Dynamic Permissions Matrix:
+  // Developer does NOT interfere with tasks like Blending, Editing, Jobs, etc.
+  // Developer is restricted strictly to Login/Logoff shift attendance and Leave management.
+  const canCreateJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_create_job);
+  const canAssignJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job);
   const canEditJob = canAssignJob;
-  const canDeleteJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || !!perms.can_delete_job);
-  const canManageClients = isApproved && (userRole === 'admin' || isDeveloper || !!perms.can_manage_clients);
-  const canManageEmployees = isApproved && (userRole === 'admin' || isDeveloper || !!perms.can_create_employee);
-  const canManageWorkHours = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || !!perms.can_manage_work_hours);
+  const canDeleteJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_delete_job);
+  const canManageClients = !isDeveloper && isApproved && (userRole === 'admin' || !!perms.can_manage_clients);
+  const canManageEmployees = !isDeveloper && isApproved && (userRole === 'admin' || !!perms.can_create_employee);
+  const canManageWorkHours = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_manage_work_hours);
 
-  // Check if current user can update a specific stage
+  // Check if current user can update a specific stage (Developers do not update or execute tasks like blending)
   const canUpdateStage = (assigneeName) => {
-    if (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_edit_job) return true;
+    if (isDeveloper) return false;
+    if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job) return true;
     if (!user?.name || !assigneeName) return false;
     return user.name.toLowerCase() === assigneeName.toLowerCase();
   };
+
+  // Assignable editors for production pipeline tasks (Developers are strictly excluded from tasks like Blending, Editing, Pathing, QC)
+  const assignableEditors = useMemo(() => {
+    return editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
+  }, [editors]);
 
 
   // Metric Calculation Helpers (Memoized to prevent unnecessary component re-renders)
@@ -1328,13 +1336,18 @@ export function JobProvider({ children }) {
 
   // Client Management (Admin)
   const addClient = async (clientData) => {
+    const cleanCode = (clientData.code || '').trim().toUpperCase();
+    if (!cleanCode) return;
+    const finalName = (clientData.name || '').trim() || cleanCode;
+    const cleanContact = (clientData.contact || '').trim();
+
     const token = sessionStorage.getItem('aszen_token');
     try {
       if (token) {
         const res = await api.post('/clients', {
-          code: (clientData.code || 'NEW').toUpperCase(),
-          name: clientData.name || 'New Client',
-          contact: clientData.contact || '',
+          code: cleanCode,
+          name: finalName,
+          contact: cleanContact,
         });
         const created = res.data.client;
         const newClient = {
@@ -1343,7 +1356,7 @@ export function JobProvider({ children }) {
           name: created.name,
           contact: created.contact,
         };
-        updateClientsState([...clients, newClient]);
+        updateClientsState([...clients.filter((c) => c.code !== cleanCode), newClient]);
         return;
       }
     } catch (err) {
@@ -1353,11 +1366,11 @@ export function JobProvider({ children }) {
     // Demo fallback
     const newClient = {
       id: `c-${Date.now().toString().slice(-4)}`,
-      code: (clientData.code || 'NEW').toUpperCase(),
-      name: clientData.name || 'New Client',
-      contact: clientData.contact || '',
+      code: cleanCode,
+      name: finalName,
+      contact: cleanContact,
     };
-    updateClientsState([...clients, newClient]);
+    updateClientsState([...clients.filter((c) => c.code !== cleanCode), newClient]);
   };
 
   const deleteClient = async (clientId) => {
@@ -1429,22 +1442,14 @@ export function JobProvider({ children }) {
   // Employee Management (Admin)
   const addEmployee = async (empData) => {
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
-    const isEmpDev = (empData.designation || empData.role || '').toLowerCase() === 'developer';
-    const defaultPerms = empData.permissions || (isEmpDev ? {
-      can_create_job: true,
-      can_edit_job: true,
-      can_delete_job: true,
-      can_create_employee: true,
-      can_manage_clients: true,
-      can_manage_work_hours: true,
-    } : {
+    const defaultPerms = empData.permissions || {
       can_create_job: false,
       can_edit_job: false,
       can_delete_job: false,
       can_create_employee: false,
       can_manage_clients: false,
       can_manage_work_hours: false,
-    });
+    };
     try {
       if (token) {
         const res = await api.post('/auth/users', {
@@ -1652,6 +1657,7 @@ export function JobProvider({ children }) {
       value={{
         jobs,
         editors,
+        assignableEditors,
         clients,
         productionSheets,
         workSessions,

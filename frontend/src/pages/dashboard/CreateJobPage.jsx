@@ -5,7 +5,8 @@ import { FiArrowLeft, FiCheck, FiPlusCircle, FiClock, FiUsers } from 'react-icon
 
 export default function CreateJobPage() {
   const navigate = useNavigate();
-  const { createJob, editors, clients } = useJobs();
+  const { createJob, assignableEditors: rawAssignable, editors, clients } = useJobs();
+  const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   // Line 1: Client Details
   const [client, setClient] = useState('');
@@ -202,7 +203,7 @@ export default function CreateJobPage() {
                   <option value="">Choose Client</option>
                   {clients.map((c) => (
                     <option key={c.id} value={c.code}>
-                      [{c.code}] {c.name}
+                      {c.code}{c.name && c.name !== c.code ? ` (${c.name})` : ''}
                     </option>
                   ))}
                 </select>
@@ -508,7 +509,7 @@ export default function CreateJobPage() {
                       className="w-full bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[15px] min-h-[48px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 cursor-pointer"
                     >
                       <option value="">Choose Blending Designer</option>
-                      {editors.map((ed) => (
+                      {assignableEditors.map((ed) => (
                         <option key={ed.id} value={ed.name}>
                           {ed.name} ({ed.role})
                         </option>
@@ -543,7 +544,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Pather 1</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>
@@ -569,7 +570,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Pather 2</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>
@@ -603,7 +604,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Editor 1</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>
@@ -629,7 +630,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose Editor 2</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>
@@ -663,7 +664,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose LC Personnel</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>
@@ -689,7 +690,7 @@ export default function CreateJobPage() {
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
                         <option value="">Choose FC Personnel</option>
-                        {editors.map((ed) => (
+                        {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
                           </option>

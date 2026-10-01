@@ -24,8 +24,11 @@ def create_client():
     name = (data.get('name') or '').strip()
     contact = (data.get('contact') or '').strip()
 
-    if not code or not name:
-        return jsonify({'message': 'Client Code and Name are required.'}), 400
+    if not code:
+        return jsonify({'message': 'Client Code is required.'}), 400
+
+    if not name:
+        name = code  # Fallback: Client name is optional, defaults to code
 
     existing = Client.query.filter(Client.code == code).first()
     if existing:

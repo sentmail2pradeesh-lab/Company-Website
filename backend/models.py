@@ -39,7 +39,7 @@ class User(db.Model):
         self.permissions_json = json.dumps(val or {})
 
     def has_permission(self, perm_key):
-        if self.role in ['admin', 'developer']:
+        if self.role == 'admin':
             return True
         if getattr(self, 'is_approved', True) is False:
             return False
@@ -125,7 +125,7 @@ class Client(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(50), unique=True, nullable=False, index=True)
-    name = db.Column(db.String(255), nullable=False)
+    name = db.Column(db.String(255), nullable=True)
     contact = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

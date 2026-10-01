@@ -16,6 +16,12 @@ def ensure_data_dir():
 
 
 def load_stored_users():
+    try:
+        from flask import current_app
+        if current_app and current_app.config.get('TESTING'):
+            return []
+    except Exception:
+        pass
     ensure_data_dir()
     try:
         if os.path.exists(STORE_FILE):
@@ -31,6 +37,12 @@ def save_user_to_store(user_obj, raw_password=None):
     """
     Saves or updates a user in the persistent users_store.json file.
     """
+    try:
+        from flask import current_app
+        if current_app and current_app.config.get('TESTING'):
+            return
+    except Exception:
+        pass
     ensure_data_dir()
     try:
         users = load_stored_users()

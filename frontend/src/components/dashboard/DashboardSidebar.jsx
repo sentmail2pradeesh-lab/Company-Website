@@ -80,29 +80,76 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobile
             {(!isCollapsed || isMobileOpen) && <span className="truncate">Dashboard</span>}
           </NavLink>
 
-        {/* 2. Jobs Menu Group (Collapsible / Expandable) */}
-        <div>
-          <button
-            onClick={() => setJobsExpanded(!jobsExpanded)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-[#25273C] transition-all"
-          >
-            <div className="flex items-center gap-3.5 truncate">
-              <FiBox className="w-4 h-4 text-slate-400 shrink-0" />
-              {!isCollapsed && <span>Jobs</span>}
-            </div>
-            {!isCollapsed && (
-              <span className="text-slate-400 text-xs">
-                {jobsExpanded ? <FiChevronDown className="w-3.5 h-3.5" /> : <FiChevronRight className="w-3.5 h-3.5" />}
-              </span>
-            )}
-          </button>
+        {/* 2. Jobs Menu Group (Collapsible / Expandable) - Excluded for Developer */}
+        {!isDeveloper && (
+          <div>
+            <button
+              onClick={() => setJobsExpanded(!jobsExpanded)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-[#25273C] transition-all"
+            >
+              <div className="flex items-center gap-3.5 truncate">
+                <FiBox className="w-4 h-4 text-slate-400 shrink-0" />
+                {!isCollapsed && <span>Jobs</span>}
+              </div>
+              {!isCollapsed && (
+                <span className="text-slate-400 text-xs">
+                  {jobsExpanded ? <FiChevronDown className="w-3.5 h-3.5" /> : <FiChevronRight className="w-3.5 h-3.5" />}
+                </span>
+              )}
+            </button>
 
-          {/* Expanded Jobs Submenu Links */}
-          {jobsExpanded && (!isCollapsed || isMobileOpen) && (
-            <div className="ml-5 mt-1 space-y-1 border-l border-slate-700/60 pl-3">
-              {canCreateJob && (
+            {/* Expanded Jobs Submenu Links */}
+            {jobsExpanded && (!isCollapsed || isMobileOpen) && (
+              <div className="ml-5 mt-1 space-y-1 border-l border-slate-700/60 pl-3">
+                {canCreateJob && (
+                  <NavLink
+                    to="/dashboard/create-job"
+                    onClick={closeMobile}
+                    className={({ isActive }) =>
+                      `block py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                        isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
+                      }`
+                    }
+                  >
+                    + Create New Job
+                  </NavLink>
+                )}
                 <NavLink
-                  to="/dashboard/create-job"
+                  to="/dashboard/jobs"
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                      isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
+                    }`
+                  }
+                >
+                  <span>Today's Jobs</span>
+                  {stats.totalJobs > 0 && (
+                    <span className="text-[10px] bg-blue-500/20 text-blue-300 font-mono font-bold px-1.5 py-0.5 rounded">
+                      {stats.totalJobs}
+                    </span>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/dashboard/qc-pending"
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    `flex items-center justify-between py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                      isActive ? 'text-rose-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
+                    }`
+                  }
+                >
+                  <span>QC Pending</span>
+                  {stats.qcPendingJobs > 0 && (
+                    <span className="text-[10px] bg-rose-500/20 text-rose-300 font-mono font-bold px-1.5 py-0.5 rounded">
+                      {stats.qcPendingJobs}
+                    </span>
+                  )}
+                </NavLink>
+
+                <NavLink
+                  to="/dashboard/production-sheets"
                   onClick={closeMobile}
                   className={({ isActive }) =>
                     `block py-2 px-3 rounded-md text-xs font-medium transition-all ${
@@ -110,93 +157,50 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobile
                     }`
                   }
                 >
-                  + Create New Job
+                  Production Sheets
                 </NavLink>
-              )}
-              <NavLink
-                to="/dashboard/jobs"
-                onClick={closeMobile}
-                className={({ isActive }) =>
-                  `flex items-center justify-between py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                    isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
-                  }`
-                }
-              >
-                <span>Today's Jobs</span>
-                {stats.totalJobs > 0 && (
-                  <span className="text-[10px] bg-blue-500/20 text-blue-300 font-mono font-bold px-1.5 py-0.5 rounded">
-                    {stats.totalJobs}
-                  </span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/dashboard/qc-pending"
-                onClick={closeMobile}
-                className={({ isActive }) =>
-                  `flex items-center justify-between py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                    isActive ? 'text-rose-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
-                  }`
-                }
-              >
-                <span>QC Pending</span>
-                {stats.qcPendingJobs > 0 && (
-                  <span className="text-[10px] bg-rose-500/20 text-rose-300 font-mono font-bold px-1.5 py-0.5 rounded">
-                    {stats.qcPendingJobs}
-                  </span>
-                )}
-              </NavLink>
-
-              <NavLink
-                to="/dashboard/production-sheets"
-                onClick={closeMobile}
-                className={({ isActive }) =>
-                  `block py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                    isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
-                  }`
-                }
-              >
-                Production Sheets
-              </NavLink>
-            </div>
-          )}
-        </div>
-
-        {/* 3. Assignments Menu Group */}
-        <div>
-          <button
-            onClick={() => setAssignmentsExpanded(!assignmentsExpanded)}
-            className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-[#25273C] transition-all cursor-pointer"
-          >
-            <div className="flex items-center gap-3.5 truncate">
-              <FiGrid className="w-4 h-4 text-slate-400 shrink-0" />
-              {(!isCollapsed || isMobileOpen) && <span>Assignments</span>}
-            </div>
-            {(!isCollapsed || isMobileOpen) && (
-              <span className="text-slate-400 text-xs">
-                {assignmentsExpanded ? <FiChevronDown className="w-3.5 h-3.5" /> : <FiChevronRight className="w-3.5 h-3.5" />}
-              </span>
+              </div>
             )}
-          </button>
+          </div>
+        )}
 
-          {assignmentsExpanded && (!isCollapsed || isMobileOpen) && (
-            <div className="ml-5 mt-1 space-y-1 border-l border-slate-700/60 pl-3">
-              <NavLink
-                to="/dashboard/assignments"
-                onClick={closeMobile}
-                className={({ isActive }) =>
-                  `block py-2 px-3 rounded-md text-xs font-medium transition-all ${
-                    isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
-                  }`
-                }
-              >
-                Assignments Matrix
-              </NavLink>
-            </div>
-          )}
-        </div>
+        {/* 3. Assignments Menu Group - Excluded for Developer */}
+        {!isDeveloper && (
+          <div>
+            <button
+              onClick={() => setAssignmentsExpanded(!assignmentsExpanded)}
+              className="w-full flex items-center justify-between px-4 py-3 rounded-lg text-xs font-semibold text-slate-400 hover:text-white hover:bg-[#25273C] transition-all cursor-pointer"
+            >
+              <div className="flex items-center gap-3.5 truncate">
+                <FiGrid className="w-4 h-4 text-slate-400 shrink-0" />
+                {(!isCollapsed || isMobileOpen) && <span>Assignments</span>}
+              </div>
+              {(!isCollapsed || isMobileOpen) && (
+                <span className="text-slate-400 text-xs">
+                  {assignmentsExpanded ? <FiChevronDown className="w-3.5 h-3.5" /> : <FiChevronRight className="w-3.5 h-3.5" />}
+                </span>
+              )}
+            </button>
 
-        {/* 4. Leave Management (matching reference screenshot) */}
+            {assignmentsExpanded && (!isCollapsed || isMobileOpen) && (
+              <div className="ml-5 mt-1 space-y-1 border-l border-slate-700/60 pl-3">
+                <NavLink
+                  to="/dashboard/assignments"
+                  onClick={closeMobile}
+                  className={({ isActive }) =>
+                    `block py-2 px-3 rounded-md text-xs font-medium transition-all ${
+                      isActive ? 'text-blue-400 font-bold bg-[#151623]' : 'text-slate-400 hover:text-slate-200'
+                    }`
+                  }
+                >
+                  Assignments Matrix
+                </NavLink>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* 4. Leave Management (Active for Developer & Staff) */}
         <NavLink
           to="/dashboard/leave"
           onClick={closeMobile}
@@ -219,24 +223,26 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobile
           )}
         </NavLink>
 
-        {/* 5. Client Summary */}
-        <NavLink
-          to="/dashboard/client-summary"
-          onClick={closeMobile}
-          className={({ isActive }) =>
-            `flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-semibold transition-all ${
-              isActive
-                ? 'bg-[#151623] text-white font-bold border-l-4 border-blue-500'
-                : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
-            }`
-          }
-        >
-          <FiPieChart className="w-4 h-4 text-slate-400 shrink-0" />
-          {(!isCollapsed || isMobileOpen) && <span className="truncate">Client Summary</span>}
-        </NavLink>
+        {/* 5. Client Summary - Excluded for Developer */}
+        {!isDeveloper && (
+          <NavLink
+            to="/dashboard/client-summary"
+            onClick={closeMobile}
+            className={({ isActive }) =>
+              `flex items-center gap-3.5 px-4 py-3 rounded-lg text-xs font-semibold transition-all ${
+                isActive
+                  ? 'bg-[#151623] text-white font-bold border-l-4 border-blue-500'
+                  : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
+              }`
+            }
+          >
+            <FiPieChart className="w-4 h-4 text-slate-400 shrink-0" />
+            {(!isCollapsed || isMobileOpen) && <span className="truncate">Client Summary</span>}
+          </NavLink>
+        )}
 
-        {/* 5. Admin Panel & Audit Logs (Admin & Developer) */}
-        {(canManageClients || canManageEmployees || isDeveloper || userRole === 'developer') && (
+        {/* 6. Admin Panel & Audit Logs (Admin Only) */}
+        {!isDeveloper && (canManageClients || canManageEmployees) && (
           <>
             <NavLink
               to="/dashboard/management"

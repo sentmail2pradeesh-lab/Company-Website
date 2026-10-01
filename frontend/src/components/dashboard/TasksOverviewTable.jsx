@@ -2,11 +2,12 @@ import { useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
 
 export default function TasksOverviewTable() {
-  const { jobs, editors } = useJobs();
+  const { jobs, assignableEditors: rawAssignable, editors } = useJobs();
 
-  // Compute live workload matrix per editor matching screenshot
+  // Compute live workload matrix per editor matching screenshot (excludes developers)
   const editorWorkload = useMemo(() => {
-    return editors.map((editor) => {
+    const productionStaff = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
+    return productionStaff.map((editor) => {
       let blendingCount = 0;
       let pathCount = 0;
       let editingCount = 0;

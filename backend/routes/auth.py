@@ -42,12 +42,12 @@ def register():
     if desig_lower == 'developer':
         role = 'developer'
         default_perms = {
-            'can_create_job': True,
-            'can_edit_job': True,
-            'can_delete_job': True,
-            'can_create_employee': True,
-            'can_manage_clients': True,
-            'can_manage_work_hours': True,
+            'can_create_job': False,
+            'can_edit_job': False,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': False,
         }
     elif desig_lower in ['manager', 'project manager']:
         role = 'manager'
@@ -287,12 +287,12 @@ def create_user():
     if desig_lower == 'developer':
         role = 'developer'
         perms = data.get('permissions') or {
-            'can_create_job': True,
-            'can_edit_job': True,
-            'can_delete_job': True,
-            'can_create_employee': True,
-            'can_manage_clients': True,
-            'can_manage_work_hours': True,
+            'can_create_job': False,
+            'can_edit_job': False,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': False,
         }
     elif desig_lower in ['manager', 'project manager']:
         role = 'manager'

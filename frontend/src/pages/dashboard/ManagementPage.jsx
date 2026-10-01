@@ -106,12 +106,12 @@ export default function ManagementPage() {
     setEmpRole(role);
     if (role === 'Developer') {
       setEmpInitialPerms({
-        can_create_job: true,
-        can_edit_job: true,
-        can_create_employee: true,
-        can_delete_job: true,
-        can_manage_clients: true,
-        can_manage_work_hours: true,
+        can_create_job: false,
+        can_edit_job: false,
+        can_create_employee: false,
+        can_delete_job: false,
+        can_manage_clients: false,
+        can_manage_work_hours: false,
       });
     }
   };
@@ -173,12 +173,12 @@ export default function ManagementPage() {
     const isDev = empRole === 'Developer';
     const finalPerms = isDev
       ? {
-          can_create_job: true,
-          can_edit_job: true,
-          can_create_employee: true,
-          can_delete_job: true,
-          can_manage_clients: true,
-          can_manage_work_hours: true,
+          can_create_job: false,
+          can_edit_job: false,
+          can_create_employee: false,
+          can_delete_job: false,
+          can_manage_clients: false,
+          can_manage_work_hours: false,
         }
       : empInitialPerms;
 
@@ -292,12 +292,14 @@ export default function ManagementPage() {
 
   const handleAddClient = (e) => {
     e.preventDefault();
-    if (!clientCode.trim() || !clientName.trim()) return;
-    addClient({ code: clientCode.trim(), name: clientName.trim(), contact: clientContact.trim() });
+    const cleanCode = clientCode.trim().toUpperCase();
+    if (!cleanCode) return;
+    const finalName = clientName.trim() || cleanCode;
+    addClient({ code: cleanCode, name: finalName, contact: clientContact.trim() });
     setClientCode('');
     setClientName('');
     setClientContact('');
-    showToast(`Client "${clientCode.trim()}" registered successfully!`);
+    showToast(`Client "${cleanCode}" registered successfully!`);
   };
 
   return (
@@ -409,7 +411,7 @@ export default function ManagementPage() {
                       <option value="Pather">Pather</option>
                       <option value="QC Lead">QC Lead</option>
                       <option value="Project Manager">Project Manager</option>
-                      <option value="Developer">Developer (Full System &amp; Technical Access)</option>
+                      <option value="Developer">Developer (Shift Attendance &amp; Leave Tracking)</option>
                     </select>
                   </div>
 
@@ -685,34 +687,54 @@ export default function ManagementPage() {
             <div className="space-y-6">
               {/* Add Client Form */}
               <form onSubmit={handleAddClient} className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider mb-4">Add New Client</h3>
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div className="flex items-center justify-between mb-4">
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Client Code</label>
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Add New Client</h3>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Client Code is the primary identifier across all production jobs. Full name and email/phone are optional.
+                    </p>
+                  </div>
+                  <span className="px-2.5 py-1 rounded-full bg-indigo-50 border border-indigo-200 text-indigo-700 text-[10px] font-bold uppercase tracking-wider font-mono">
+                    Code Priority Mode
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3.5 mb-4">
+                  <div>
+                    <label className="block text-xs font-bold text-indigo-900 mb-1 flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-indigo-600 inline-block"></span>
+                      Client Code <span className="text-indigo-600 font-extrabold">* Required (Primary)</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. BE, RE, EPIC"
+                      placeholder="e.g. BE, RE, EPIC, LUX"
                       value={clientCode}
-                      onChange={(e) => setClientCode(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 font-mono font-bold focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
+                      onChange={(e) => setClientCode(e.target.value.toUpperCase())}
+                      className="w-full bg-white border-2 border-indigo-300 focus:border-indigo-600 rounded-xl px-3.5 py-2.5 text-base sm:text-sm text-indigo-950 font-mono font-black tracking-wider focus:outline-none shadow-xs min-h-[44px]"
                       required
+                      autoFocus
                     />
+                    <p className="text-[10px] text-indigo-600/80 mt-1 font-medium">Used across all job boards &amp; production sheets</p>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Client Full Name</label>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Client Full Name <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
                     <input
                       type="text"
-                      placeholder="e.g. Blue Sky Edits"
+                      placeholder="e.g. Blue Sky Edits (or leave blank)"
                       value={clientName}
                       onChange={(e) => setClientName(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
-                      required
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">Defaults to Client Code if omitted</p>
                   </div>
 
                   <div>
-                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">Contact Email / Phone</label>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Contact Email / Phone <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
                     <input
                       type="text"
                       placeholder="e.g. orders@bluesky.com"
@@ -720,8 +742,10 @@ export default function ManagementPage() {
                       onChange={(e) => setClientContact(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                     />
+                    <p className="text-[10px] text-slate-400 mt-1">Optional contact reference</p>
                   </div>
                 </div>
+
                 <button
                   type="submit"
                   className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-2 transition-all shadow-xs cursor-pointer"
@@ -732,17 +756,39 @@ export default function ManagementPage() {
 
               {/* Registered Clients List */}
               <div className="space-y-3">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Clients ({clients.length})</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Registered Clients ({clients.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Primary indexing: <strong>Client Code</strong>
+                  </span>
+                </div>
+
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
                   {clients.map((c) => (
                     <div key={c.id} className="p-4 flex items-center justify-between hover:bg-slate-50/80 transition-colors">
-                      <div className="flex items-center gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-indigo-50 text-indigo-700 font-bold flex items-center justify-center text-xs border border-indigo-100 font-mono">
+                      <div className="flex items-center gap-3.5">
+                        <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white font-black flex items-center justify-center text-sm shadow-xs border border-indigo-700 font-mono tracking-wider">
                           {c.code}
                         </div>
                         <div>
-                          <div className="font-bold text-slate-900 text-xs">{c.name}</div>
-                          <div className="text-[11px] text-slate-500">Code: {c.code} • {c.contact || 'No Contact Listed'}</div>
+                          <div className="flex items-center gap-2">
+                            <span className="font-mono font-black text-sm text-indigo-950 tracking-wider">
+                              {c.code}
+                            </span>
+                            <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 border border-indigo-200/80 text-[10px] font-bold uppercase tracking-wider font-mono">
+                              Client Code
+                            </span>
+                          </div>
+                          <div className="text-xs font-semibold text-slate-700 mt-0.5">
+                            {c.name && c.name !== c.code ? c.name : <span className="text-slate-400 italic">No formal name set</span>}
+                            {c.contact && (
+                              <span className="text-[11px] text-slate-500 font-normal ml-2">
+                                • {c.contact}
+                              </span>
+                            )}
+                          </div>
                         </div>
                       </div>
                       <button
@@ -764,13 +810,13 @@ export default function ManagementPage() {
               <div className="bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 p-6 rounded-2xl text-white border border-cyan-800/40 shadow-lg relative overflow-hidden">
                 <div className="relative z-10">
                   <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold mb-3">
-                    <FiTerminal className="w-3.5 h-3.5" /> DEVELOPER SYSTEM CONTROL
+                    <FiTerminal className="w-3.5 h-3.5" /> DEVELOPER SYSTEM ROLE &amp; SCOPE
                   </div>
                   <h2 className="text-xl sm:text-2xl font-black font-sans tracking-tight text-white flex items-center gap-2.5">
-                    <span>Developer Role &amp; Technical Capabilities</span>
+                    <span>Developer Technical Profile &amp; Attendance</span>
                   </h2>
                   <p className="text-xs sm:text-sm text-cyan-100/80 max-w-2xl mt-1.5 leading-relaxed">
-                    Personnel registered under the <strong>Developer</strong> designation operate with full unrestricted system privileges. They can execute all production CRUD routines, administer clients, inspect security audit traces, and run live diagnostics.
+                    Personnel registered under the <strong>Developer</strong> designation are dedicated to technical infrastructure, <strong>Shift Attendance (Login / Logoff time)</strong>, and <strong>Leave Management</strong>. Developers are completely excluded from creative tasks like Blending, Path 1 &amp; 2, Editing, LC, and QC to maintain clean operational queues.
                   </p>
                 </div>
               </div>
@@ -779,21 +825,21 @@ export default function ManagementPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 <div className="p-4 rounded-xl bg-cyan-50/50 border border-cyan-200/80">
                   <div className="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold text-sm mb-2.5">
-                    ⚡
+                    ⏱️
                   </div>
-                  <h4 className="text-xs font-bold text-slate-900">Unrestricted Permissions</h4>
+                  <h4 className="text-xs font-bold text-slate-900">Shift Attendance</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Auto-releases all 6 granular permissions: job creation, editing, deletion, personnel, shifts, and clients.
+                    Login and logoff shift tracking with automated session duration calculation and history.
                   </p>
                 </div>
 
                 <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80">
                   <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm mb-2.5">
-                    📡
+                    🏖️
                   </div>
-                  <h4 className="text-xs font-bold text-slate-900">System Activity Stream</h4>
+                  <h4 className="text-xs font-bold text-slate-900">Leave Management</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Every action taken is automatically tagged with <span className="font-mono text-[10px] font-bold text-cyan-700 bg-cyan-100 px-1 py-0.5 rounded">💻 Dev</span> in the team timeline.
+                    Full leave application workflow, leave balance tracking, and personal leave calendar access.
                   </p>
                 </div>
 
@@ -801,9 +847,9 @@ export default function ManagementPage() {
                   <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm mb-2.5">
                     🛡️
                   </div>
-                  <h4 className="text-xs font-bold text-slate-900">Security Audit Logs</h4>
+                  <h4 className="text-xs font-bold text-slate-900">Isolated Task Queues</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Direct access to permanent audit logs recording user logons, stage shifts, and administrative operations.
+                    Zero interference with Blending, Path, or QC production sheets to preserve accurate team metrics.
                   </p>
                 </div>
 
@@ -813,7 +859,7 @@ export default function ManagementPage() {
                   </div>
                   <h4 className="text-xs font-bold text-slate-900">Realtime Synchronization</h4>
                   <p className="text-[11px] text-slate-500 mt-1">
-                    Inter-tab and multi-session BroadcastChannel event dispatching with SQLite persistent storage.
+                    Multi-session BroadcastChannel event dispatching with SQLite persistent storage and health probes.
                   </p>
                 </div>
               </div>

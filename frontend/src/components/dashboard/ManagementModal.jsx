@@ -60,8 +60,10 @@ export default function ManagementModal() {
 
   const handleAddClient = (e) => {
     e.preventDefault();
-    if (!clientCode.trim() || !clientName.trim()) return;
-    addClient({ code: clientCode.trim(), name: clientName.trim(), contact: clientContact.trim() });
+    const cleanCode = clientCode.trim().toUpperCase();
+    if (!cleanCode) return;
+    const finalName = clientName.trim() || cleanCode;
+    addClient({ code: cleanCode, name: finalName, contact: clientContact.trim() });
     setClientCode('');
     setClientName('');
     setClientContact('');
@@ -141,7 +143,7 @@ export default function ManagementModal() {
                     <option value="QC Lead">QC Lead</option>
                     <option value="Pather">Pather</option>
                     <option value="Editor">Editor</option>
-                    <option value="Developer">Developer (Full System & Technical Access)</option>
+                    <option value="Developer">Developer (Shift Attendance &amp; Leave Tracking)</option>
                   </select>
                   <input
                     type="email"
@@ -214,31 +216,50 @@ export default function ManagementModal() {
             <div>
               {/* Add Client Form */}
               <form onSubmit={handleAddClient} className="bg-slate-50 p-3.5 sm:p-4 rounded-xl border border-slate-200 mb-5 sm:mb-6 space-y-3">
-                <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Add New Client</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">Add New Client</h3>
+                  <span className="text-[10px] font-mono font-bold text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">
+                    Code Priority Mode
+                  </span>
+                </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3">
-                  <input
-                    type="text"
-                    placeholder="Client Code (e.g. BE)"
-                    value={clientCode}
-                    onChange={(e) => setClientCode(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Client Full Name"
-                    value={clientName}
-                    onChange={(e) => setClientName(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
-                    required
-                  />
-                  <input
-                    type="text"
-                    placeholder="Contact Email / Info"
-                    value={clientContact}
-                    onChange={(e) => setClientContact(e.target.value)}
-                    className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
-                  />
+                  <div>
+                    <label className="block text-[11px] font-bold text-indigo-900 mb-1">
+                      Client Code <span className="text-indigo-600 font-extrabold">* (Primary)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. BE, RE, EPIC"
+                      value={clientCode}
+                      onChange={(e) => setClientCode(e.target.value.toUpperCase())}
+                      className="w-full bg-white border-2 border-indigo-300 focus:border-indigo-600 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-indigo-950 font-mono font-bold tracking-wider focus:outline-none"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Client Full Name <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. Blue Sky Edits"
+                      value={clientName}
+                      onChange={(e) => setClientName(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-[11px] font-semibold text-slate-600 mb-1">
+                      Contact Email / Info <span className="text-slate-400 font-normal">(Optional)</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="e.g. orders@bluesky.com"
+                      value={clientContact}
+                      onChange={(e) => setClientContact(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
+                    />
+                  </div>
                 </div>
                 <button
                   type="submit"
@@ -250,17 +271,32 @@ export default function ManagementModal() {
 
               {/* Clients List */}
               <div className="space-y-2">
-                <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Registered Clients</h3>
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Registered Clients ({clients.length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400">Primary: <strong>Client Code</strong></span>
+                </div>
                 <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
                   {clients.map((c) => (
-                    <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-2">
-                      <div className="min-w-0">
-                        <div className="font-bold text-slate-900 truncate"><span className="text-indigo-600 font-mono">[{c.code}]</span> {c.name}</div>
-                        <div className="text-[11px] text-slate-500 truncate">{c.contact || 'No Contact Info'}</div>
+                    <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-3">
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <span className="w-9 h-9 rounded-lg bg-indigo-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0 tracking-wider">
+                          {c.code}
+                        </span>
+                        <div className="min-w-0">
+                          <div className="font-bold text-slate-900 truncate flex items-center gap-1.5">
+                            <span className="font-mono font-extrabold text-indigo-950">{c.code}</span>
+                            {c.name && c.name !== c.code && (
+                              <span className="text-slate-600 font-medium truncate">({c.name})</span>
+                            )}
+                          </div>
+                          <div className="text-[11px] text-slate-500 truncate">{c.contact || 'No Contact Listed'}</div>
+                        </div>
                       </div>
                       <button
                         onClick={() => deleteClient(c.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0"
+                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0 cursor-pointer"
                         title="Delete Client"
                         aria-label="Delete client"
                       >

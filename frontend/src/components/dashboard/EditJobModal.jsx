@@ -3,7 +3,8 @@ import { useJobs } from '../../context/JobContext';
 import { FiX, FiCheck, FiEdit } from 'react-icons/fi';
 
 export default function EditJobModal({ editModalState, setEditModalState }) {
-  const { jobs, updateJobsState, editors, clients, canAssignJob } = useJobs();
+  const { jobs, updateJobsState, assignableEditors: rawAssignable, editors, clients, canAssignJob } = useJobs();
+  const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   const [client, setClient] = useState('');
   const [name, setName] = useState('');
@@ -219,7 +220,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                   {clients.length > 0 ? (
                     clients.map((c) => (
                       <option key={c.id} value={c.code}>
-                        [{c.code}] {c.name}
+                        {c.code}{c.name && c.name !== c.code ? ` (${c.name})` : ''}
                       </option>
                     ))
                   ) : (
@@ -276,7 +277,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     {clients.length > 0 ? (
                       clients.map((c) => (
                         <option key={c.id} value={c.code}>
-                          [{c.code}] {c.name}
+                          {c.code}{c.name && c.name !== c.code ? ` (${c.name})` : ''}
                         </option>
                       ))
                     ) : (
@@ -394,7 +395,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -421,7 +422,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -448,7 +449,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -475,7 +476,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -502,7 +503,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -529,7 +530,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>
@@ -556,7 +557,7 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
                     className="col-span-2 bg-white text-slate-800 border border-slate-200 rounded-lg px-2 py-1 text-xs focus:outline-none focus:border-indigo-500"
                   >
                     <option value="">Unassigned</option>
-                    {editors.map((ed) => (
+                    {assignableEditors.map((ed) => (
                       <option key={ed.id} value={ed.name}>
                         {ed.name} ({ed.role})
                       </option>

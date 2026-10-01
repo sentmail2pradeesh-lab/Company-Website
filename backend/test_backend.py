@@ -146,7 +146,13 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(dev_user['role'], 'developer')
         self.assertEqual(dev_user['designation'], 'Developer')
 
-        # 2. Login as developer
+        # Check default permissions for developer: no task interference permissions
+        dev_perms = dev_user.get('permissions', {})
+        self.assertFalse(dev_perms.get('can_create_job', False))
+        self.assertFalse(dev_perms.get('can_edit_job', False))
+        self.assertFalse(dev_perms.get('can_delete_job', False))
+
+        # 2. Login as developer succeeds with shift login tracking
         login_res = self.client.post('/api/auth/login', json={
             'email': 'devtester@aszen.com',
             'password': 'Password@123'
@@ -155,12 +161,18 @@ class BackendTestSuite(unittest.TestCase):
         dev_token = login_res.get_json()['token']
         dev_headers = {'Authorization': f'Bearer {dev_token}'}
 
-        # 3. Developer can access audit logs
-        audit_res = self.client.get('/api/jobs/audit-logs', headers=dev_headers)
-        self.assertEqual(audit_res.status_code, 200)
-        self.assertIn('auditLogs', audit_res.get_json())
+        # 3. Developer can apply for leave
+        leave_res = self.client.post('/api/leaves', headers=dev_headers, json={
+            'leaveType': 'Leave',
+            'startDate': '2026-10-12',
+            'endDate': '2026-10-13',
+            'days': 2,
+            'isHalfDay': False,
+            'reason': 'Developer Annual Leave'
+        })
+        self.assertEqual(leave_res.status_code, 201)
 
-        # 4. Developer can create job
+        # 4. Developer CANNOT interfere with production tasks: job creation is FORBIDDEN (403)
         job_res = self.client.post('/api/jobs', headers=dev_headers, json={
             'jobNumber': 'DEV-999',
             'client': 'BE',
@@ -170,11 +182,20 @@ class BackendTestSuite(unittest.TestCase):
                 'blending': {'assignee': 'Dev Tester', 'status': 'Pending'}
             }
         })
-        self.assertEqual(job_res.status_code, 201)
+        self.assertEqual(job_res.status_code, 403)
 
-        # 5. Developer can delete job
-        del_res = self.client.delete(f"/api/jobs/{job_res.get_json()['job']['db_id']}", headers=dev_headers)
-        self.assertEqual(del_res.status_code, 200)
+    def test_client_code_only_registration(self):
+        admin_token = self.get_admin_token()
+        headers = {'Authorization': f'Bearer {admin_token}'}
+
+        # Create client with ONLY code (no mandate of name or email)
+        res = self.client.post('/api/clients', headers=headers, json={
+            'code': 'lux'
+        })
+        self.assertEqual(res.status_code, 201)
+        client = res.get_json()['client']
+        self.assertEqual(client['code'], 'LUX')
+        self.assertEqual(client['name'], 'LUX')
 
 
 if __name__ == '__main__':

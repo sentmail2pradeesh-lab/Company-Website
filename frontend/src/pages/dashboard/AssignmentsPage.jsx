@@ -2,7 +2,8 @@ import { useJobs } from '../../context/JobContext';
 import { FiUsers } from 'react-icons/fi';
 
 export default function AssignmentsPage() {
-  const { editors, jobs } = useJobs();
+  const { assignableEditors: rawAssignable, editors, jobs } = useJobs();
+  const productionStaff = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   return (
     <div className="space-y-6 animate-fadeIn pb-12">
@@ -21,7 +22,7 @@ export default function AssignmentsPage() {
 
       {/* Team Roster Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-        {editors.map((editor) => {
+        {productionStaff.map((editor) => {
           // Find assigned active jobs for this editor
           const assignedJobs = jobs.filter((j) =>
             Object.entries(j.stages || {}).some(
