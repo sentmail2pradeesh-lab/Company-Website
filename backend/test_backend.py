@@ -130,6 +130,52 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(updated_leave['status'], 'Approved')
         self.assertEqual(updated_leave['managerNotes'], 'Approved, have a great time.')
 
+    def test_developer_role_and_permissions(self):
+        admin_token = self.get_admin_token()
+        admin_headers = {'Authorization': f'Bearer {admin_token}'}
+
+        # 1. Register a user with Developer designation
+        reg_res = self.client.post('/api/auth/register', json={
+            'name': 'Dev Tester',
+            'email': 'devtester@aszen.com',
+            'password': 'Password@123',
+            'designation': 'Developer'
+        })
+        self.assertEqual(reg_res.status_code, 201)
+        dev_user = reg_res.get_json()['user']
+        self.assertEqual(dev_user['role'], 'developer')
+        self.assertEqual(dev_user['designation'], 'Developer')
+
+        # 2. Login as developer
+        login_res = self.client.post('/api/auth/login', json={
+            'email': 'devtester@aszen.com',
+            'password': 'Password@123'
+        })
+        self.assertEqual(login_res.status_code, 200)
+        dev_token = login_res.get_json()['token']
+        dev_headers = {'Authorization': f'Bearer {dev_token}'}
+
+        # 3. Developer can access audit logs
+        audit_res = self.client.get('/api/jobs/audit-logs', headers=dev_headers)
+        self.assertEqual(audit_res.status_code, 200)
+        self.assertIn('auditLogs', audit_res.get_json())
+
+        # 4. Developer can create job
+        job_res = self.client.post('/api/jobs', headers=dev_headers, json={
+            'jobNumber': 'DEV-999',
+            'client': 'BE',
+            'service': 'Developer Pipeline Test',
+            'outputTarget': 25,
+            'stages': {
+                'blending': {'assignee': 'Dev Tester', 'status': 'Pending'}
+            }
+        })
+        self.assertEqual(job_res.status_code, 201)
+
+        # 5. Developer can delete job
+        del_res = self.client.delete(f"/api/jobs/{job_res.get_json()['job']['db_id']}", headers=dev_headers)
+        self.assertEqual(del_res.status_code, 200)
+
 
 if __name__ == '__main__':
     unittest.main()

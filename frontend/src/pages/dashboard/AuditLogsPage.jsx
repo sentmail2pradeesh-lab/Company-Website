@@ -54,12 +54,17 @@ export default function AuditLogsPage() {
     return 'bg-slate-100 text-slate-700 border-slate-200';
   };
 
-  if (user?.role !== 'admin') {
+  const isDevOrAdmin =
+    user?.role === 'admin' ||
+    user?.role === 'developer' ||
+    (user?.designation || '').toLowerCase() === 'developer';
+
+  if (!isDevOrAdmin) {
     return (
       <div className="max-w-4xl mx-auto p-8 text-center bg-white rounded-2xl border border-slate-200 mt-12">
         <FiShield className="w-12 h-12 text-rose-500 mx-auto mb-3" />
         <h2 className="text-lg font-bold text-slate-900">Access Denied</h2>
-        <p className="text-xs text-slate-500 mt-1">Only Master Admin can access system security audit logs.</p>
+        <p className="text-xs text-slate-500 mt-1">Only Administrators & System Developers can access security audit logs.</p>
         <button
           onClick={() => navigate('/dashboard')}
           className="mt-4 px-4 py-2 bg-indigo-600 text-white font-bold text-xs rounded-xl"

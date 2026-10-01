@@ -15,7 +15,7 @@ export default function DashboardLayout() {
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState(false);
   const [isChangePassOpen, setIsChangePassOpen] = useState(false);
-  const { canManageClients, canManageEmployees, canCreateJob, workSessions } = useJobs();
+  const { canManageClients, canManageEmployees, canCreateJob, workSessions, isDeveloper } = useJobs();
   const { user, loading, logout, openLogin } = useAuth();
 
   // Redirect unauthenticated visitors to homepage with login popup
@@ -153,8 +153,8 @@ export default function DashboardLayout() {
             </div>
           )}
 
-          {/* Admin Control Page Link */}
-          {(canManageClients || canManageEmployees) && (
+          {/* Admin / Personnel Control Page Link */}
+          {(canManageClients || canManageEmployees || isDeveloper || user?.role === 'developer' || (user?.designation || '').toLowerCase() === 'developer') && (
             <Link
               to="/dashboard/management"
               className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 text-xs font-bold transition-all"
@@ -191,7 +191,15 @@ export default function DashboardLayout() {
                 <div className="px-4 py-2 border-b border-slate-100">
                   <div className="font-bold text-slate-900">{user?.name || formattedDisplayName}</div>
                   <div className="text-[11px] text-slate-500 truncate">{user?.email}</div>
-                  <div className="text-[10px] text-indigo-600 font-bold mt-0.5">{user?.designation || user?.role}</div>
+                  <div className="mt-1">
+                    {(user?.designation || user?.role)?.toLowerCase() === 'developer' ? (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-cyan-50 text-cyan-800 border border-cyan-300 font-mono shadow-2xs">
+                        💻 Developer
+                      </span>
+                    ) : (
+                      <span className="text-[10px] text-indigo-600 font-bold">{user?.designation || user?.role}</span>
+                    )}
+                  </div>
                 </div>
 
                 <button

@@ -33,7 +33,7 @@ def get_leaves():
     status = request.args.get('status')
 
     query = LeaveRequest.query
-    if current_user.role not in ['admin', 'manager'] and not current_user.has_permission('can_create_employee'):
+    if current_user.role not in ['admin', 'manager', 'developer'] and not current_user.has_permission('can_create_employee'):
         # Non-managers can only see their own requests by default
         query = query.filter_by(user_email=current_user.email)
     elif user_email:
@@ -116,9 +116,9 @@ def update_leave_status(leave_id):
         if leave.user_email.lower() != current_user.email.lower() and current_user.role not in ['admin', 'manager']:
             return jsonify({'message': 'Permission denied'}), 403
     else:
-        # Only managers and admins can approve or reject
-        if current_user.role not in ['admin', 'manager'] and not current_user.has_permission('can_create_employee'):
-            return jsonify({'message': 'Only Managers or Admins can review leave requests'}), 403
+        # Only managers, developers, and admins can approve or reject
+        if current_user.role not in ['admin', 'manager', 'developer'] and not current_user.has_permission('can_create_employee'):
+            return jsonify({'message': 'Only Managers, Developers, or Admins can review leave requests'}), 403
 
     leave.status = new_status
     leave.reviewed_by = current_user.name or current_user.email

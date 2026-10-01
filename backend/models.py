@@ -39,7 +39,7 @@ class User(db.Model):
         self.permissions_json = json.dumps(val or {})
 
     def has_permission(self, perm_key):
-        if self.role == 'admin':
+        if self.role in ['admin', 'developer']:
             return True
         if getattr(self, 'is_approved', True) is False:
             return False
@@ -52,7 +52,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name or self.email.split('@')[0].capitalize(),
             'role': self.role,
-            'designation': self.designation or ('Manager' if self.role == 'manager' else 'Editor'),
+            'designation': self.designation or ('Developer' if self.role == 'developer' else ('Manager' if self.role == 'manager' else 'Editor')),
             'is_approved': getattr(self, 'is_approved', True),
             'permissions': self.permissions,
         }

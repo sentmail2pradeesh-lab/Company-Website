@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
+import api from '../../api/axios';
 import {
   FiPlus,
   FiTrash2,
@@ -19,6 +20,12 @@ import {
   FiSquare,
   FiLock,
   FiUnlock,
+  FiTerminal,
+  FiCpu,
+  FiDatabase,
+  FiRefreshCw,
+  FiServer,
+  FiActivity,
 } from 'react-icons/fi';
 
 const PERMISSION_CONFIGS = [
@@ -95,6 +102,56 @@ export default function ManagementPage() {
     can_manage_work_hours: false,
   });
 
+  const handleEmpRoleChange = (role) => {
+    setEmpRole(role);
+    if (role === 'Developer') {
+      setEmpInitialPerms({
+        can_create_job: true,
+        can_edit_job: true,
+        can_create_employee: true,
+        can_delete_job: true,
+        can_manage_clients: true,
+        can_manage_work_hours: true,
+      });
+    }
+  };
+
+  // Developer Diagnostics State
+  const [devPingStatus, setDevPingStatus] = useState(null);
+  const [devTesting, setDevTesting] = useState(false);
+
+  const testBackendHealth = async () => {
+    setDevTesting(true);
+    const start = Date.now();
+    try {
+      const res = await api.get('/clients');
+      const latency = Date.now() - start;
+      setDevPingStatus({
+        ok: true,
+        status: res.status,
+        latency,
+        time: new Date().toLocaleTimeString(),
+        clientCount: Array.isArray(res.data?.clients) ? res.data.clients.length : 0,
+      });
+      showToast(`Backend connection healthy! Ping: ${latency}ms`);
+    } catch (e) {
+      setDevPingStatus({
+        ok: false,
+        error: e.message || 'Connection failed',
+        time: new Date().toLocaleTimeString(),
+      });
+      showToast('Backend health test failed', 'error');
+    } finally {
+      setDevTesting(false);
+    }
+  };
+
+  const handleClearCache = () => {
+    localStorage.removeItem('aszen_activities');
+    localStorage.removeItem('aszen_cached_jobs');
+    showToast('Developer action: Local operational cache purged successfully!');
+  };
+
   // Expanded permissions panel state
   const [expandedEmpId, setExpandedEmpId] = useState(null);
   const [savingEmpId, setSavingEmpId] = useState(null);
@@ -113,13 +170,25 @@ export default function ManagementPage() {
   const handleAddEmployee = async (e) => {
     e.preventDefault();
     if (!empName.trim()) return;
+    const isDev = empRole === 'Developer';
+    const finalPerms = isDev
+      ? {
+          can_create_job: true,
+          can_edit_job: true,
+          can_create_employee: true,
+          can_delete_job: true,
+          can_manage_clients: true,
+          can_manage_work_hours: true,
+        }
+      : empInitialPerms;
+
     try {
       await addEmployee({
         name: empName.trim(),
         role: empRole,
         email: empEmail.trim(),
         is_approved: true,
-        permissions: empInitialPerms,
+        permissions: finalPerms,
       });
       setEmpName('');
       setEmpRole('Editor');
@@ -289,6 +358,16 @@ export default function ManagementPage() {
           >
             <FiBriefcase className="w-4 h-4" /> Registered Clients ({clients.length})
           </button>
+          <button
+            onClick={() => setActiveTab('developer')}
+            className={`pb-3 px-5 text-xs font-bold transition-all border-b-2 flex items-center gap-2 cursor-pointer ${
+              activeTab === 'developer'
+                ? 'border-cyan-600 text-cyan-700'
+                : 'border-transparent text-slate-500 hover:text-slate-900'
+            }`}
+          >
+            <FiTerminal className="w-4 h-4 text-cyan-600" /> Developer Options ({editors.filter((e) => (e.designation || e.role)?.toLowerCase() === 'developer').length})
+          </button>
         </div>
 
         {/* Tab Body Content */}
@@ -322,14 +401,15 @@ export default function ManagementPage() {
                     <label className="block text-[11px] font-semibold text-slate-600 mb-1">Role Designation</label>
                     <select
                       value={empRole}
-                      onChange={(e) => setEmpRole(e.target.value)}
-                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
+                      onChange={(e) => handleEmpRoleChange(e.target.value)}
+                      className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0 font-medium"
                     >
                       <option value="Editor">Editor</option>
                       <option value="Senior Editor">Senior Editor</option>
                       <option value="Pather">Pather</option>
                       <option value="QC Lead">QC Lead</option>
                       <option value="Project Manager">Project Manager</option>
+                      <option value="Developer">Developer (Full System &amp; Technical Access)</option>
                     </select>
                   </div>
 
@@ -402,9 +482,15 @@ export default function ManagementPage() {
                                       <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span> Restricted
                                     </span>
                                   )}
-                                  <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                                    {emp.designation || emp.role}
-                                  </span>
+                                  {(emp.designation || emp.role)?.toLowerCase() === 'developer' ? (
+                                    <span className="inline-flex items-center gap-1 text-[11px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-2 py-0.5 rounded-md shadow-2xs font-mono">
+                                      💻 Developer
+                                    </span>
+                                  ) : (
+                                    <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
+                                      {emp.designation || emp.role}
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="text-[11px] text-slate-400 mt-0.5 truncate">
                                   {emp.email || 'No email registered'}
@@ -595,7 +681,7 @@ export default function ManagementPage() {
                 )}
               </div>
             </div>
-          ) : (
+          ) : activeTab === 'clients' ? (
             <div className="space-y-6">
               {/* Add Client Form */}
               <form onSubmit={handleAddClient} className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
@@ -669,6 +755,211 @@ export default function ManagementPage() {
                     </div>
                   ))}
                 </div>
+              </div>
+            </div>
+          ) : (
+            /* Developer Options Hub */
+            <div className="space-y-6">
+              {/* Header Banner */}
+              <div className="bg-gradient-to-r from-slate-900 via-cyan-950 to-slate-900 p-6 rounded-2xl text-white border border-cyan-800/40 shadow-lg relative overflow-hidden">
+                <div className="relative z-10">
+                  <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 text-xs font-mono font-bold mb-3">
+                    <FiTerminal className="w-3.5 h-3.5" /> DEVELOPER SYSTEM CONTROL
+                  </div>
+                  <h2 className="text-xl sm:text-2xl font-black font-sans tracking-tight text-white flex items-center gap-2.5">
+                    <span>Developer Role &amp; Technical Capabilities</span>
+                  </h2>
+                  <p className="text-xs sm:text-sm text-cyan-100/80 max-w-2xl mt-1.5 leading-relaxed">
+                    Personnel registered under the <strong>Developer</strong> designation operate with full unrestricted system privileges. They can execute all production CRUD routines, administer clients, inspect security audit traces, and run live diagnostics.
+                  </p>
+                </div>
+              </div>
+
+              {/* 4 Feature Capability Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="p-4 rounded-xl bg-cyan-50/50 border border-cyan-200/80">
+                  <div className="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center font-bold text-sm mb-2.5">
+                    ⚡
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Unrestricted Permissions</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Auto-releases all 6 granular permissions: job creation, editing, deletion, personnel, shifts, and clients.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-blue-50/50 border border-blue-200/80">
+                  <div className="w-8 h-8 rounded-lg bg-blue-100 text-blue-700 flex items-center justify-center font-bold text-sm mb-2.5">
+                    📡
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">System Activity Stream</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Every action taken is automatically tagged with <span className="font-mono text-[10px] font-bold text-cyan-700 bg-cyan-100 px-1 py-0.5 rounded">💻 Dev</span> in the team timeline.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-indigo-50/50 border border-indigo-200/80">
+                  <div className="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm mb-2.5">
+                    🛡️
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Security Audit Logs</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Direct access to permanent audit logs recording user logons, stage shifts, and administrative operations.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded-xl bg-emerald-50/50 border border-emerald-200/80">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center font-bold text-sm mb-2.5">
+                    🔄
+                  </div>
+                  <h4 className="text-xs font-bold text-slate-900">Realtime Synchronization</h4>
+                  <p className="text-[11px] text-slate-500 mt-1">
+                    Inter-tab and multi-session BroadcastChannel event dispatching with SQLite persistent storage.
+                  </p>
+                </div>
+              </div>
+
+              {/* System Diagnostics & Operational Controls */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+                {/* Diagnostics Panel */}
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                      <FiServer className="w-4 h-4 text-cyan-600" /> Backend API &amp; Health Probe
+                    </h3>
+                    <button
+                      onClick={testBackendHealth}
+                      disabled={devTesting}
+                      className="px-3 py-1.5 rounded-xl bg-cyan-600 hover:bg-cyan-700 text-white text-xs font-bold flex items-center gap-1.5 transition-all cursor-pointer shadow-xs"
+                    >
+                      <FiRefreshCw className={`w-3 h-3 ${devTesting ? 'animate-spin' : ''}`} />
+                      <span>{devTesting ? 'Pinging...' : 'Ping Backend API'}</span>
+                    </button>
+                  </div>
+
+                  <div className="space-y-2 text-xs font-mono">
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                      <span className="text-slate-500 font-sans">API Endpoint:</span>
+                      <span className="font-bold text-slate-800">http://localhost:5000/api</span>
+                    </div>
+                    <div className="p-3 rounded-xl bg-slate-50 border border-slate-200/70 flex items-center justify-between">
+                      <span className="text-slate-500 font-sans">Active Database Engine:</span>
+                      <span className="font-bold text-emerald-600 flex items-center gap-1.5">
+                        <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> SQLite (backend/aszen.db)
+                      </span>
+                    </div>
+                    {devPingStatus && (
+                      <div className={`p-3 rounded-xl border ${devPingStatus.ok ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-700'}`}>
+                        <div className="flex items-center justify-between font-bold">
+                          <span>Status: {devPingStatus.ok ? `200 OK (${devPingStatus.latency}ms latency)` : 'Error'}</span>
+                          <span className="text-[10px]">{devPingStatus.time}</span>
+                        </div>
+                        {devPingStatus.ok && (
+                          <div className="text-[11px] font-sans mt-1 text-emerald-700">
+                            Connected. Database returns {devPingStatus.clientCount} registered client records.
+                          </div>
+                        )}
+                        {devPingStatus.error && (
+                          <div className="text-[11px] font-sans mt-1 text-rose-600">{devPingStatus.error}</div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Quick Developer Actions Panel */}
+                <div className="p-5 rounded-2xl bg-white border border-slate-200/80 shadow-xs space-y-4">
+                  <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2">
+                    <FiCpu className="w-4 h-4 text-indigo-600" /> Operational Storage &amp; Tools
+                  </h3>
+
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">Security Audit Logs</div>
+                        <div className="text-[11px] text-slate-500">Inspect indelibly stored system audit records</div>
+                      </div>
+                      <button
+                        onClick={() => navigate('/dashboard/audit-logs')}
+                        className="px-3 py-1.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Open Logs
+                      </button>
+                    </div>
+
+                    <div className="flex items-center justify-between p-3 rounded-xl bg-slate-50 border border-slate-200/70">
+                      <div>
+                        <div className="text-xs font-bold text-slate-800">Clear Local Storage Cache</div>
+                        <div className="text-[11px] text-slate-500">Purge cached activities and client-side temp state</div>
+                      </div>
+                      <button
+                        onClick={handleClearCache}
+                        className="px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Purge Cache
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Registered Developers Section */}
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    Registered Developer Accounts ({editors.filter((e) => (e.designation || e.role)?.toLowerCase() === 'developer').length})
+                  </h3>
+                  <span className="text-[11px] text-slate-400">
+                    Accounts possessing developer credentials in this system
+                  </span>
+                </div>
+
+                {editors.filter((e) => (e.designation || e.role)?.toLowerCase() === 'developer').length === 0 ? (
+                  <div className="p-6 text-center bg-slate-50 rounded-2xl border border-dashed border-slate-200 text-xs text-slate-500">
+                    No users registered with Developer role yet. Select <strong>Developer</strong> in the Add Employee form above to create one.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-2xl overflow-hidden bg-white">
+                    {editors
+                      .filter((e) => (e.designation || e.role)?.toLowerCase() === 'developer')
+                      .map((dev) => (
+                        <div key={dev.id} className="p-4 flex items-center justify-between hover:bg-slate-50/80 transition-colors">
+                          <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-2xl bg-cyan-50 text-cyan-700 font-extrabold flex items-center justify-center text-sm border border-cyan-200">
+                              💻
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <span className="font-bold text-slate-900 text-xs">{dev.name}</span>
+                                <span className="text-[10px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-2 py-0.5 rounded-md font-mono">
+                                  Developer
+                                </span>
+                              </div>
+                              <div className="text-[11px] text-slate-500 mt-0.5">{dev.email || 'No email registered'}</div>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={async () => {
+                                const newPass = prompt(`Enter new password for ${dev.name}:`, 'Aszen@123');
+                                if (newPass) {
+                                  try {
+                                    await adminResetPassword(dev.id, newPass);
+                                    showToast(`Password for ${dev.name} updated!`);
+                                  } catch (e) {
+                                    showToast(e.message || 'Failed to reset password', 'error');
+                                  }
+                                }
+                              }}
+                              className="px-3 py-1.5 rounded-xl bg-amber-50 hover:bg-amber-100 text-amber-700 border border-amber-200 text-xs font-bold transition-all cursor-pointer flex items-center gap-1"
+                            >
+                              <FiKey className="w-3.5 h-3.5" /> Reset Password
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

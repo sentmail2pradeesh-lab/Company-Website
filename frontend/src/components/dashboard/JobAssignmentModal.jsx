@@ -96,7 +96,7 @@ export default function JobAssignmentModal() {
               <option value="">-- Unassigned --</option>
               {editors.map((ed) => (
                 <option key={ed.id} value={ed.name}>
-                  {ed.name} — {ed.role} ({getActiveCount(ed.name)} active tasks)
+                  {ed.name} — {ed.designation || ed.role} ({getActiveCount(ed.name)} active tasks)
                 </option>
               ))}
             </select>

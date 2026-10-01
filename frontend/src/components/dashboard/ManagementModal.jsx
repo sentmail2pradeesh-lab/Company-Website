@@ -44,11 +44,12 @@ export default function ManagementModal() {
   const handleAddEmployee = (e) => {
     e.preventDefault();
     if (!empName.trim() || !empEmail.trim()) return;
+    const isDev = empDesignation === 'Developer';
     addEmployee({
       name: empName.trim(),
       email: empEmail.trim(),
       designation: empDesignation,
-      role: empDesignation === 'Manager' ? 'manager' : 'employee',
+      role: isDev ? 'developer' : empDesignation === 'Manager' ? 'manager' : 'employee',
       password: empPassword,
     });
     setEmpName('');
@@ -140,6 +141,7 @@ export default function ManagementModal() {
                     <option value="QC Lead">QC Lead</option>
                     <option value="Pather">Pather</option>
                     <option value="Editor">Editor</option>
+                    <option value="Developer">Developer (Full System & Technical Access)</option>
                   </select>
                   <input
                     type="email"
@@ -180,13 +182,15 @@ export default function ManagementModal() {
                           <div className="font-bold text-slate-900 flex flex-wrap items-center gap-1.5 sm:gap-2">
                             <span className="truncate">{emp.name}</span>
                             <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              emp.designation === 'Manager' || emp.role === 'manager'
+                              emp.designation === 'Developer' || emp.role === 'developer'
+                                ? 'bg-cyan-50 text-cyan-800 border border-cyan-300'
+                                : emp.designation === 'Manager' || emp.role === 'manager'
                                 ? 'bg-purple-100 text-purple-700 border border-purple-200'
                                 : emp.designation === 'Senior Editor'
                                 ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
                                 : 'bg-slate-100 text-slate-700 border border-slate-200'
                             }`}>
-                              {emp.designation || emp.role || 'Editor'}
+                              {emp.designation === 'Developer' || emp.role === 'developer' ? '💻 Developer' : (emp.designation || emp.role || 'Editor')}
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-500 truncate">{emp.email || 'No Email'}</div>

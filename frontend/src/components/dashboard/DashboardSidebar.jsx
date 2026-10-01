@@ -14,8 +14,8 @@ import {
 import { useJobs } from '../../context/JobContext';
 
 export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobileOpen, setIsMobileOpen }) {
-  const { stats, canCreateJob, canManageClients, canManageEmployees, pendingLeaveCount, userRole } = useJobs();
-  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || canManageEmployees;
+  const { stats, canCreateJob, canManageClients, canManageEmployees, pendingLeaveCount, userRole, isDeveloper } = useJobs();
+  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || userRole === 'developer' || isDeveloper || canManageEmployees;
   const [jobsExpanded, setJobsExpanded] = useState(true);
   const [assignmentsExpanded, setAssignmentsExpanded] = useState(false);
 
@@ -235,8 +235,8 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobile
           {(!isCollapsed || isMobileOpen) && <span className="truncate">Client Summary</span>}
         </NavLink>
 
-        {/* 5. Admin Panel & Audit Logs (Admin Only) */}
-        {(canManageClients || canManageEmployees) && (
+        {/* 5. Admin Panel & Audit Logs (Admin & Developer) */}
+        {(canManageClients || canManageEmployees || isDeveloper || userRole === 'developer') && (
           <>
             <NavLink
               to="/dashboard/management"

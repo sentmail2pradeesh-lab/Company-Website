@@ -38,18 +38,39 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'Email already registered'}), 409
 
-    role = 'manager' if designation.lower() == 'manager' else 'employee'
-    display_name = name or email.split('@')[0].capitalize()
+    desig_lower = designation.lower()
+    if desig_lower == 'developer':
+        role = 'developer'
+        default_perms = {
+            'can_create_job': True,
+            'can_edit_job': True,
+            'can_delete_job': True,
+            'can_create_employee': True,
+            'can_manage_clients': True,
+            'can_manage_work_hours': True,
+        }
+    elif desig_lower in ['manager', 'project manager']:
+        role = 'manager'
+        default_perms = {
+            'can_create_job': True,
+            'can_edit_job': True,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': True,
+        }
+    else:
+        role = 'employee'
+        default_perms = {
+            'can_create_job': False,
+            'can_edit_job': False,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': False,
+        }
 
-    # Default permissions for self-registered employees
-    default_perms = {
-        'can_create_job': False,
-        'can_edit_job': False,
-        'can_delete_job': False,
-        'can_create_employee': False,
-        'can_manage_clients': False,
-        'can_manage_work_hours': False,
-    }
+    display_name = name or email.split('@')[0].capitalize()
 
     user = User(
         email=email,
@@ -252,8 +273,8 @@ def get_users():
 @token_required
 def create_user():
     current = request.current_user
-    if current.role != 'admin' and not current.has_permission('can_create_employee'):
-        return jsonify({'message': 'Permission denied. Only Admin or authorized personnel can create users.'}), 403
+    if current.role not in ['admin', 'developer'] and not current.has_permission('can_create_employee'):
+        return jsonify({'message': 'Permission denied. Only Admin, Developer, or authorized personnel can create users.'}), 403
 
     data = request.get_json() or {}
     email = (data.get('email') or '').strip().lower()
@@ -261,22 +282,44 @@ def create_user():
     designation = (data.get('designation') or 'Editor').strip()
     password = data.get('password') or 'Aszen@123'
     is_approved = bool(data.get('is_approved', True))
-    perms = data.get('permissions') or {
-        'can_create_job': False,
-        'can_edit_job': False,
-        'can_delete_job': False,
-        'can_create_employee': False,
-        'can_manage_clients': False,
-        'can_manage_work_hours': False,
-    }
+    
+    desig_lower = designation.lower()
+    if desig_lower == 'developer':
+        role = 'developer'
+        perms = data.get('permissions') or {
+            'can_create_job': True,
+            'can_edit_job': True,
+            'can_delete_job': True,
+            'can_create_employee': True,
+            'can_manage_clients': True,
+            'can_manage_work_hours': True,
+        }
+    elif desig_lower in ['manager', 'project manager']:
+        role = 'manager'
+        perms = data.get('permissions') or {
+            'can_create_job': True,
+            'can_edit_job': True,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': True,
+        }
+    else:
+        role = 'employee'
+        perms = data.get('permissions') or {
+            'can_create_job': False,
+            'can_edit_job': False,
+            'can_delete_job': False,
+            'can_create_employee': False,
+            'can_manage_clients': False,
+            'can_manage_work_hours': False,
+        }
 
     if not email or not name:
         return jsonify({'message': 'Name and Email are required.'}), 400
 
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'User with this email already exists.'}), 409
-
-    role = 'manager' if designation.lower() == 'manager' else 'employee'
 
     new_user = User(
         email=email,
@@ -301,8 +344,8 @@ def create_user():
 @token_required
 def update_user_permissions(user_id):
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can update employee permissions.'}), 403
+    if current.role not in ['admin', 'developer']:
+        return jsonify({'message': 'Permission denied. Only Admin or Developer can update employee permissions.'}), 403
 
     target = User.query.get(user_id)
     if not target:
@@ -323,7 +366,10 @@ def update_user_permissions(user_id):
 
     if 'designation' in data and data['designation']:
         target.designation = data['designation'].strip()
-        if target.designation.lower() == 'manager':
+        desig_lower = target.designation.lower()
+        if desig_lower == 'developer':
+            target.role = 'developer'
+        elif desig_lower in ['manager', 'project manager']:
             target.role = 'manager'
         elif target.role != 'admin':
             target.role = 'employee'
@@ -401,8 +447,8 @@ def sync_users():
 @token_required
 def delete_user(user_id):
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can delete users.'}), 403
+    if current.role not in ['admin', 'developer']:
+        return jsonify({'message': 'Permission denied. Only Admin or Developer can delete users.'}), 403
 
     target = User.query.get(user_id)
     if not target:
@@ -447,8 +493,8 @@ def change_password():
 @token_required
 def admin_reset_password(user_id):
     current = request.current_user
-    if current.role != 'admin':
-        return jsonify({'message': 'Permission denied. Only Admin can reset employee passwords.'}), 403
+    if current.role not in ['admin', 'developer']:
+        return jsonify({'message': 'Permission denied. Only Admin or Developer can reset employee passwords.'}), 403
 
     target = User.query.get(user_id)
     if not target:

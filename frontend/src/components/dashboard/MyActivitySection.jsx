@@ -9,7 +9,9 @@ export default function MyActivitySection() {
   const { user } = useAuth();
 
   const userRole = (user?.role || 'employee').toLowerCase();
-  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
+  const userDesignation = (user?.designation || '').toLowerCase();
+  const isDeveloper = userRole === 'developer' || userDesignation === 'developer';
+  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || isDeveloper;
   const currentUserName = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
 
   // Filter state: 'my' (only current user), 'all' (entire team), or specific employee name
@@ -163,10 +165,15 @@ export default function MyActivitySection() {
                   key={act.id}
                   className="relative flex items-start gap-3 sm:gap-4 text-xs group hover:bg-slate-50/70 p-1.5 rounded-xl transition-colors"
                 >
-                  {/* Left Column: Timestamp */}
-                  <span className="w-16 sm:w-18 shrink-0 text-right font-mono text-[11px] font-semibold text-slate-500 pt-0.5">
-                    {act.timeStr || 'now'}
-                  </span>
+                  {/* Left Column: Timestamp & Role indicator */}
+                  <div className="w-16 sm:w-20 shrink-0 text-right font-mono text-[11px] font-semibold text-slate-500 pt-0.5 flex flex-col items-end">
+                    <span>{act.timeStr || 'now'}</span>
+                    {(act.actorRole || '').toLowerCase() === 'developer' && (
+                      <span className="text-[9px] font-bold text-cyan-800 bg-cyan-50 border border-cyan-300 px-1 py-0.2 rounded mt-0.5 leading-tight">
+                        💻 Dev
+                      </span>
+                    )}
+                  </div>
 
                   {/* Middle Column: Ring indicator (◯) on vertical track */}
                   <div className="relative z-10 pt-1 shrink-0">

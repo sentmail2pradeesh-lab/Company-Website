@@ -625,22 +625,23 @@ export function JobProvider({ children }) {
 
   const userRole = (user?.role || 'employee').toLowerCase();
   const userDesignation = user?.designation || 'Editor';
+  const isDeveloper = userRole === 'developer' || userDesignation.toLowerCase() === 'developer';
   const isSeniorEditor = userDesignation.toLowerCase() === 'senior editor';
   const perms = user?.permissions || {};
-  const isApproved = userRole === 'admin' || user?.is_approved !== false;
+  const isApproved = userRole === 'admin' || isDeveloper || user?.is_approved !== false;
 
-  // Role, Designation & Dynamic Permissions Matrix (Admin can toggle for approved employees)
-  const canCreateJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_create_job);
-  const canAssignJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job);
+  // Role, Designation & Dynamic Permissions Matrix (Admin & Developer can manage platform operations)
+  const canCreateJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_create_job);
+  const canAssignJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_edit_job);
   const canEditJob = canAssignJob;
-  const canDeleteJob = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_delete_job);
-  const canManageClients = isApproved && (userRole === 'admin' || !!perms.can_manage_clients);
-  const canManageEmployees = isApproved && (userRole === 'admin' || !!perms.can_create_employee);
-  const canManageWorkHours = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_manage_work_hours);
+  const canDeleteJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || !!perms.can_delete_job);
+  const canManageClients = isApproved && (userRole === 'admin' || isDeveloper || !!perms.can_manage_clients);
+  const canManageEmployees = isApproved && (userRole === 'admin' || isDeveloper || !!perms.can_create_employee);
+  const canManageWorkHours = isApproved && (userRole === 'admin' || userRole === 'manager' || isDeveloper || !!perms.can_manage_work_hours);
 
   // Check if current user can update a specific stage
   const canUpdateStage = (assigneeName) => {
-    if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job) return true;
+    if (userRole === 'admin' || userRole === 'manager' || isDeveloper || isSeniorEditor || !!perms.can_edit_job) return true;
     if (!user?.name || !assigneeName) return false;
     return user.name.toLowerCase() === assigneeName.toLowerCase();
   };
@@ -1428,14 +1429,22 @@ export function JobProvider({ children }) {
   // Employee Management (Admin)
   const addEmployee = async (empData) => {
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
-    const defaultPerms = empData.permissions || {
+    const isEmpDev = (empData.designation || empData.role || '').toLowerCase() === 'developer';
+    const defaultPerms = empData.permissions || (isEmpDev ? {
+      can_create_job: true,
+      can_edit_job: true,
+      can_delete_job: true,
+      can_create_employee: true,
+      can_manage_clients: true,
+      can_manage_work_hours: true,
+    } : {
       can_create_job: false,
       can_edit_job: false,
       can_delete_job: false,
       can_create_employee: false,
       can_manage_clients: false,
       can_manage_work_hours: false,
-    };
+    });
     try {
       if (token) {
         const res = await api.post('/auth/users', {
@@ -1622,8 +1631,8 @@ export function JobProvider({ children }) {
   };
 
   const deleteWorkSession = async (id) => {
-    if (userRole !== 'admin' && userRole !== 'manager') {
-      alert('Permission Denied: Only Manager or Admin can delete working hour logs.');
+    if (userRole !== 'admin' && userRole !== 'manager' && !isDeveloper) {
+      alert('Permission Denied: Only Manager, Developer, or Admin can delete working hour logs.');
       return;
     }
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
@@ -1649,6 +1658,7 @@ export function JobProvider({ children }) {
         stats,
         userRole,
         userDesignation,
+        isDeveloper,
         canCreateJob,
         canAssignJob,
         canEditJob,

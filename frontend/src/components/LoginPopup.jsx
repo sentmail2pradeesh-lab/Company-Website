@@ -294,6 +294,7 @@ export default function LoginPopup() {
                     onChange={(e) => setRegDesignation(e.target.value)}
                     className="w-full rounded-xl border border-slate-200 px-3.5 py-2 text-base sm:text-xs font-semibold text-slate-800 bg-white focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"
                   >
+                    <option value="Developer">Developer</option>
                     <option value="Editor">Editor</option>
                     <option value="Senior Editor">Senior Editor</option>
                     <option value="Pather">Pather</option>

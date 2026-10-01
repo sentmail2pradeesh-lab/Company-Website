@@ -115,7 +115,7 @@ def parse_iso_dt(iso_str):
 @token_required
 def get_all_sessions():
     user = request.current_user
-    if user.role in ['admin', 'manager'] or user.has_permission('can_manage_work_hours'):
+    if user.role in ['admin', 'manager', 'developer'] or user.has_permission('can_manage_work_hours'):
         # Always exclude master admin and admin authority accounts from work session logs
         query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com', WorkSession.user_role != 'admin')
     else:
@@ -142,7 +142,7 @@ def get_all_sessions():
 @token_required
 def add_manual_session():
     user = request.current_user
-    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+    if user.role not in ['admin', 'manager', 'developer'] and not user.has_permission('can_manage_work_hours'):
         return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     data = request.get_json() or {}
@@ -177,7 +177,7 @@ def add_manual_session():
 @token_required
 def update_session(session_id):
     user = request.current_user
-    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+    if user.role not in ['admin', 'manager', 'developer'] and not user.has_permission('can_manage_work_hours'):
         return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     session_obj = WorkSession.query.get(session_id)
@@ -206,7 +206,7 @@ def update_session(session_id):
 @token_required
 def delete_session(session_id):
     user = request.current_user
-    if user.role not in ['admin', 'manager'] and not user.has_permission('can_manage_work_hours'):
+    if user.role not in ['admin', 'manager', 'developer'] and not user.has_permission('can_manage_work_hours'):
         return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
     session_obj = WorkSession.query.get(session_id)
