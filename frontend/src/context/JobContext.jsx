@@ -193,15 +193,14 @@ export function JobProvider({ children }) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
           const cleaned = parsed.filter(
-            (e) =>
-              !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim()) &&
-              !LEGACY_MOCK_NAMES.includes((e.name || '').toLowerCase().trim())
+            (e) => !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim())
           );
           return cleaned;
         }
       }
-    } catch {}
-    localStorage.setItem('aszen_editors', JSON.stringify([]));
+    } catch (e) {
+      console.warn('Error reading aszen_editors from localStorage:', e);
+    }
     return [];
   });
 
@@ -237,7 +236,6 @@ export function JobProvider({ children }) {
           const cleaned = parsed.filter(
             (a) =>
               !LEGACY_MOCK_EMAILS.includes((a.actorEmail || '').toLowerCase().trim()) &&
-              !LEGACY_MOCK_NAMES.includes((a.actorName || '').toLowerCase().trim()) &&
               !['1001', '1002', '1003', '1004', 'LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
               !['act-1', 'act-2', 'act-3', 'act-4', 'act-5', 'act-6', 'act-7', 'act-8', 'act-9', 'act-10', 'act-11', 'act-12'].includes(String(a.id || ''))
           );
@@ -246,8 +244,9 @@ export function JobProvider({ children }) {
           }
         }
       }
-    } catch {}
-    localStorage.setItem('aszen_activities', JSON.stringify([]));
+    } catch (e) {
+      console.warn('Error reading aszen_activities from localStorage:', e);
+    }
     return [];
   });
 
@@ -1259,8 +1258,20 @@ export function JobProvider({ children }) {
       .then((res) => {
         if (Array.isArray(res.data?.jobs)) {
           const normalized = normalizeJobs(res.data.jobs);
-          setJobs(normalized);
-          localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
+          setJobs((prevJobs) => {
+            const mergedMap = new Map();
+            normalized.forEach((j) => mergedMap.set(String(j.jobNumber || j.id), j));
+            (prevJobs || []).forEach((local) => {
+              const key = String(local.jobNumber || local.id);
+              if (!mergedMap.has(key)) {
+                mergedMap.set(key, local);
+                api.post('/jobs', local).catch(() => {});
+              }
+            });
+            const finalJobs = Array.from(mergedMap.values());
+            localStorage.setItem('aszen_jobs', JSON.stringify(finalJobs));
+            return finalJobs;
+          });
         }
       })
       .catch(() => {});
@@ -1272,8 +1283,16 @@ export function JobProvider({ children }) {
       .get('/jobs/production-sheets')
       .then((res) => {
         if (Array.isArray(res.data?.productionSheets)) {
-          setProductionSheets(res.data.productionSheets);
-          localStorage.setItem('aszen_prod_sheets', JSON.stringify(res.data.productionSheets));
+          setProductionSheets((prevSheets) => {
+            const merged = [...res.data.productionSheets];
+            (prevSheets || []).forEach((local) => {
+              if (!merged.some((m) => m.id === local.id || (m.job_id === local.job_id && m.stage === local.stage))) {
+                merged.push(local);
+              }
+            });
+            localStorage.setItem('aszen_prod_sheets', JSON.stringify(merged));
+            return merged;
+          });
         }
       })
       .catch(() => {});
@@ -1291,8 +1310,24 @@ export function JobProvider({ children }) {
             name: c.name,
             contact: c.contact,
           }));
-          setClients(mapped);
-          localStorage.setItem('aszen_clients', JSON.stringify(mapped));
+          setClients((prevClients) => {
+            const mergedMap = new Map();
+            mapped.forEach((c) => mergedMap.set((c.code || c.id).toString().toUpperCase(), c));
+            (prevClients || []).forEach((local) => {
+              const key = (local.code || local.id).toString().toUpperCase();
+              if (!mergedMap.has(key)) {
+                mergedMap.set(key, local);
+                api.post('/clients', {
+                  code: local.code,
+                  name: local.name || local.code,
+                  contact: local.contact || '',
+                }).catch(() => {});
+              }
+            });
+            const finalClients = Array.from(mergedMap.values());
+            localStorage.setItem('aszen_clients', JSON.stringify(finalClients));
+            return finalClients;
+          });
         }
       })
       .catch(() => {

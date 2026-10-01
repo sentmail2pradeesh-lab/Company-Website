@@ -1,18 +1,1 @@
-[
-  {
-    "email": "arun@aszen.com",
-    "name": "Arun",
-    "role": "admin",
-    "designation": "Admin / System Manager",
-    "is_approved": true,
-    "permissions": {
-      "can_create_job": true,
-      "can_edit_job": true,
-      "can_delete_job": true,
-      "can_create_employee": true,
-      "can_manage_clients": true,
-      "can_manage_work_hours": true
-    },
-    "password_hash": "scrypt:32768:8:1$a2KjNQu4vdnisOQn$c4b79113a8cf4a3edd3d79fd4f5b17dc1c52d67ca961da732d465da85c47e7e1e6d207041d88b2389eda6bceee8a3e34bddcdcb1ccc0b407c3aa93314b40d8bb"
-  }
-]
+[]
