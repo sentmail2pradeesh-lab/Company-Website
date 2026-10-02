@@ -55,6 +55,8 @@ def log_audit(user, action, details=""):
         print("Audit log error in leaves:", e)
 
 
+from sqlalchemy import func
+
 @leaves_bp.route('', methods=['GET'])
 @token_required
 def get_leaves():
@@ -63,17 +65,18 @@ def get_leaves():
     status = request.args.get('status')
 
     query = LeaveRequest.query
+    user_email_lower = (current_user.email or '').strip().lower()
     is_admin_or_manager = (
         current_user.role in ['admin', 'manager']
-        or current_user.email.lower() in MASTER_ADMINS
+        or user_email_lower in MASTER_ADMINS
         or current_user.has_permission('can_create_employee')
     )
 
     if not is_admin_or_manager:
         # Non-managers can only see their own requests by default
-        query = query.filter_by(user_email=current_user.email)
+        query = query.filter(func.lower(LeaveRequest.user_email) == user_email_lower)
     elif user_email:
-        query = query.filter_by(user_email=user_email)
+        query = query.filter(func.lower(LeaveRequest.user_email) == user_email.strip().lower())
 
     if status:
         query = query.filter_by(status=status)
@@ -137,11 +140,22 @@ def create_leave():
     }), 201
 
 
-@leaves_bp.route('/<int:leave_id>/status', methods=['PATCH'])
+@leaves_bp.route('/<leave_id>/status', methods=['PATCH'])
 @token_required
 def update_leave_status(leave_id):
     current_user = request.current_user
-    leave = db.session.get(LeaveRequest, leave_id)
+    leave = None
+    try:
+        clean_id = int(str(leave_id).replace('LR-', '').replace('lr-', '').replace('temp-', ''))
+        leave = db.session.get(LeaveRequest, clean_id)
+    except Exception:
+        pass
+    if not leave:
+        try:
+            leave = LeaveRequest.query.filter_by(id=leave_id).first()
+        except Exception:
+            pass
+
     if not leave:
         return jsonify({'message': 'Leave request not found'}), 404
     data = request.get_json() or {}

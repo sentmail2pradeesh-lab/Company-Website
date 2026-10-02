@@ -500,10 +500,15 @@ export function JobProvider({ children }) {
       try {
         const res = await api.post('/leaves', newLeave);
         if (res.data?.leaveRequest) {
-          const fresh = [res.data.leaveRequest, ...leaveRequests.filter((l) => l.id !== res.data.leaveRequest.id)];
+          const serverLeave = res.data.leaveRequest;
+          const fresh = [
+            serverLeave,
+            ...leaveRequests.filter((l) => l.id !== newId && String(l.id) !== String(serverLeave.id))
+          ];
           setLeaveRequests(fresh);
           localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
-          return res.data.leaveRequest;
+          broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, fresh);
+          return serverLeave;
         }
       } catch (e) {
         console.warn('Backend leave sync notice:', e.message);
@@ -518,7 +523,7 @@ export function JobProvider({ children }) {
     let targetLeave = null;
 
     const updated = leaveRequests.map((l) => {
-      if (l.id === leaveId) {
+      if (String(l.id) === String(leaveId)) {
         targetLeave = {
           ...l,
           status,
@@ -550,9 +555,10 @@ export function JobProvider({ children }) {
         try {
           const res = await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
           if (res.data?.leaveRequest) {
-            const fresh = leaveRequests.map((l) => (l.id === leaveId ? res.data.leaveRequest : l));
+            const fresh = leaveRequests.map((l) => (String(l.id) === String(leaveId) ? res.data.leaveRequest : l));
             setLeaveRequests(fresh);
             localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
+            broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, fresh);
           }
         } catch (e) {
           console.warn('Backend leave status sync notice:', e.message);
@@ -1223,10 +1229,11 @@ export function JobProvider({ children }) {
   // Live Refresh data function without page reload
   const refreshData = useCallback(async () => {
     try {
-      const [jobsRes, sheetsRes, clientsRes] = await Promise.allSettled([
+      const [jobsRes, sheetsRes, clientsRes, leavesRes] = await Promise.allSettled([
         api.get('/jobs'),
         api.get('/jobs/production-sheets'),
         api.get('/clients'),
+        api.get('/leaves'),
       ]);
       if (jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value.data?.jobs)) {
         const normalized = normalizeJobs(jobsRes.value.data.jobs);
@@ -1246,6 +1253,10 @@ export function JobProvider({ children }) {
         }));
         setClients(mapped);
         localStorage.setItem('aszen_clients', JSON.stringify(mapped));
+      }
+      if (leavesRes.status === 'fulfilled' && Array.isArray(leavesRes.value.data?.leaveRequests)) {
+        setLeaveRequests(leavesRes.value.data.leaveRequests);
+        localStorage.setItem('aszen_leave_requests', JSON.stringify(leavesRes.value.data.leaveRequests));
       }
     } catch (e) {
       console.error('Refresh data error:', e);
@@ -1764,6 +1775,7 @@ export function JobProvider({ children }) {
         logActivity,
         resetToSystemActivities,
         leaveRequests,
+        fetchLeaves,
         applyLeave,
         updateLeaveStatus,
         cancelLeave,

@@ -16,12 +16,13 @@ import {
   FiCheck,
   FiX,
   FiFileText,
+  FiRefreshCw,
 } from 'react-icons/fi';
 
 import { formatDateDMY } from '../../utils/dateUtils';
 
 export default function LeaveManagementPage() {
-  const { leaveRequests, updateLeaveStatus, cancelLeave, getLeaveBalances, pendingLeaveCount, editors } = useJobs();
+  const { leaveRequests, fetchLeaves, updateLeaveStatus, cancelLeave, getLeaveBalances, pendingLeaveCount, editors } = useJobs();
   const { user } = useAuth();
 
   const userRole = (user?.role || 'employee').toLowerCase();
@@ -38,6 +39,25 @@ export default function LeaveManagementPage() {
   const [selectedLeaveForReview, setSelectedLeaveForReview] = useState(null);
   const [managerNotes, setManagerNotes] = useState('');
   const [reviewAction, setReviewAction] = useState('Approved'); // 'Approved' | 'Rejected'
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Sync leave requests immediately on component mount
+  useEffect(() => {
+    if (typeof fetchLeaves === 'function') {
+      fetchLeaves();
+    }
+  }, [fetchLeaves]);
+
+  const handleManualRefresh = async () => {
+    if (typeof fetchLeaves === 'function') {
+      setIsRefreshing(true);
+      try {
+        await fetchLeaves();
+      } finally {
+        setTimeout(() => setIsRefreshing(false), 500);
+      }
+    }
+  };
 
   // Current employee leave balances (18 days annual quota)
   const balances = useMemo(() => {
@@ -110,7 +130,18 @@ export default function LeaveManagementPage() {
           </p>
         </div>
 
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          <button
+            type="button"
+            onClick={handleManualRefresh}
+            disabled={isRefreshing}
+            title="Refresh Leave Data from Server"
+            className="px-3 py-2.5 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs sm:text-sm font-semibold flex items-center gap-1.5 transition-colors cursor-pointer"
+          >
+            <FiRefreshCw className={`w-4 h-4 text-slate-600 ${isRefreshing ? 'animate-spin' : ''}`} />
+            <span className="hidden sm:inline">Refresh</span>
+          </button>
+
           <button
             type="button"
             onClick={() => setIsPolicyModalOpen(true)}
