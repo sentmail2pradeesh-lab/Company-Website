@@ -94,9 +94,11 @@ def seed_users():
     except Exception:
         pass
 
-    # 1. Master Admin account
-    admin_email = "arun@aszen.com"
-    admin = User.query.filter_by(email=admin_email).first()
+    # 1. Master Admin accounts (Arun and Gokul sharing full identical admin functionality)
+    master_admins = [
+        {"email": "arun@aszen.com", "name": "Arun"},
+        {"email": "gokul@aszen.com", "name": "Gokul"},
+    ]
     admin_perms = {
         'can_create_job': True,
         'can_edit_job': True,
@@ -105,32 +107,36 @@ def seed_users():
         'can_manage_clients': True,
         'can_manage_work_hours': True,
     }
-    if not admin:
-        admin = User(
-            email=admin_email,
-            name="Arun",
-            role="admin",
-            designation="Admin / System Manager",
-            is_approved=True,
-            permissions_json=json.dumps(admin_perms)
-        )
-        admin.set_password("Aszen@123")
-        db.session.add(admin)
-    else:
-        admin.name = "Arun"
-        admin.role = "admin"
-        admin.designation = "Admin / System Manager"
-        admin.is_approved = True
-        admin.permissions_json = json.dumps(admin_perms)
-        admin.set_password("Aszen@123")
-    db.session.commit()
-    save_user_to_store(admin)
+    for adm in master_admins:
+        admin_email = adm["email"]
+        admin = User.query.filter_by(email=admin_email).first()
+        if not admin:
+            admin = User(
+                email=admin_email,
+                name=adm["name"],
+                role="admin",
+                designation="Admin / System Manager",
+                is_approved=True,
+                permissions_json=json.dumps(admin_perms)
+            )
+            admin.set_password("Aszen@123")
+            db.session.add(admin)
+        else:
+            admin.name = adm["name"]
+            admin.role = "admin"
+            admin.designation = "Admin / System Manager"
+            admin.is_approved = True
+            admin.permissions_json = json.dumps(admin_perms)
+            admin.set_password("Aszen@123")
+        db.session.commit()
+        save_user_to_store(admin)
 
     # 2. Permanent Employee Persistence: Restore all registered & created personnel from users_store.json
+    master_admin_emails = [a["email"].lower() for a in master_admins]
     stored_users = load_stored_users()
     for stored in stored_users:
         s_email = (stored.get('email') or '').lower().strip()
-        if not s_email or s_email == admin_email.lower() or s_email in legacy_test_emails:
+        if not s_email or s_email in master_admin_emails or s_email in legacy_test_emails:
             continue
         existing_emp = User.query.filter_by(email=s_email).first()
         if not existing_emp:

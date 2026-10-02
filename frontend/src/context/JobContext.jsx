@@ -264,8 +264,9 @@ export function JobProvider({ children }) {
           return cleaned;
         }
       }
-    } catch {}
-    localStorage.setItem('aszen_leave_requests', JSON.stringify([]));
+    } catch (e) {
+      console.warn('Error reading aszen_leave_requests from localStorage:', e);
+    }
     return [];
   });
 
@@ -497,7 +498,13 @@ export function JobProvider({ children }) {
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     if (token) {
       try {
-        await api.post('/leaves', newLeave);
+        const res = await api.post('/leaves', newLeave);
+        if (res.data?.leaveRequest) {
+          const fresh = [res.data.leaveRequest, ...leaveRequests.filter((l) => l.id !== res.data.leaveRequest.id)];
+          setLeaveRequests(fresh);
+          localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
+          return res.data.leaveRequest;
+        }
       } catch (e) {
         console.warn('Backend leave sync notice:', e.message);
       }
@@ -541,7 +548,12 @@ export function JobProvider({ children }) {
       const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
       if (token) {
         try {
-          await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
+          const res = await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
+          if (res.data?.leaveRequest) {
+            const fresh = leaveRequests.map((l) => (l.id === leaveId ? res.data.leaveRequest : l));
+            setLeaveRequests(fresh);
+            localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
+          }
         } catch (e) {
           console.warn('Backend leave status sync notice:', e.message);
         }
@@ -1457,6 +1469,31 @@ export function JobProvider({ children }) {
         .catch(() => {});
     }
   }, [user]);
+
+  // Sync leave requests from backend API on mount / user change / interval / window focus
+  const fetchLeaves = useCallback(async () => {
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (!token) return;
+    try {
+      const res = await api.get('/leaves');
+      if (Array.isArray(res.data?.leaveRequests)) {
+        setLeaveRequests(res.data.leaveRequests);
+        localStorage.setItem('aszen_leave_requests', JSON.stringify(res.data.leaveRequests));
+      }
+    } catch (e) {
+      console.warn('Backend leaves sync notice:', e.message);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeaves();
+    const interval = setInterval(fetchLeaves, 10000); // 10s auto-refresh so approvals reflect immediately
+    window.addEventListener('focus', fetchLeaves);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', fetchLeaves);
+    };
+  }, [fetchLeaves, user]);
 
   // Employee Management (Admin)
   const addEmployee = async (empData) => {

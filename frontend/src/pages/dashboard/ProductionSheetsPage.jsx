@@ -57,7 +57,7 @@ export default function ProductionSheetsPage() {
     const sName = (session.user_name || '').toLowerCase();
 
     // Master Admin & Admin management authority accounts are excluded from working hours attendance records
-    if (sEmail === 'arun@aszen.com' || (session.user_role || '').toLowerCase() === 'admin') return false;
+    if (['arun@aszen.com', 'gokul@aszen.com'].includes(sEmail) || (session.user_role || '').toLowerCase() === 'admin') return false;
 
     // If logged in as employee, strictly filter to employee's own logs
     if (!isManagerOrAdmin) {

@@ -1,7 +1,8 @@
 import { useState, useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
-import { FiCalendar, FiClock, FiX, FiCheck, FiAlertCircle, FiUserCheck, FiPhone } from 'react-icons/fi';
+import { FiCalendar, FiClock, FiX, FiCheck, FiAlertCircle, FiUserCheck, FiPhone, FiSun } from 'react-icons/fi';
+import { formatDateDMY, calculateWorkingDays, countSundays, isSunday } from '../../utils/dateUtils';
 
 export default function ApplyLeaveModal({ isOpen, onClose }) {
   const { applyLeave, editors, getLeaveBalances } = useJobs();
@@ -25,18 +26,13 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
 
-  // Calculate live days count
+  // Calculate live working days count (strictly excluding Sundays)
   const calculatedDays = useMemo(() => {
-    if (isHalfDay) return 0.5;
-    if (!startDate || !endDate) return 1;
+    return calculateWorkingDays(startDate, isHalfDay ? startDate : endDate, isHalfDay);
+  }, [startDate, endDate, isHalfDay]);
 
-    const start = new Date(startDate);
-    const end = new Date(endDate);
-    if (end < start) return 0;
-
-    const diffMs = end.getTime() - start.getTime();
-    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24)) + 1;
-    return Math.max(1, diffDays);
+  const skippedSundays = useMemo(() => {
+    return countSundays(startDate, isHalfDay ? startDate : endDate);
   }, [startDate, endDate, isHalfDay]);
 
   // Current user balances (18 days annual quota)
@@ -51,7 +47,13 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
     setErrorMsg('');
 
     if (calculatedDays <= 0) {
-      setErrorMsg('End Date cannot be earlier than Start Date.');
+      if (isSunday(startDate) && (isHalfDay || startDate === endDate)) {
+        setErrorMsg('The selected date is a Sunday (Company Weekly Holiday). You do not need to apply leave for Sundays.');
+      } else if (skippedSundays > 0 && calculatedDays === 0) {
+        setErrorMsg('The selected range contains only Sundays (Company Weekly Holidays). Please select working days.');
+      } else {
+        setErrorMsg('End Date cannot be earlier than Start Date.');
+      }
       return;
     }
 
@@ -223,14 +225,44 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
             )}
           </div>
 
+          {/* Timeline in DD/MM/YYYY & Sunday Holiday Notice */}
+          <div className="p-3 bg-slate-50 border border-slate-200/90 rounded-xl flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 text-xs text-slate-700 font-mono">
+            <div>
+              <span className="text-slate-400 font-sans font-medium">Timeline: </span>
+              <strong className="text-indigo-700 font-bold">{formatDateDMY(startDate)}</strong>
+              {!isHalfDay && endDate && endDate !== startDate && (
+                <>
+                  <span className="text-slate-400 mx-1">→</span>
+                  <strong className="text-indigo-700 font-bold">{formatDateDMY(endDate)}</strong>
+                </>
+              )}
+              {isHalfDay && (
+                <span className="text-indigo-600 font-sans font-semibold ml-1.5">
+                  ({halfDayPeriod})
+                </span>
+              )}
+            </div>
+            {skippedSundays > 0 && (
+              <span className="text-emerald-700 font-sans font-semibold text-[11px] bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200 inline-flex items-center gap-1 w-fit">
+                <span>✓</span> {skippedSundays} Sunday{skippedSundays > 1 ? 's' : ''} Excluded (Holiday)
+              </span>
+            )}
+          </div>
+
           {/* Computed Duration Banner */}
           <div className="p-3.5 bg-indigo-50/70 border border-indigo-100 rounded-xl flex items-center justify-between text-xs sm:text-sm font-semibold text-indigo-950">
             <span className="flex items-center gap-1.5 font-medium">
               <FiClock className="w-4 h-4 text-indigo-600" /> Total Duration:
             </span>
-            <span className="font-mono font-extrabold text-base text-indigo-600">
-              {calculatedDays} {calculatedDays === 1 ? 'Day' : 'Days'}
-            </span>
+            {calculatedDays > 0 ? (
+              <span className="font-mono font-extrabold text-base text-indigo-600">
+                {calculatedDays} {calculatedDays === 1 ? 'Day' : 'Days'}
+              </span>
+            ) : (
+              <span className="font-sans font-bold text-xs text-amber-700 bg-amber-100/70 px-2 py-1 rounded">
+                0 Days (Sunday is already a holiday)
+              </span>
+            )}
           </div>
 
           {/* Handover / Backup Colleague */}

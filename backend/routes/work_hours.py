@@ -13,7 +13,7 @@ def session_login():
     user = request.current_user
 
     # Master Admin & Admin roles are exempt from shift attendance records
-    if user.email.lower() == 'arun@aszen.com' or user.role == 'admin':
+    if user.email.lower() in ['arun@aszen.com', 'gokul@aszen.com'] or user.role == 'admin':
         return jsonify({'message': 'Management authority session exempt', 'session': None})
 
     ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
@@ -46,7 +46,7 @@ def session_login():
 @token_required
 def session_logout():
     user = request.current_user
-    if user.email.lower() == 'arun@aszen.com':
+    if user.email.lower() in ['arun@aszen.com', 'gokul@aszen.com'] or user.role == 'admin':
         return jsonify({'message': 'Master Admin session exempt'})
 
     # Find active session or most recent un-ended session today/recently
@@ -122,7 +122,7 @@ def get_all_sessions():
     user = request.current_user
     if user.role in ['admin', 'manager', 'developer'] or user.has_permission('can_manage_work_hours'):
         # Always exclude master admin and admin authority accounts from work session logs
-        query = WorkSession.query.filter(WorkSession.user_email != 'arun@aszen.com', WorkSession.user_role != 'admin')
+        query = WorkSession.query.filter(~WorkSession.user_email.in_(['arun@aszen.com', 'gokul@aszen.com']), WorkSession.user_role != 'admin')
     else:
         # Employees only view their own attendance records
         query = WorkSession.query.filter(WorkSession.user_email == user.email)

@@ -112,7 +112,7 @@ def login():
     # Shift & Attendance Session Management (Exclude master Admin & management authority accounts)
     active_session = None
     is_reconnected = False
-    if user.email.lower() != 'arun@aszen.com' and user.role != 'admin':
+    if user.email.lower() not in ['arun@aszen.com', 'gokul@aszen.com'] and user.role != 'admin':
         now = datetime.utcnow()
         # Align calendar shift date to India Standard Time (UTC+5:30)
         ist_now = now + timedelta(hours=5, minutes=30)

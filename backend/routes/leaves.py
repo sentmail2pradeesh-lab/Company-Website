@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from database import db
 from models import LeaveRequest, User, AuditLog
@@ -7,6 +7,36 @@ from utils.jwt import token_required
 leaves_bp = Blueprint('leaves', __name__)
 
 ANNUAL_LEAVE_DAYS = 18.0
+MASTER_ADMINS = ['arun@aszen.com', 'gokul@aszen.com']
+
+
+def calculate_working_days(start_str, end_str, is_half_day=False):
+    """Calculates duration in days, strictly excluding Sundays (company weekly holiday)."""
+    if not start_str:
+        return 0.0
+    if is_half_day:
+        try:
+            d = datetime.strptime(start_str, '%Y-%m-%d')
+            # 6 is Sunday in Python
+            return 0.0 if d.weekday() == 6 else 0.5
+        except Exception:
+            return 0.5
+    if not end_str:
+        return 0.0
+    try:
+        cur = datetime.strptime(start_str, '%Y-%m-%d')
+        end = datetime.strptime(end_str, '%Y-%m-%d')
+        if end < cur:
+            return 0.0
+        count = 0
+        while cur <= end:
+            # 6 is Sunday (weekly holiday)
+            if cur.weekday() != 6:
+                count += 1
+            cur += timedelta(days=1)
+        return float(count)
+    except Exception:
+        return 1.0
 
 
 def log_audit(user, action, details=""):
@@ -33,7 +63,13 @@ def get_leaves():
     status = request.args.get('status')
 
     query = LeaveRequest.query
-    if current_user.role not in ['admin', 'manager', 'developer'] and not current_user.has_permission('can_create_employee'):
+    is_admin_or_manager = (
+        current_user.role in ['admin', 'manager']
+        or current_user.email.lower() in MASTER_ADMINS
+        or current_user.has_permission('can_create_employee')
+    )
+
+    if not is_admin_or_manager:
         # Non-managers can only see their own requests by default
         query = query.filter_by(user_email=current_user.email)
     elif user_email:
@@ -54,7 +90,6 @@ def create_leave():
     leave_type = data.get('leaveType') or 'Leave'
     start_date = data.get('startDate')
     end_date = data.get('endDate') or start_date
-    days = float(data.get('days') or 1.0)
     reason = (data.get('reason') or '').strip()
     is_half_day = bool(data.get('isHalfDay', False))
     half_day_period = data.get('halfDayPeriod')
@@ -63,6 +98,11 @@ def create_leave():
 
     if not start_date or not reason:
         return jsonify({'message': 'Start date and reason are required'}), 400
+
+    # Calculate net working days, excluding all Sundays
+    days = calculate_working_days(start_date, end_date, is_half_day)
+    if days <= 0:
+        return jsonify({'message': 'The selected leave dates only include Sundays (weekly holiday). Please select working days.'}), 400
 
     applicant_email = data.get('userEmail') or current_user.email
     applicant_name = data.get('userName') or current_user.name or applicant_email.split('@')[0].capitalize()
@@ -88,7 +128,7 @@ def create_leave():
     log_audit(
         current_user,
         'LEAVE_REQUESTED',
-        f"{applicant_name} submitted {days} day(s) leave request ({start_date} to {end_date})"
+        f"{applicant_name} submitted {days} day(s) leave request ({start_date} to {end_date}, Sundays excluded)"
     )
 
     return jsonify({
@@ -113,12 +153,17 @@ def update_leave_status(leave_id):
 
     if new_status == 'Cancelled':
         # Applicant can cancel their own pending request
-        if leave.user_email.lower() != current_user.email.lower() and current_user.role not in ['admin', 'manager']:
+        if leave.user_email.lower() != current_user.email.lower() and current_user.role not in ['admin', 'manager'] and current_user.email.lower() not in MASTER_ADMINS:
             return jsonify({'message': 'Permission denied'}), 403
     else:
-        # Only managers, developers, and admins can approve or reject
-        if current_user.role not in ['admin', 'manager', 'developer'] and not current_user.has_permission('can_create_employee'):
-            return jsonify({'message': 'Only Managers, Developers, or Admins can review leave requests'}), 403
+        # Admins (Arun, Gokul) and authorized managers can approve or reject
+        is_authorized_admin = (
+            current_user.role in ['admin', 'manager']
+            or current_user.email.lower() in MASTER_ADMINS
+            or current_user.has_permission('can_create_employee')
+        )
+        if not is_authorized_admin:
+            return jsonify({'message': 'Permission denied. Only Admins (Arun or Gokul) or Managers can review leave requests'}), 403
 
     leave.status = new_status
     leave.reviewed_by = current_user.name or current_user.email

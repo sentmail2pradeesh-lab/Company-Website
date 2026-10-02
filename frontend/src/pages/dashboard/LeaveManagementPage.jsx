@@ -18,13 +18,18 @@ import {
   FiFileText,
 } from 'react-icons/fi';
 
+import { formatDateDMY } from '../../utils/dateUtils';
+
 export default function LeaveManagementPage() {
   const { leaveRequests, updateLeaveStatus, cancelLeave, getLeaveBalances, pendingLeaveCount, editors } = useJobs();
   const { user } = useAuth();
 
   const userRole = (user?.role || 'employee').toLowerCase();
-  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager';
   const myEmail = (user?.email || '').toLowerCase();
+  const isManagerOrAdmin =
+    userRole === 'admin' ||
+    userRole === 'manager' ||
+    ['arun@aszen.com', 'gokul@aszen.com'].includes(myEmail);
 
   const [activeTab, setActiveTab] = useState('my-leaves'); // 'my-leaves' | 'approvals'
   const [isApplyModalOpen, setIsApplyModalOpen] = useState(false);
@@ -250,7 +255,7 @@ export default function LeaveManagementPage() {
                   )}
                 </div>
                 <div className="text-right text-xs font-mono text-slate-500">
-                  Until: <span className="font-bold text-slate-800">{ol.endDate}</span>
+                  Until: <span className="font-bold text-slate-800">{formatDateDMY(ol.endDate)}</span>
                 </div>
               </div>
             ))}
@@ -356,12 +361,12 @@ export default function LeaveManagementPage() {
                         <td className="py-3.5 px-3.5">
                           <span className="font-mono font-bold text-indigo-600 block">#{req.id}</span>
                           <span className="text-[11px] text-slate-400 font-mono">
-                            {req.createdAt ? req.createdAt.slice(0, 10) : req.appliedAt ? req.appliedAt.slice(0, 10) : ''}
+                            {formatDateDMY(req.createdAt || req.appliedAt)}
                           </span>
                         </td>
                         <td className="py-3.5 px-3.5 font-mono text-slate-700 font-medium">
-                          {req.startDate}
-                          {req.endDate !== req.startDate && ` → ${req.endDate}`}
+                          {formatDateDMY(req.startDate)}
+                          {req.endDate && req.endDate !== req.startDate && ` → ${formatDateDMY(req.endDate)}`}
                           {req.isHalfDay && (
                             <span className="block text-xs text-indigo-600 font-bold">
                               ({req.halfDayPeriod || 'Half Day'})
@@ -444,8 +449,8 @@ export default function LeaveManagementPage() {
                           <span className="text-[11px] text-slate-400 font-mono">{req.userEmail}</span>
                         </td>
                         <td className="py-3.5 px-3.5 font-mono text-slate-700">
-                          {req.startDate}
-                          {req.endDate !== req.startDate && ` → ${req.endDate}`}
+                          {formatDateDMY(req.startDate)}
+                          {req.endDate && req.endDate !== req.startDate && ` → ${formatDateDMY(req.endDate)}`}
                           {req.isHalfDay && (
                             <span className="block text-xs text-indigo-600 font-bold">
                               ({req.halfDayPeriod || 'Half Day'})
@@ -534,7 +539,7 @@ export default function LeaveManagementPage() {
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Dates:</span>
-                <span className="font-mono text-slate-700">{selectedLeaveForReview.startDate} → {selectedLeaveForReview.endDate}</span>
+                <span className="font-mono text-slate-700">{formatDateDMY(selectedLeaveForReview.startDate)} → {formatDateDMY(selectedLeaveForReview.endDate)}</span>
               </div>
               <div className="flex justify-between">
                 <span className="text-slate-500">Reason:</span>

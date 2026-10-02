@@ -146,7 +146,7 @@ export default function DashboardLayout() {
         {/* Right Side Quick User Profile Badge & Work Session Timer */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Active Work Session Live Badge */}
-          {user?.role !== 'admin' && user?.email?.toLowerCase() !== 'arun@aszen.com' && (
+          {user?.role !== 'admin' && !['arun@aszen.com', 'gokul@aszen.com'].includes(user?.email?.toLowerCase()) && (
             <div className="hidden sm:flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200 text-xs font-bold font-mono">
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
