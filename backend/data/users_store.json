@@ -1,1 +1,34 @@
-[]
+[
+  {
+    "email": "arun@aszen.com",
+    "name": "Arun",
+    "role": "admin",
+    "designation": "Admin / System Manager",
+    "is_approved": true,
+    "permissions": {
+      "can_create_job": true,
+      "can_edit_job": true,
+      "can_delete_job": true,
+      "can_create_employee": true,
+      "can_manage_clients": true,
+      "can_manage_work_hours": true
+    },
+    "password_hash": "scrypt:32768:8:1$mbUxnynrtJs1xSiB$4f8055712a4de5c0130870ceed4e50bccca07bc9c42eef45f9fdb8dff2b6b8f2eb905106a059213ea21f4efdc0554062bc4da06963bb623c25bbb77d226cdf47"
+  },
+  {
+    "email": "gokul@aszen.com",
+    "name": "Gokul",
+    "role": "admin",
+    "designation": "Admin / System Manager",
+    "is_approved": true,
+    "permissions": {
+      "can_create_job": true,
+      "can_edit_job": true,
+      "can_delete_job": true,
+      "can_create_employee": true,
+      "can_manage_clients": true,
+      "can_manage_work_hours": true
+    },
+    "password_hash": "scrypt:32768:8:1$ACnpOJjxAvAcRcqk$b0b4e0a1612c3a484bd92c86825b1529f97394e28b944ffaad36c7fa2fc97a928bb67b0540ddccaaec40a0af3a6068de2c82d428d9109796a35ad15fd2b4a6a5"
+  }
+]
