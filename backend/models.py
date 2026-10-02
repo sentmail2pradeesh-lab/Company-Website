@@ -4,6 +4,13 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from database import db
 
 
+def to_utc_iso(dt):
+    if not dt:
+        return None
+    iso = dt.isoformat()
+    return iso if (iso.endswith('Z') or '+' in iso) else f"{iso}Z"
+
+
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -55,6 +62,7 @@ class User(db.Model):
             'designation': self.designation or ('Developer' if self.role == 'developer' else ('Manager' if self.role == 'manager' else 'Editor')),
             'is_approved': getattr(self, 'is_approved', True),
             'permissions': self.permissions,
+            'created_at': to_utc_iso(self.created_at),
         }
 
 
@@ -75,7 +83,7 @@ class Blog(db.Model):
             'excerpt': self.excerpt,
             'content': self.content,
             'image_url': self.image_url,
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': to_utc_iso(self.created_at),
         }
 
 
@@ -111,12 +119,12 @@ class WorkSession(db.Model):
             'user_name': self.user_name,
             'user_role': self.user_role,
             'date': self.date,
-            'login_time': self.login_time.isoformat() if self.login_time else None,
-            'logout_time': self.logout_time.isoformat() if self.logout_time else None,
+            'login_time': to_utc_iso(self.login_time),
+            'logout_time': to_utc_iso(self.logout_time),
             'total_hours': self.total_hours,
             'status': self.status,
             'notes': self.notes or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': to_utc_iso(self.created_at),
         }
 
 
@@ -135,7 +143,7 @@ class Client(db.Model):
             'code': self.code,
             'name': self.name,
             'contact': self.contact or '',
-            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'created_at': to_utc_iso(self.created_at),
         }
 
 
@@ -173,7 +181,7 @@ class Job(db.Model):
             'clientEntryTime': self.client_entry_time or '',
             'clientTargetTime': self.client_target_time or '',
             'clientFinishTime': self.client_finish_time or '',
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'createdAt': to_utc_iso(self.created_at),
             'stages': stages_dict
         }
 
@@ -242,7 +250,7 @@ class ProductionSheetEntry(db.Model):
             'activeMinutes': self.active_minutes,
             'pauseMinutes': self.pause_minutes,
             'status': self.status,
-            'created_at': self.created_at.isoformat() if self.created_at else None
+            'created_at': to_utc_iso(self.created_at)
         }
 
 
@@ -263,7 +271,7 @@ class AuditLog(db.Model):
             'userName': self.user_name,
             'action': self.action,
             'details': self.details or '',
-            'timestamp': self.timestamp.isoformat() if self.timestamp else None
+            'timestamp': to_utc_iso(self.timestamp)
         }
 
 
@@ -305,9 +313,9 @@ class LeaveRequest(db.Model):
             'emergencyContact': self.emergency_contact or '',
             'status': self.status,
             'reviewedBy': self.reviewed_by or '',
-            'reviewedAt': self.reviewed_at.isoformat() if self.reviewed_at else None,
+            'reviewedAt': to_utc_iso(self.reviewed_at),
             'managerNotes': self.manager_notes or '',
-            'createdAt': self.created_at.isoformat() if self.created_at else None,
+            'createdAt': to_utc_iso(self.created_at),
         }
 
 

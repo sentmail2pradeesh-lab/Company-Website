@@ -114,7 +114,9 @@ def login():
     is_reconnected = False
     if user.email.lower() != 'arun@aszen.com' and user.role != 'admin':
         now = datetime.utcnow()
-        today_str = now.strftime('%Y-%m-%d')
+        # Align calendar shift date to India Standard Time (UTC+5:30)
+        ist_now = now + timedelta(hours=5, minutes=30)
+        today_str = ist_now.strftime('%Y-%m-%d')
 
         # Check if this employee has ANY ongoing active shift
         existing_active = WorkSession.query.filter_by(

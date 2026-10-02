@@ -123,8 +123,8 @@ export default function ProductionSheetsPage() {
       s.user_name,
       s.user_email,
       s.user_role,
-      s.login_time ? new Date(s.login_time).toLocaleTimeString() : '-',
-      s.logout_time ? new Date(s.logout_time).toLocaleTimeString() : '-',
+      formatTime(s.login_time),
+      formatTime(s.logout_time),
       s.total_hours,
       s.status,
       `"${s.notes || ''}"`,
@@ -609,7 +609,14 @@ export default function ProductionSheetsPage() {
 function formatTime(isoStr) {
   if (!isoStr) return '-';
   try {
-    const d = new Date(isoStr);
+    let str = String(isoStr).trim();
+    if (!str) return '-';
+    // If string has date and time without 'Z' or offset, treat as UTC
+    if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+      str = str.replace(' ', 'T') + 'Z';
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return isoStr;
     return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
   } catch (e) {
     return isoStr;

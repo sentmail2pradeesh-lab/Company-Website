@@ -2,35 +2,48 @@ import { useState, useEffect } from 'react';
 import { FiX, FiClock, FiUser, FiCalendar, FiFileText } from 'react-icons/fi';
 import { useJobs } from '../../context/JobContext';
 
+const toLocalInput = (isoStr) => {
+  if (!isoStr) return '';
+  let str = String(isoStr).trim();
+  if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+    str = str.replace(' ', 'T') + 'Z';
+  }
+  const d = new Date(str);
+  if (isNaN(d.getTime())) return '';
+  const pad = (n) => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+};
+
 export default function WorkSessionModal({ isOpen, onClose, editingSession }) {
   const { addWorkSession, updateWorkSession, editors } = useJobs();
 
   const [formData, setFormData] = useState({
     user_name: '',
     user_email: '',
-    date: new Date().toISOString().slice(0, 10),
+    date: new Date().toLocaleDateString('en-CA'),
     login_time: '',
     logout_time: '',
     notes: '',
   });
 
   useEffect(() => {
+    const todayLocal = new Date().toLocaleDateString('en-CA');
     if (editingSession) {
       setFormData({
         user_name: editingSession.user_name || '',
         user_email: editingSession.user_email || '',
-        date: editingSession.date || new Date().toISOString().slice(0, 10),
-        login_time: editingSession.login_time ? editingSession.login_time.slice(0, 16) : '',
-        logout_time: editingSession.logout_time ? editingSession.logout_time.slice(0, 16) : '',
+        date: editingSession.date || todayLocal,
+        login_time: toLocalInput(editingSession.login_time),
+        logout_time: toLocalInput(editingSession.logout_time),
         notes: editingSession.notes || '',
       });
     } else {
       setFormData({
         user_name: editors[0]?.name || '',
         user_email: editors[0]?.email || '',
-        date: new Date().toISOString().slice(0, 10),
-        login_time: `${new Date().toISOString().slice(0, 10)}T09:00`,
-        logout_time: `${new Date().toISOString().slice(0, 10)}T17:30`,
+        date: todayLocal,
+        login_time: `${todayLocal}T09:00`,
+        logout_time: `${todayLocal}T17:30`,
         notes: 'Manual entry',
       });
     }

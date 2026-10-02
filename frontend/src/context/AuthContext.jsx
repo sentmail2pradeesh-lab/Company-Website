@@ -67,7 +67,10 @@ export function AuthProvider({ children }) {
       // Store session login timestamp for active shift (use existing ongoing shift time if reconnected)
       const nowIso = new Date().toISOString();
       const backendSession = res.data.work_session;
-      const shiftLoginTime = backendSession?.login_time || nowIso;
+      let shiftLoginTime = backendSession?.login_time || nowIso;
+      if (shiftLoginTime && !shiftLoginTime.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(shiftLoginTime)) {
+        shiftLoginTime = shiftLoginTime.replace(' ', 'T') + 'Z';
+      }
       sessionStorage.setItem('aszen_login_timestamp', shiftLoginTime);
 
       // Initialize or sync work session log in localStorage if not master Admin or Admin role
@@ -75,7 +78,7 @@ export function AuthProvider({ children }) {
         try {
           const savedSessions = localStorage.getItem('aszen_work_sessions');
           const list = savedSessions ? JSON.parse(savedSessions) : [];
-          const todayStr = nowIso.slice(0, 10);
+          const todayStr = new Date().toLocaleDateString('en-CA');
           const shiftDate = backendSession?.date || todayStr;
           
           const existingIndex = list.findIndex(

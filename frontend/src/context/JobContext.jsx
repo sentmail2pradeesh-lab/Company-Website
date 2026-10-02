@@ -1604,7 +1604,7 @@ export function JobProvider({ children }) {
       user_name: sessionData.user_name || 'Employee',
       user_email: sessionData.user_email || `${(sessionData.user_name || 'employee').toLowerCase().replace(/\s+/g, '')}@vistaeditz.com`,
       user_role: 'employee',
-      date: sessionData.date || new Date().toISOString().slice(0, 10),
+      date: sessionData.date || new Date().toLocaleDateString('en-CA'),
       login_time: loginDt,
       logout_time: logoutDt,
       total_hours: hours,

@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
 from database import db
 from models import User, WorkSession
@@ -16,7 +16,8 @@ def session_login():
     if user.email.lower() == 'arun@aszen.com' or user.role == 'admin':
         return jsonify({'message': 'Management authority session exempt', 'session': None})
 
-    today_str = datetime.utcnow().strftime('%Y-%m-%d')
+    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    today_str = ist_now.strftime('%Y-%m-%d')
 
     # Check if there is an active work session for user today
     existing = WorkSession.query.filter_by(
@@ -69,8 +70,9 @@ def session_logout():
 def my_stats():
     user = request.current_user
     email = user.email
-    today_str = datetime.utcnow().strftime('%Y-%m-%d')
-    current_month_prefix = datetime.utcnow().strftime('%Y-%m')
+    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
+    today_str = ist_now.strftime('%Y-%m-%d')
+    current_month_prefix = ist_now.strftime('%Y-%m')
 
     user_sessions = WorkSession.query.filter(
         WorkSession.user_email == email
@@ -99,10 +101,13 @@ def parse_iso_dt(iso_str):
     if not iso_str:
         return None
     cleaned = str(iso_str).strip()
-    # Normalize Z to UTC offset or strip
     cleaned = cleaned.replace('Z', '+00:00')
     try:
-        return datetime.fromisoformat(cleaned)
+        dt = datetime.fromisoformat(cleaned)
+        if dt.tzinfo is not None:
+            from datetime import timezone
+            dt = dt.astimezone(timezone.utc).replace(tzinfo=None)
+        return dt
     except Exception:
         try:
             cleaned_no_tz = cleaned.split('+')[0].split('Z')[0]

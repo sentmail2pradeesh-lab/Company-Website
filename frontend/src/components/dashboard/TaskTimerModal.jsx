@@ -113,7 +113,11 @@ export default function TaskTimerModal() {
   const formatTimestamp = (isoStr) => {
     if (!isoStr) return null;
     try {
-      const d = new Date(isoStr);
+      let str = String(isoStr).trim();
+      if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+        str = str.replace(' ', 'T') + 'Z';
+      }
+      const d = new Date(str);
       if (isNaN(d.getTime())) return null;
       return (
         d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: true }) +

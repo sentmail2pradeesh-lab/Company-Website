@@ -41,7 +41,11 @@ export default function DashboardLayout() {
     const updateTimer = () => {
       const loginIso = activeSession?.login_time || sessionStorage.getItem('aszen_login_timestamp');
       if (loginIso) {
-        const start = new Date(loginIso).getTime();
+        let str = String(loginIso).trim();
+        if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+          str = str.replace(' ', 'T') + 'Z';
+        }
+        const start = new Date(str).getTime();
         const now = Date.now();
         const diffMins = Math.max(0, Math.floor((now - start) / 60000));
         const hrs = Math.floor(diffMins / 60);
