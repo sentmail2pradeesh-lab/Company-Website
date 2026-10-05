@@ -45,7 +45,7 @@ export default function ManagementModal() {
     e.preventDefault();
     const cleanName = empName.trim();
     if (!cleanName) return;
-    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
+    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@aszen.com`;
     const isDev = empDesignation === 'Developer';
     addEmployee({
       name: cleanName,
@@ -99,21 +99,19 @@ export default function ManagementModal() {
         <div className="flex border-b border-slate-200 bg-slate-50 px-3 sm:px-6 pt-2 sm:pt-3 overflow-x-auto mobile-touch-scroll">
           <button
             onClick={() => setActiveTab('employees')}
-            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
-              activeTab === 'employees'
+            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${activeTab === 'employees'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
+              }`}
           >
             <FiUsers className="w-4 h-4" /> Personnel ({editors.length})
           </button>
           <button
             onClick={() => setActiveTab('clients')}
-            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${
-              activeTab === 'clients'
+            className={`pb-2.5 sm:pb-3 px-3 sm:px-4 text-xs font-bold transition-all border-b-2 flex items-center gap-1.5 sm:gap-2 shrink-0 ${activeTab === 'clients'
                 ? 'border-indigo-600 text-indigo-600'
                 : 'border-transparent text-slate-500 hover:text-slate-900'
-            }`}
+              }`}
           >
             <FiBriefcase className="w-4 h-4" /> Clients ({clients.length})
           </button>
@@ -140,16 +138,16 @@ export default function ManagementModal() {
                     onChange={(e) => setEmpDesignation(e.target.value)}
                     className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500 font-semibold"
                   >
-                    <option value="Manager">Manager</option>
-                    <option value="Senior Editor">Senior Editor (Manager Level Access)</option>
-                    <option value="QC Lead">QC Lead</option>
-                    <option value="Pather">Pather</option>
                     <option value="Editor">Editor</option>
-                    <option value="Developer">Developer (Shift Attendance &amp; Leave Tracking)</option>
+                    <option value="Senior Editor">Senior Editor</option>
+                    <option value="Path Editor">Path Editor</option>
+                    <option value="Manager">Manager</option>
+                    <option value="QC Lead">QC Lead</option>
+                    <option value="Developer">Developer</option>
                   </select>
                   <input
                     type="email"
-                    placeholder="Email Address (Optional)"
+                    placeholder={empName ? `${empName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employeename'}@aszen.com` : 'employeename@aszen.com'}
                     value={empEmail}
                     onChange={(e) => setEmpEmail(e.target.value)}
                     className="bg-white border border-slate-200 rounded-lg px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-800 focus:outline-none focus:border-indigo-500"
@@ -184,15 +182,14 @@ export default function ManagementModal() {
                         <div className="min-w-0">
                           <div className="font-bold text-slate-900 flex flex-wrap items-center gap-1.5 sm:gap-2">
                             <span className="truncate">{emp.name}</span>
-                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                              emp.designation === 'Developer' || emp.role === 'developer'
+                            <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${emp.designation === 'Developer' || emp.role === 'developer'
                                 ? 'bg-cyan-50 text-cyan-800 border border-cyan-300'
                                 : emp.designation === 'Manager' || emp.role === 'manager'
-                                ? 'bg-purple-100 text-purple-700 border border-purple-200'
-                                : emp.designation === 'Senior Editor'
-                                ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
-                                : 'bg-slate-100 text-slate-700 border border-slate-200'
-                            }`}>
+                                  ? 'bg-purple-100 text-purple-700 border border-purple-200'
+                                  : emp.designation === 'Senior Editor'
+                                    ? 'bg-indigo-100 text-indigo-700 border border-indigo-200'
+                                    : 'bg-slate-100 text-slate-700 border border-slate-200'
+                              }`}>
                               {emp.designation === 'Developer' || emp.role === 'developer' ? '💻 Developer' : (emp.designation || emp.role || 'Editor')}
                             </span>
                           </div>

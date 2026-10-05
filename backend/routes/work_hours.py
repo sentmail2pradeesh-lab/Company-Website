@@ -7,6 +7,15 @@ from utils.jwt import token_required
 work_hours_bp = Blueprint('work_hours', __name__)
 
 
+def get_operational_date(dt_utc=None):
+    if dt_utc is None:
+        dt_utc = datetime.utcnow()
+    ist_now = dt_utc + timedelta(hours=5, minutes=30)
+    # Company workday window: 6:00 AM to 5:59 AM (next day)
+    operational_time = ist_now - timedelta(hours=6)
+    return operational_time.strftime('%Y-%m-%d')
+
+
 @work_hours_bp.route('/session/login', methods=['POST'])
 @token_required
 def session_login():
@@ -16,8 +25,7 @@ def session_login():
     if user.email.lower() in ['arun@aszen.com', 'gokul@aszen.com'] or user.role == 'admin':
         return jsonify({'message': 'Management authority session exempt', 'session': None})
 
-    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    today_str = ist_now.strftime('%Y-%m-%d')
+    today_str = get_operational_date()
 
     # Check if there is an active work session for user today
     existing = WorkSession.query.filter_by(
@@ -70,9 +78,8 @@ def session_logout():
 def my_stats():
     user = request.current_user
     email = user.email
-    ist_now = datetime.utcnow() + timedelta(hours=5, minutes=30)
-    today_str = ist_now.strftime('%Y-%m-%d')
-    current_month_prefix = ist_now.strftime('%Y-%m')
+    today_str = get_operational_date()
+    current_month_prefix = today_str[:7]
 
     user_sessions = WorkSession.query.filter(
         WorkSession.user_email == email
@@ -153,7 +160,7 @@ def add_manual_session():
     data = request.get_json() or {}
     employee_name = data.get('user_name') or 'Employee'
     employee_email = data.get('user_email') or f"{employee_name.lower()}@aszen.com"
-    session_date = data.get('date') or datetime.utcnow().strftime('%Y-%m-%d')
+    session_date = data.get('date') or get_operational_date()
     login_iso = data.get('login_time')
     logout_iso = data.get('logout_time')
     notes = data.get('notes') or f"Manual entry by {user.name or user.role.capitalize()}"
@@ -185,7 +192,7 @@ def update_session(session_id):
     if user.role not in ['admin', 'manager', 'developer'] and not user.has_permission('can_manage_work_hours'):
         return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
-    session_obj = WorkSession.query.get(session_id)
+    session_obj = db.session.get(WorkSession, session_id)
     if not session_obj:
         return jsonify({'message': 'Session log not found'}), 404
 
@@ -214,7 +221,7 @@ def delete_session(session_id):
     if user.role not in ['admin', 'manager', 'developer'] and not user.has_permission('can_manage_work_hours'):
         return jsonify({'message': 'Permission denied. You do not have permission to manage work hours.'}), 403
 
-    session_obj = WorkSession.query.get(session_id)
+    session_obj = db.session.get(WorkSession, session_id)
     if not session_obj:
         return jsonify({'message': 'Session log not found'}), 404
 

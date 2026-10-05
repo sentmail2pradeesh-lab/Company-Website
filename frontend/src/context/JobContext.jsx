@@ -11,6 +11,7 @@ import {
 } from '../data/mockJobs';
 import { useAuth } from './AuthContext';
 import { checkStageUnlockStatus } from '../utils/pipelineHelper';
+import { getOperationalDate, isSameOperationalDay } from '../utils/dateUtils';
 
 const LEGACY_MOCK_EMAILS = [
   'qa_perm_test@aszen.com',
@@ -153,6 +154,9 @@ export function JobProvider({ children }) {
         };
       });
 
+      const jobCreatedAt = job.createdAt || job.created_at || job.clientEntryTime || new Date().toISOString();
+      const jobOperationalDate = job.operationalDate || getOperationalDate(jobCreatedAt);
+
       return {
         ...job,
         id: String(job.id || job.jobNumber || ''),
@@ -161,6 +165,8 @@ export function JobProvider({ children }) {
         name: job.name || job.service || 'Untitled Job',
         service: job.service || job.name || 'Untitled Job',
         outputTarget: Number(job.outputTarget !== undefined ? job.outputTarget : (job.output_target || 0)),
+        createdAt: jobCreatedAt,
+        operationalDate: jobOperationalDate,
         stages: normalizedStages,
       };
     });
@@ -270,6 +276,29 @@ export function JobProvider({ children }) {
     return [];
   });
 
+  const [annualLeaveAllowance, setAnnualLeaveAllowance] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aszen_annual_leave_allowance');
+      if (saved && !isNaN(Number(saved)) && Number(saved) > 0) {
+        return Number(saved);
+      }
+    } catch {}
+    return 18;
+  });
+
+  const [customLeaveAllowances, setCustomLeaveAllowances] = useState(() => {
+    try {
+      const saved = localStorage.getItem('aszen_custom_leave_allowances');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
+          return parsed;
+        }
+      }
+    } catch {}
+    return {};
+  });
+
   // Modal active states
   const [timerModalState, setTimerModalState] = useState(null); // { jobId, stageKey }
   const [clientModalState, setClientModalState] = useState(null); // { jobId }
@@ -278,7 +307,7 @@ export function JobProvider({ children }) {
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
   // Real-time BroadcastChannel for 0ms cross-window / cross-tab updates
-  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions, newActivities, newLeaves) => {
+  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions, newActivities, newLeaves, newAnnualAllowance = null, newCustomAllowances = null) => {
     try {
       if ('BroadcastChannel' in window) {
         const channel = new BroadcastChannel('aszen_dashboard_realtime');
@@ -291,6 +320,8 @@ export function JobProvider({ children }) {
           workSessions: newSessions,
           activities: newActivities,
           leaveRequests: newLeaves,
+          annualLeaveAllowance: newAnnualAllowance || annualLeaveAllowance,
+          customLeaveAllowances: newCustomAllowances || customLeaveAllowances,
           timestamp: Date.now(),
         });
         setTimeout(() => {
@@ -300,7 +331,7 @@ export function JobProvider({ children }) {
     } catch (e) {
       console.error('BroadcastChannel sync error:', e);
     }
-  }, []);
+  }, [annualLeaveAllowance, customLeaveAllowances]);
 
   // Listen for real-time BroadcastChannel updates from other open windows/tabs
   useEffect(() => {
@@ -317,6 +348,12 @@ export function JobProvider({ children }) {
         if (data.workSessions) setWorkSessions([...(data.workSessions || [])]);
         if (data.activities) setActivities([...(data.activities || [])]);
         if (data.leaveRequests) setLeaveRequests([...(data.leaveRequests || [])]);
+        if (data.annualLeaveAllowance) setAnnualLeaveAllowance(data.annualLeaveAllowance);
+        if (data.customLeaveAllowances) setCustomLeaveAllowances(data.customLeaveAllowances);
+      } else if (data && data.type === 'ANNUAL_LEAVE_ALLOWANCE_UPDATED') {
+        setAnnualLeaveAllowance(data.allowance);
+      } else if (data && data.type === 'CUSTOM_LEAVE_ALLOWANCES_UPDATED') {
+        setCustomLeaveAllowances(data.allowances);
       } else if (data && data.type === 'ACTIVITY_LOGGED' && data.activity) {
         setActivities((prev) => [data.activity, ...prev.filter((a) => a.id !== data.activity.id).slice(0, 99)]);
       }
@@ -337,6 +374,8 @@ export function JobProvider({ children }) {
       if (e.key === 'aszen_work_sessions' && e.newValue) setWorkSessions(JSON.parse(e.newValue));
       if (e.key === 'aszen_activities' && e.newValue) setActivities(JSON.parse(e.newValue));
       if (e.key === 'aszen_leave_requests' && e.newValue) setLeaveRequests(JSON.parse(e.newValue));
+      if (e.key === 'aszen_annual_leave_allowance' && e.newValue) setAnnualLeaveAllowance(Number(e.newValue) || 18);
+      if (e.key === 'aszen_custom_leave_allowances' && e.newValue) setCustomLeaveAllowances(JSON.parse(e.newValue));
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
@@ -456,6 +495,11 @@ export function JobProvider({ children }) {
   }, []);
 
   const applyLeave = async (leaveData) => {
+    const role = (user?.role || '').toLowerCase();
+    if (role === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase())) {
+      throw new Error('Admins are not permitted to submit leave requests. Leave applications are reserved for employees.');
+    }
+
     const applicantName = leaveData.userName || user?.name || (user?.email ? user.email.split('@')[0] : 'Employee');
     const applicantEmail = leaveData.userEmail || user?.email || '';
     const newId = `LR-${Math.floor(100 + Math.random() * 900)}`;
@@ -481,6 +525,32 @@ export function JobProvider({ children }) {
       managerNotes: '',
     };
 
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      // Connect to server: Validate and persist on backend first so server errors bubble up
+      const res = await api.post('/leaves', newLeave);
+      const serverLeave = res.data?.leaveRequest || newLeave;
+      const updated = [
+        serverLeave,
+        ...leaveRequests.filter((l) => String(l.id) !== String(serverLeave.id) && l.id !== newId),
+      ];
+      setLeaveRequests(updated);
+      localStorage.setItem('aszen_leave_requests', JSON.stringify(updated));
+      broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, updated);
+
+      logActivity({
+        actionType: 'LEAVE_REQUESTED',
+        jobId: serverLeave.id,
+        actorName: applicantName,
+        actorEmail: applicantEmail,
+        targetEmployee: applicantName,
+        text: `Leave Request #${serverLeave.id} :: ${applicantName} applied for ${serverLeave.days} day(s) leave`,
+      });
+
+      return serverLeave;
+    }
+
+    // Offline / demo fallback
     const updated = [newLeave, ...leaveRequests];
     setLeaveRequests(updated);
     localStorage.setItem('aszen_leave_requests', JSON.stringify(updated));
@@ -495,32 +565,51 @@ export function JobProvider({ children }) {
       text: `Leave Request #${newId} :: ${applicantName} applied for ${newLeave.days} day(s) leave`,
     });
 
-    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
-    if (token) {
-      try {
-        const res = await api.post('/leaves', newLeave);
-        if (res.data?.leaveRequest) {
-          const serverLeave = res.data.leaveRequest;
-          const fresh = [
-            serverLeave,
-            ...leaveRequests.filter((l) => l.id !== newId && String(l.id) !== String(serverLeave.id))
-          ];
-          setLeaveRequests(fresh);
-          localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
-          broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, fresh);
-          return serverLeave;
-        }
-      } catch (e) {
-        console.warn('Backend leave sync notice:', e.message);
-      }
-    }
-
     return newLeave;
   };
 
   const updateLeaveStatus = async (leaveId, status, managerNotes = '') => {
+    const role = (user?.role || '').toLowerCase();
+    const isAuthAdmin = role === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+    if (status !== 'Cancelled' && !isAuthAdmin) {
+      throw new Error('Permission denied. Only administrators can approve or reject leave requests.');
+    }
+
     const reviewer = user?.name || (user?.email ? user.email.split('@')[0] : 'Manager');
     let targetLeave = null;
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      const res = await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
+      const serverLeave = res.data?.leaveRequest;
+      const updated = leaveRequests.map((l) =>
+        String(l.id) === String(leaveId)
+          ? serverLeave || {
+              ...l,
+              status,
+              reviewedBy: reviewer,
+              reviewedAt: new Date().toISOString(),
+              managerNotes: managerNotes || l.managerNotes,
+            }
+          : l
+      );
+      setLeaveRequests(updated);
+      localStorage.setItem('aszen_leave_requests', JSON.stringify(updated));
+      broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, updated);
+
+      const targetEmp = serverLeave?.userName || 'Employee';
+      const daysCount = serverLeave?.days || '';
+      logActivity({
+        actionType: status === 'Approved' ? 'LEAVE_APPROVED' : status === 'Cancelled' ? 'LEAVE_CANCELLED' : 'LEAVE_REJECTED',
+        jobId: leaveId,
+        actorName: reviewer,
+        actorEmail: user?.email || '',
+        targetEmployee: targetEmp,
+        text: `Leave Request #${leaveId} :: ${targetEmp} ${daysCount} Day leave ${status} by ${reviewer}${managerNotes ? ` (${managerNotes})` : ''}`,
+      });
+
+      return serverLeave;
+    }
 
     const updated = leaveRequests.map((l) => {
       if (String(l.id) === String(leaveId)) {
@@ -542,28 +631,13 @@ export function JobProvider({ children }) {
 
     if (targetLeave) {
       logActivity({
-        actionType: status === 'Approved' ? 'LEAVE_APPROVED' : 'LEAVE_REJECTED',
+        actionType: status === 'Approved' ? 'LEAVE_APPROVED' : status === 'Cancelled' ? 'LEAVE_CANCELLED' : 'LEAVE_REJECTED',
         jobId: leaveId,
         actorName: reviewer,
         actorEmail: user?.email || '',
         targetEmployee: targetLeave.userName,
         text: `Leave Request #${leaveId} :: ${targetLeave.userName} ${targetLeave.days} Day leave ${status} by ${reviewer}${managerNotes ? ` (${managerNotes})` : ''}`,
       });
-
-      const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
-      if (token) {
-        try {
-          const res = await api.patch(`/leaves/${leaveId}/status`, { status, managerNotes });
-          if (res.data?.leaveRequest) {
-            const fresh = leaveRequests.map((l) => (String(l.id) === String(leaveId) ? res.data.leaveRequest : l));
-            setLeaveRequests(fresh);
-            localStorage.setItem('aszen_leave_requests', JSON.stringify(fresh));
-            broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, fresh);
-          }
-        } catch (e) {
-          console.warn('Backend leave status sync notice:', e.message);
-        }
-      }
     }
 
     return targetLeave;
@@ -573,18 +647,68 @@ export function JobProvider({ children }) {
     return updateLeaveStatus(leaveId, 'Cancelled', 'Cancelled by applicant');
   };
 
+  const updateAnnualLeaveAllowance = (newAllowance) => {
+    const num = Math.max(1, Number(newAllowance) || 18);
+    setAnnualLeaveAllowance(num);
+    localStorage.setItem('aszen_annual_leave_allowance', String(num));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, leaveRequests, num, customLeaveAllowances);
+    logActivity({
+      actionType: 'LEAVE_QUOTA_UPDATED',
+      actorName: user?.name || 'Admin',
+      actorEmail: user?.email || '',
+      text: `Company annual leave allowance updated to ${num} days/year by ${user?.name || 'Admin'}`,
+      badgeColor: 'purple',
+    });
+  };
+
+  const assignEmployeeLeaveDays = (employeeEmail, days) => {
+    if (!employeeEmail) return;
+    const email = employeeEmail.toLowerCase().trim();
+    const num = Math.max(0, Number(days) || 0);
+    const updated = { ...(customLeaveAllowances || {}), [email]: num };
+    setCustomLeaveAllowances(updated);
+    localStorage.setItem('aszen_custom_leave_allowances', JSON.stringify(updated));
+    broadcastSync(jobs, productionSheets, editors, clients, workSessions, activities, leaveRequests, annualLeaveAllowance, updated);
+    logActivity({
+      actionType: 'EMPLOYEE_LEAVE_ASSIGNED',
+      actorName: user?.name || 'Admin',
+      actorEmail: user?.email || '',
+      targetEmployee: email,
+      text: `Annual leave quota for ${email} assigned to ${num} days by ${user?.name || 'Admin'}`,
+      badgeColor: 'purple',
+    });
+  };
+
   const getLeaveBalances = (userEmail) => {
-    const email = (userEmail || user?.email || '').toLowerCase();
+    const email = (userEmail || user?.email || '').toLowerCase().trim();
     const approved = leaveRequests.filter(
-      (l) => (l.userEmail || '').toLowerCase() === email && l.status === 'Approved'
+      (l) => (l.userEmail || '').toLowerCase().trim() === email && l.status === 'Approved'
     );
     const pending = leaveRequests.filter(
-      (l) => (l.userEmail || '').toLowerCase() === email && l.status === 'Pending'
+      (l) => (l.userEmail || '').toLowerCase().trim() === email && l.status === 'Pending'
     );
 
     const usedDays = approved.reduce((sum, l) => sum + (Number(l.days) || 1), 0);
     const pendingDays = pending.reduce((sum, l) => sum + (Number(l.days) || 1), 0);
-    const total = 18;
+
+    let total = 18;
+    if (
+      customLeaveAllowances &&
+      typeof customLeaveAllowances === 'object' &&
+      email in customLeaveAllowances &&
+      customLeaveAllowances[email] !== undefined &&
+      customLeaveAllowances[email] !== null &&
+      !isNaN(customLeaveAllowances[email])
+    ) {
+      total = Math.max(0, Number(customLeaveAllowances[email]));
+    } else if (
+      annualLeaveAllowance !== undefined &&
+      annualLeaveAllowance !== null &&
+      !isNaN(annualLeaveAllowance)
+    ) {
+      total = Math.max(0, Number(annualLeaveAllowance));
+    }
+
     const available = Math.max(0, total - usedDays);
 
     return {
@@ -638,23 +762,48 @@ export function JobProvider({ children }) {
   }, [editors]);
 
 
-  // Metric Calculation Helpers (Memoized to prevent unnecessary component re-renders)
+  // Operational Workday (6:00 AM to 5:59 AM next morning)
+  const [currentOperationalDate, setCurrentOperationalDate] = useState(() => getOperationalDate());
+
+  // Rollover timer: Every 30 seconds checks if 6:00 AM occurred and updates operational date
+  useEffect(() => {
+    const checkOp = () => {
+      const nowOp = getOperationalDate();
+      if (nowOp !== currentOperationalDate) {
+        setCurrentOperationalDate(nowOp);
+      }
+    };
+    const timer = setInterval(checkOp, 30000);
+    return () => clearInterval(timer);
+  }, [currentOperationalDate]);
+
+  // Today's jobs strictly matching the active 6:00 AM - 5:59 AM operational day window
+  const todaysJobs = useMemo(() => {
+    return jobs.filter((j) => {
+      const opDate = j.operationalDate || getOperationalDate(j.createdAt || j.clientEntryTime);
+      return opDate === currentOperationalDate;
+    });
+  }, [jobs, currentOperationalDate]);
+
+  // Metric Calculation Helpers for the current day's active operational shift (resets cleanly each new day)
   const stats = useMemo(() => ({
-    totalJobs: jobs.length,
-    totalFiles: jobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0),
-    completedJobs: jobs.filter((j) =>
+    totalJobs: todaysJobs.length,
+    totalFiles: todaysJobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0),
+    completedJobs: todaysJobs.filter((j) =>
       Object.values(j.stages || {}).every((s) => s?.status === 'Complete' || !s?.assignee)
     ).length,
-    pendingJobs: jobs.filter((j) =>
+    pendingJobs: todaysJobs.filter((j) =>
       Object.values(j.stages || {}).some((s) => s?.status === 'Pending' || s?.status === 'In-Progress' || s?.status === 'Paused')
     ).length,
-    blendingPendingJobs: jobs.filter((j) => j.stages?.blending && (j.stages.blending.status === 'In-Progress' || j.stages.blending.status === 'Pending')).length,
-    pathPendingJobs: jobs.filter((j) => (j.stages?.path1 && j.stages.path1.status !== 'Complete' && j.stages.path1.assignee) || (j.stages?.path2 && j.stages.path2.status !== 'Complete' && j.stages.path2.assignee)).length,
-    editingPendingJobs: jobs.filter((j) => (j.stages?.editor1 && j.stages.editor1.status !== 'Complete' && j.stages.editor1.assignee) || (j.stages?.editor2 && j.stages.editor2.status !== 'Complete' && j.stages.editor2.assignee)).length,
-    lcPendingJobs: jobs.filter((j) => j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')).length,
-    fcPendingJobs: jobs.filter((j) => j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
-    qcPendingJobs: jobs.filter((j) => (j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')) || (j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')) || (j.stages?.qc && (j.stages.qc.status === 'In-Progress' || j.stages.qc.status === 'Pending'))).length,
-  }), [jobs]);
+    blendingPendingJobs: todaysJobs.filter((j) => j.stages?.blending && (j.stages.blending.status === 'In-Progress' || j.stages.blending.status === 'Pending')).length,
+    pathPendingJobs: todaysJobs.filter((j) => (j.stages?.path1 && j.stages.path1.status !== 'Complete' && j.stages.path1.assignee) || (j.stages?.path2 && j.stages.path2.status !== 'Complete' && j.stages.path2.assignee)).length,
+    editingPendingJobs: todaysJobs.filter((j) => (j.stages?.editor1 && j.stages.editor1.status !== 'Complete' && j.stages.editor1.assignee) || (j.stages?.editor2 && j.stages.editor2.status !== 'Complete' && j.stages.editor2.assignee)).length,
+    lcPendingJobs: todaysJobs.filter((j) => j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')).length,
+    fcPendingJobs: todaysJobs.filter((j) => j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')).length,
+    qcPendingJobs: todaysJobs.filter((j) => (j.stages?.fc && (j.stages.fc.status === 'In-Progress' || j.stages.fc.status === 'Pending')) || (j.stages?.lc && (j.stages.lc.status === 'In-Progress' || j.stages.lc.status === 'Pending')) || (j.stages?.qc && (j.stages.qc.status === 'In-Progress' || j.stages.qc.status === 'Pending'))).length,
+    allTimeTotalJobs: jobs.length,
+    allTimeTotalFiles: jobs.reduce((acc, j) => acc + (j.outputTarget || 0), 0),
+  }), [todaysJobs, jobs]);
 
   // Job Actions
   const createJob = async (newJobData) => {
@@ -685,6 +834,8 @@ export function JobProvider({ children }) {
       clientEntryTime: newJobData.clientEntryTime || new Date().toISOString().slice(0, 16),
       clientTargetTime: newJobData.clientTargetTime || '',
       clientFinishTime: null,
+      createdAt: newJobData.createdAt || new Date().toISOString(),
+      operationalDate: getOperationalDate(newJobData.createdAt || new Date()),
       stages: {
         blending: {
           assignee: newJobData.blendingAssignee || '',
@@ -1518,7 +1669,7 @@ export function JobProvider({ children }) {
       can_manage_work_hours: false,
     };
     const cleanName = (empData.name || '').trim();
-    const cleanEmail = (empData.email || '').trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
+    const cleanEmail = (empData.email || '').trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@aszen.com`;
     try {
       if (token) {
         const res = await api.post('/auth/users', {
@@ -1725,6 +1876,10 @@ export function JobProvider({ children }) {
     <JobContext.Provider
       value={{
         jobs,
+        todaysJobs,
+        allJobs: jobs,
+        currentOperationalDate,
+        operationalDate: currentOperationalDate,
         editors,
         assignableEditors,
         clients,
@@ -1781,6 +1936,10 @@ export function JobProvider({ children }) {
         cancelLeave,
         getLeaveBalances,
         pendingLeaveCount,
+        annualLeaveAllowance,
+        customLeaveAllowances,
+        updateAnnualLeaveAllowance,
+        assignEmployeeLeaveDays,
       }}
     >
       {children}

@@ -41,7 +41,8 @@ export default function ChangePasswordModal({ isOpen, onClose }) {
         onClose();
       }, 1800);
     } catch (err) {
-      setError(err.message || 'Failed to update password. Check your current password.');
+      const serverMsg = err.response?.data?.message;
+      setError(serverMsg || err.message || 'Failed to update password. Check your current password.');
     } finally {
       setSubmitting(false);
     }

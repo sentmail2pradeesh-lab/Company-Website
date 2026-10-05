@@ -5,17 +5,17 @@ import { useAuth } from '../../context/AuthContext';
 import { FiActivity, FiFilter, FiUser, FiRefreshCw } from 'react-icons/fi';
 
 export default function MyActivitySection() {
-  const { activities, editors, refreshData, resetToSystemActivities } = useJobs();
+  const { activities, editors, jobs, refreshData, resetToSystemActivities } = useJobs();
   const { user } = useAuth();
 
   const userRole = (user?.role || 'employee').toLowerCase();
-  const userDesignation = (user?.designation || '').toLowerCase();
-  const isDeveloper = userRole === 'developer' || userDesignation === 'developer';
-  const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || isDeveloper;
+  const isAdmin = userRole === 'admin';
   const currentUserName = user?.name || (user?.email ? user.email.split('@')[0] : 'Staff');
+  const myName = currentUserName.toLowerCase().trim();
+  const myEmail = (user?.email || '').toLowerCase().trim();
 
-  // Filter state: 'my' (only current user), 'all' (entire team), or specific employee name
-  const [filterMode, setFilterMode] = useState(isManagerOrAdmin ? 'all' : 'my');
+  // Admin defaults to 'all' to view team stream; employees are strictly locked to their own timeline
+  const [filterMode, setFilterMode] = useState(isAdmin ? 'all' : 'my');
   const [selectedStaff, setSelectedStaff] = useState('ALL');
   const [isRefreshing, setIsRefreshing] = useState(false);
 
@@ -28,44 +28,86 @@ export default function MyActivitySection() {
   const filteredActivities = useMemo(() => {
     let list = activities || [];
 
-    if (filterMode === 'my' && !isManagerOrAdmin) {
-      // For employees, show only events they acted in or were assigned to
-      list = list.filter((act) => {
-        const actor = (act.actorName || '').toLowerCase();
-        const target = (act.targetEmployee || '').toLowerCase();
-        const myName = currentUserName.toLowerCase();
-        const myEmail = (user?.email || '').toLowerCase();
-        const actEmail = (act.actorEmail || '').toLowerCase();
+    // Strictly enforce employee restriction: non-admins can NEVER view full team actions
+    if (!isAdmin) {
+      return list.filter((act) => {
+        const actor = (act.actorName || '').toLowerCase().trim();
+        const target = (act.targetEmployee || '').toLowerCase().trim();
+        const prev = (act.previousAssignee || '').toLowerCase().trim();
+        const actEmail = (act.actorEmail || '').toLowerCase().trim();
+        const text = (act.text || '').toLowerCase();
+        const details = (act.details || '').toLowerCase();
+
+        // 1. Direct actor, target, or email match
+        if (actor === myName || target === myName || prev === myName) return true;
+        if (myEmail && actEmail === myEmail) return true;
+
+        // 2. Name explicitly mentioned in activity text or details
+        if (myName && (text.includes(myName) || details.includes(myName))) return true;
+
+        // 3. Job assignment match: if the activity references a job assigned to this employee
+        if (act.jobId && jobs && jobs.length > 0) {
+          const matchedJob = jobs.find(
+            (j) => String(j.id) === String(act.jobId) || String(j.jobId) === String(act.jobId)
+          );
+          if (matchedJob) {
+            const stageAssignees = Object.values(matchedJob.stages || {})
+              .map((st) => st?.assignee)
+              .filter(Boolean);
+
+            const assignees = [
+              matchedJob.assignedTo,
+              matchedJob.editor,
+              matchedJob.designer,
+              matchedJob.qcAssigned,
+              matchedJob.fcAssigned,
+              ...stageAssignees,
+            ]
+              .filter(Boolean)
+              .map((n) => String(n).toLowerCase().trim());
+
+            if (assignees.includes(myName) || (myEmail && assignees.includes(myEmail))) {
+              return true;
+            }
+          }
+        }
+
+        return false;
+      });
+    }
+
+    // Admin view controls
+    if (filterMode === 'my') {
+      return list.filter((act) => {
+        const actor = (act.actorName || '').toLowerCase().trim();
+        const actEmail = (act.actorEmail || '').toLowerCase().trim();
         return (
           actor === myName ||
-          target === myName ||
-          (actEmail && actEmail === myEmail) ||
-          (act.text || '').toLowerCase().includes(myName)
-        );
-      });
-    } else if (filterMode === 'my' && isManagerOrAdmin) {
-      // Manager personal actions
-      list = list.filter((act) => {
-        const actor = (act.actorName || '').toLowerCase();
-        const myName = currentUserName.toLowerCase();
-        return actor === myName || (act.text || '').toLowerCase().includes(`by ${myName}`);
-      });
-    } else if (selectedStaff !== 'ALL') {
-      // Specific staff selected by manager
-      const staffName = selectedStaff.toLowerCase();
-      list = list.filter((act) => {
-        const actor = (act.actorName || '').toLowerCase();
-        const target = (act.targetEmployee || '').toLowerCase();
-        return (
-          actor === staffName ||
-          target === staffName ||
-          (act.text || '').toLowerCase().includes(staffName)
+          (myEmail && actEmail === myEmail) ||
+          (act.text || '').toLowerCase().includes(`by ${myName}`)
         );
       });
     }
 
+    if (selectedStaff !== 'ALL') {
+      const staffName = selectedStaff.toLowerCase().trim();
+      return list.filter((act) => {
+        const actor = (act.actorName || '').toLowerCase().trim();
+        const target = (act.targetEmployee || '').toLowerCase().trim();
+        const text = (act.text || '').toLowerCase();
+        const details = (act.details || '').toLowerCase();
+        return (
+          actor === staffName ||
+          target === staffName ||
+          text.includes(staffName) ||
+          details.includes(staffName)
+        );
+      });
+    }
+
+    // Admin viewing all team members' actions
     return list;
-  }, [activities, filterMode, selectedStaff, currentUserName, isManagerOrAdmin, user]);
+  }, [activities, filterMode, selectedStaff, myName, myEmail, isAdmin, jobs]);
 
   return (
     <div className="bg-white rounded-2xl shadow-xs border border-slate-200/80 p-5 sm:p-6 flex flex-col h-full min-h-[480px]">
@@ -74,7 +116,7 @@ export default function MyActivitySection() {
         <div>
           <div className="flex items-center gap-2">
             <h2 className="text-base sm:text-lg font-bold text-slate-900 font-sans tracking-tight">
-              My Activity
+              {isAdmin && filterMode === 'all' && selectedStaff === 'ALL' ? 'Team Activity Stream' : 'My Activity'}
             </h2>
             <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 border border-slate-200/60 font-mono">
               {filteredActivities.length}
@@ -90,15 +132,19 @@ export default function MyActivitySection() {
             </button>
           </div>
           <p className="text-[11px] text-slate-500 mt-0.5">
-            {filterMode === 'my'
-              ? `Personal timeline for ${currentUserName} (${user?.designation || userRole})`
-              : 'Live cross-team production and assignment stream'}
+            {isAdmin
+              ? filterMode === 'my'
+                ? `Personal timeline for ${currentUserName} (Admin)`
+                : selectedStaff !== 'ALL'
+                ? `Activity stream for ${selectedStaff}`
+                : 'Live cross-team production, job updates, and assignment stream'
+              : `Personal timeline for ${currentUserName} — showing your actions and assigned tasks`}
           </p>
         </div>
 
-        {/* Filters */}
-        <div className="flex items-center gap-2 flex-wrap">
-          {isManagerOrAdmin && (
+        {/* Filters - ONLY Admin can view other team members or switch filters */}
+        {isAdmin && (
+          <div className="flex items-center gap-2 flex-wrap">
             <div className="flex items-center bg-slate-100 p-0.5 rounded-xl text-xs font-semibold">
               <button
                 type="button"
@@ -123,9 +169,7 @@ export default function MyActivitySection() {
                 My Actions
               </button>
             </div>
-          )}
 
-          {isManagerOrAdmin && (
             <div className="relative">
               <select
                 value={selectedStaff}
@@ -143,8 +187,8 @@ export default function MyActivitySection() {
                 ))}
               </select>
             </div>
-          )}
-        </div>
+          </div>
+        )}
       </div>
 
       {/* Activity Timeline List */}

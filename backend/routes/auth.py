@@ -323,13 +323,13 @@ def create_user():
     name = name.strip()
     if not email or not email.strip():
         clean_name = ''.join(c for c in name.lower().replace(' ', '.') if c.isalnum() or c == '.')
-        email = f"{clean_name or 'employee'}@vistaeditz.com"
+        email = f"{clean_name or 'employee'}@aszen.com"
 
     email = email.lower().strip()
     if User.query.filter_by(email=email).first():
         # Ensure unique email if auto-generated
         import time
-        email = f"{email.split('@')[0]}.{int(time.time()) % 1000}@vistaeditz.com"
+        email = f"{email.split('@')[0]}.{int(time.time()) % 1000}@aszen.com"
 
     new_user = User(
         email=email,

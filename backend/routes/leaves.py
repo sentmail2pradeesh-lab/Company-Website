@@ -1,5 +1,6 @@
 from datetime import datetime, timedelta
 from flask import Blueprint, request, jsonify
+from sqlalchemy import func
 from database import db
 from models import LeaveRequest, User, AuditLog
 from utils.jwt import token_required
@@ -55,8 +56,6 @@ def log_audit(user, action, details=""):
         print("Audit log error in leaves:", e)
 
 
-from sqlalchemy import func
-
 @leaves_bp.route('', methods=['GET'])
 @token_required
 def get_leaves():
@@ -75,7 +74,7 @@ def get_leaves():
     if not is_admin_or_manager:
         # Non-managers can only see their own requests by default
         query = query.filter(func.lower(LeaveRequest.user_email) == user_email_lower)
-    elif user_email:
+    elif user_email and user_email.strip():
         query = query.filter(func.lower(LeaveRequest.user_email) == user_email.strip().lower())
 
     if status:
@@ -89,6 +88,9 @@ def get_leaves():
 @token_required
 def create_leave():
     current_user = request.current_user
+    if current_user.role == 'admin' or (current_user.email and current_user.email.lower() in MASTER_ADMINS):
+        return jsonify({'message': 'Admins are not permitted to submit leave requests. Leave applications are reserved for employees.'}), 403
+
     data = request.get_json() or {}
     leave_type = data.get('leaveType') or 'Leave'
     start_date = data.get('startDate')
@@ -102,13 +104,21 @@ def create_leave():
     if not start_date or not reason:
         return jsonify({'message': 'Start date and reason are required'}), 400
 
+    try:
+        s_date = datetime.strptime(start_date, '%Y-%m-%d')
+        e_date = datetime.strptime(end_date, '%Y-%m-%d')
+        if e_date < s_date:
+            return jsonify({'message': 'End date cannot be earlier than start date'}), 400
+    except ValueError:
+        return jsonify({'message': 'Invalid date format. Expected YYYY-MM-DD'}), 400
+
     # Calculate net working days, excluding all Sundays
     days = calculate_working_days(start_date, end_date, is_half_day)
     if days <= 0:
         return jsonify({'message': 'The selected leave dates only include Sundays (weekly holiday). Please select working days.'}), 400
 
-    applicant_email = data.get('userEmail') or current_user.email
-    applicant_name = data.get('userName') or current_user.name or applicant_email.split('@')[0].capitalize()
+    applicant_email = current_user.email
+    applicant_name = current_user.name or applicant_email.split('@')[0].capitalize()
 
     leave = LeaveRequest(
         user_id=current_user.id,
@@ -167,17 +177,16 @@ def update_leave_status(leave_id):
 
     if new_status == 'Cancelled':
         # Applicant can cancel their own pending request
-        if leave.user_email.lower() != current_user.email.lower() and current_user.role not in ['admin', 'manager'] and current_user.email.lower() not in MASTER_ADMINS:
+        if leave.user_email.lower() != current_user.email.lower() and current_user.role != 'admin' and current_user.email.lower() not in MASTER_ADMINS:
             return jsonify({'message': 'Permission denied'}), 403
     else:
-        # Admins (Arun, Gokul) and authorized managers can approve or reject
+        # Admin alone can approve or reject leaves
         is_authorized_admin = (
-            current_user.role in ['admin', 'manager']
-            or current_user.email.lower() in MASTER_ADMINS
-            or current_user.has_permission('can_create_employee')
+            current_user.role == 'admin'
+            or (current_user.email and current_user.email.lower() in MASTER_ADMINS)
         )
         if not is_authorized_admin:
-            return jsonify({'message': 'Permission denied. Only Admins (Arun or Gokul) or Managers can review leave requests'}), 403
+            return jsonify({'message': 'Permission denied. Only administrators can review and approve/reject leave requests.'}), 403
 
     leave.status = new_status
     leave.reviewed_by = current_user.name or current_user.email
@@ -204,14 +213,15 @@ def update_leave_status(leave_id):
 @token_required
 def get_leave_balances(email):
     current_user = request.current_user
-    approved_leaves = LeaveRequest.query.filter_by(
-        user_email=email,
-        status='Approved'
+    clean_email = (email or '').strip().lower()
+    approved_leaves = LeaveRequest.query.filter(
+        func.lower(LeaveRequest.user_email) == clean_email,
+        LeaveRequest.status == 'Approved'
     ).all()
 
-    pending_leaves = LeaveRequest.query.filter_by(
-        user_email=email,
-        status='Pending'
+    pending_leaves = LeaveRequest.query.filter(
+        func.lower(LeaveRequest.user_email) == clean_email,
+        LeaveRequest.status == 'Pending'
     ).all()
 
     used = sum(float(l.days or 0) for l in approved_leaves)

@@ -15,19 +15,21 @@ import {
   FiLock,
   FiDownload,
 } from 'react-icons/fi';
+import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel } from '../../utils/dateUtils';
+import DatePickerDMY from '../../components/common/DatePickerDMY';
 
 export default function ProductionSheetsPage() {
-  const { productionSheets, workSessions, deleteWorkSession, userRole, canManageWorkHours } = useJobs();
+  const { productionSheets, workSessions, deleteWorkSession, userRole, canManageWorkHours, operationalDate } = useJobs();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('working-hours'); // 'output-sheets' or 'working-hours'
 
   // Search & Filter state for Output Sheets
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedDate, setSelectedDate] = useState('');
+  const [selectedDate, setSelectedDate] = useState(() => getOperationalDate());
 
-  // Search & Filter state for Working Hours
+  // Search & Filter state for Working Hours (defaults strictly to today's 6:00 AM - 5:59 AM operational day)
   const [whSearchTerm, setWhSearchTerm] = useState('');
-  const [whDateFilter, setWhDateFilter] = useState('');
+  const [whDateFilter, setWhDateFilter] = useState(() => getOperationalDate());
   const [whMonthFilter, setWhMonthFilter] = useState(() => new Date().toISOString().slice(0, 7));
 
   // Modal State
@@ -71,8 +73,9 @@ export default function ProductionSheetsPage() {
       }
     }
 
-    if (whDateFilter && session.date !== whDateFilter) return false;
-    if (whMonthFilter && session.date && !session.date.startsWith(whMonthFilter)) return false;
+    const sessionOpDate = session.date || (session.login_time ? getOperationalDate(session.login_time) : '');
+    if (whDateFilter && sessionOpDate !== whDateFilter) return false;
+    if (whMonthFilter && sessionOpDate && !sessionOpDate.startsWith(whMonthFilter)) return false;
 
     return true;
   });
@@ -84,12 +87,12 @@ export default function ProductionSheetsPage() {
     return sEmail === currentUserEmail || sName.includes(currentUserName.toLowerCase());
   });
 
-  const todayStr = new Date().toISOString().slice(0, 10);
-  const currentMonthStr = new Date().toISOString().slice(0, 7);
+  const todayStr = getOperationalDate();
+  const currentMonthStr = todayStr.slice(0, 7);
   const monthDisplayName = new Date().toLocaleDateString('default', { month: 'long', year: 'numeric' });
 
-  // Today's hours
-  const myTodaySessions = mySessions.filter((s) => s.date === todayStr);
+  // Today's hours (calculated strictly based on active operational shift: 06:00 AM - 05:59 AM)
+  const myTodaySessions = mySessions.filter((s) => (s.date || (s.login_time ? getOperationalDate(s.login_time) : '')) === todayStr);
   const myTodayHours = myTodaySessions.reduce((acc, s) => acc + (s.total_hours || 0), 0);
 
   // Days worked in current month
@@ -344,24 +347,63 @@ export default function ProductionSheetsPage() {
                   />
                 </div>
 
-                <div className="flex items-center gap-1.5">
+                <div className="flex flex-wrap items-center gap-1.5">
                   <span className="font-semibold text-slate-600">Date:</span>
-                  <input
-                    type="date"
-                    value={whDateFilter}
-                    onChange={(e) => setWhDateFilter(e.target.value)}
-                    className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
-                  />
+                  <div className="w-32">
+                    <DatePickerDMY
+                      value={whDateFilter}
+                      onChange={(d) => setWhDateFilter(d)}
+                      className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none focus:border-indigo-500 font-medium"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setWhDateFilter(getOperationalDate())}
+                    className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                      whDateFilter === getOperationalDate()
+                        ? 'bg-indigo-600 text-white shadow-xs'
+                        : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                    }`}
+                    title="Filter to today's active shift (06:00 AM - 05:59 AM)"
+                  >
+                    Today's Shift
+                  </button>
                   {whDateFilter && (
                     <button
+                      type="button"
                       onClick={() => setWhDateFilter('')}
-                      className="text-indigo-600 text-xs font-semibold hover:underline"
+                      className="text-slate-500 hover:text-slate-800 text-xs font-semibold hover:underline cursor-pointer ml-1"
+                      title="Show all records for selected month"
                     >
-                      Clear
+                      All Month
                     </button>
                   )}
                 </div>
               </div>
+            </div>
+
+            {/* Active Filter Notice */}
+            <div className="mx-5 px-3 py-2 rounded-xl bg-indigo-50/70 border border-indigo-100 text-indigo-900 text-xs flex items-center justify-between gap-2">
+              <span className="flex items-center gap-1.5 font-medium">
+                <FiClock className="w-3.5 h-3.5 text-indigo-600" />
+                {whDateFilter ? (
+                  <span>
+                    Viewing records for <strong>{formatOperationalShiftLabel(whDateFilter)}</strong>
+                  </span>
+                ) : (
+                  <span>
+                    Viewing all records for month <strong>{whMonthFilter}</strong> ({filteredWorkSessions.length} sessions)
+                  </span>
+                )}
+              </span>
+              {whDateFilter !== getOperationalDate() && (
+                <button
+                  onClick={() => setWhDateFilter(getOperationalDate())}
+                  className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                >
+                  Reset to Today's Shift
+                </button>
+              )}
             </div>
 
             {/* Read-Only Notice for Employees */}
@@ -374,10 +416,10 @@ export default function ProductionSheetsPage() {
               </div>
             )}
 
-            {/* Working Hours Table */}
-            <div className="overflow-x-auto mobile-touch-scroll">
-              <table className="w-full text-left text-xs min-w-[750px]">
-                <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
+            {/* Working Hours Table with 2-axis scrolling (horizontal & vertical) */}
+            <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
+              <table className="w-full text-left text-xs min-w-[780px]">
+                <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800 shadow-xs">
                   <tr>
                     <th className="py-3 px-4">Date</th>
                     <th className="py-3 px-4">Employee</th>
@@ -513,18 +555,31 @@ export default function ProductionSheetsPage() {
 
               <div className="flex items-center gap-2 w-full sm:w-auto text-xs text-slate-500">
                 <FiCalendar className="w-4 h-4 text-indigo-600" />
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => setSelectedDate(e.target.value)}
-                  className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none"
-                />
+                <div className="w-32">
+                  <DatePickerDMY
+                    value={selectedDate}
+                    onChange={(d) => setSelectedDate(d)}
+                    className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs focus:outline-none"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedDate(getOperationalDate())}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                    selectedDate === getOperationalDate()
+                      ? 'bg-indigo-600 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                  }`}
+                  title="Filter to today's active shift (06:00 AM - 05:59 AM)"
+                >
+                  Today's Shift
+                </button>
                 {selectedDate && (
                   <button
                     onClick={() => setSelectedDate('')}
-                    className="text-indigo-600 text-xs font-semibold hover:underline px-1"
+                    className="text-slate-500 hover:text-slate-800 text-xs font-semibold hover:underline px-1 cursor-pointer"
                   >
-                    Clear
+                    All History
                   </button>
                 )}
                 <button
@@ -537,9 +592,10 @@ export default function ProductionSheetsPage() {
               </div>
             </div>
 
-          <div className="overflow-x-auto mobile-touch-scroll">
+          {/* Daily Output Sheets Table with 2-axis scrolling (horizontal & vertical) */}
+          <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
             <table className="w-full text-left text-xs min-w-[850px]">
-              <thead className="bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800">
+              <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800 shadow-xs">
                 <tr>
                   <th className="py-3 px-4">Date</th>
                   <th className="py-3 px-4">Employee</th>

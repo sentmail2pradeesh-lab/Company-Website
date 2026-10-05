@@ -3,8 +3,9 @@ import { useJobs } from '../../context/JobContext';
 import { FiRefreshCw } from 'react-icons/fi';
 
 export default function TodaysJobsSummary() {
-  const { jobs, refreshData } = useJobs();
+  const { todaysJobs, refreshData, operationalDate } = useJobs();
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const displayJobs = todaysJobs || [];
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -15,42 +16,53 @@ export default function TodaysJobsSummary() {
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 p-4 sm:p-6 flex flex-col h-full min-h-[380px]">
       {/* Top Header Row matching screenshot */}
-      <div className="flex items-center justify-between pb-4 sm:pb-6">
-        <h2 className="text-base sm:text-lg font-bold text-slate-900 font-sans">
-          Today jobs
-        </h2>
-        <button
-          type="button"
-          onClick={handleRefresh}
-          className="text-slate-400 hover:text-indigo-600 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 cursor-pointer"
-          title="Refresh jobs"
-          aria-label="Refresh jobs"
-        >
-          <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
-        </button>
+      <div className="flex items-center justify-between pb-3 sm:pb-4 border-b border-slate-100 mb-3">
+        <div>
+          <h2 className="text-base sm:text-lg font-bold text-slate-900 font-sans">
+            Today jobs
+          </h2>
+          <p className="text-[11px] text-slate-500 font-medium">
+            Active Shift (06:00 AM – 05:59 AM) · Fresh Daily Queue
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-bold font-mono px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+            {displayJobs.length} active
+          </span>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            className="text-slate-400 hover:text-indigo-600 transition-colors w-8 h-8 flex items-center justify-center rounded-lg hover:bg-slate-50 cursor-pointer"
+            title="Refresh jobs"
+            aria-label="Refresh jobs"
+          >
+            <FiRefreshCw className={`w-4 h-4 transition-transform ${isRefreshing ? 'animate-spin text-indigo-600' : ''}`} />
+          </button>
+        </div>
       </div>
 
-      {/* Table Container */}
-      <div className="overflow-x-auto mobile-touch-scroll flex-1">
-        <table className="w-full text-left text-xs border border-slate-100 min-w-[450px]">
-          <thead>
-            <tr className="border-b border-slate-200 text-slate-700 font-bold text-xs bg-slate-50/50">
-              <th className="py-3 px-4 border-r border-slate-100 w-24">ID #</th>
-              <th className="py-3 px-4 border-r border-slate-100">Client</th>
-              <th className="py-3 px-4 border-r border-slate-100">Folder</th>
-              <th className="py-3 px-4 border-r border-slate-100">Output</th>
-              <th className="py-3 px-4">QC Pending</th>
+      {/* 2-Axis Scroll Table Container */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[380px] custom-scrollbar touch-pan-x touch-pan-y flex-1" data-lenis-prevent>
+        <table className="w-full text-left text-xs border border-slate-100 min-w-[480px]">
+          <thead className="sticky top-0 z-10 bg-slate-50 shadow-2xs">
+            <tr className="border-b border-slate-200 text-slate-700 font-bold text-xs bg-slate-50">
+              <th className="py-2.5 px-4 border-r border-slate-100 w-24 bg-slate-50">ID #</th>
+              <th className="py-2.5 px-4 border-r border-slate-100 bg-slate-50">Client</th>
+              <th className="py-2.5 px-4 border-r border-slate-100 bg-slate-50">Folder</th>
+              <th className="py-2.5 px-4 border-r border-slate-100 bg-slate-50">Output</th>
+              <th className="py-2.5 px-4 bg-slate-50">QC Pending</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
-            {jobs.length === 0 ? (
+            {displayJobs.length === 0 ? (
               <tr>
                 <td colSpan={5} className="py-12 text-center text-slate-400 font-medium">
-                  No jobs logged for today yet.
+                  <div className="text-slate-500 font-semibold mb-1">No jobs logged for today yet.</div>
+                  <div className="text-xs text-slate-400">Dashboard is ready for the new day's shift (06:00 AM – 05:59 AM).</div>
                 </td>
               </tr>
             ) : (
-              jobs.slice(0, 15).map((job) => {
+              displayJobs.slice(0, 30).map((job) => {
                 const qcPendingCount = (job.stages?.fc?.status === 'Complete' || job.stages?.qc?.status === 'Complete') ? 0 : 1;
                 return (
                   <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">

@@ -3,6 +3,7 @@ import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import { FiCalendar, FiClock, FiX, FiCheck, FiAlertCircle, FiUserCheck, FiPhone, FiSun } from 'react-icons/fi';
 import { formatDateDMY, calculateWorkingDays, countSundays, isSunday } from '../../utils/dateUtils';
+import DatePickerDMY from '../common/DatePickerDMY';
 
 export default function ApplyLeaveModal({ isOpen, onClose }) {
   const { applyLeave, editors, getLeaveBalances } = useJobs();
@@ -21,7 +22,6 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
   const [isHalfDay, setIsHalfDay] = useState(false);
   const [halfDayPeriod, setHalfDayPeriod] = useState('First Half');
   const [reason, setReason] = useState('');
-  const [backupEmployee, setBackupEmployee] = useState('');
   const [emergencyContact, setEmergencyContact] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState('');
@@ -40,7 +40,10 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
     return getLeaveBalances(user?.email);
   }, [getLeaveBalances, user]);
 
-  if (!isOpen) return null;
+  const userRole = (user?.role || 'employee').toLowerCase();
+  const isAdmin = userRole === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes(user?.email?.toLowerCase());
+
+  if (!isOpen || isAdmin) return null;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -64,7 +67,7 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
 
     if (calculatedDays > balances.available) {
       const confirmExceed = window.confirm(
-        `You are applying for ${calculatedDays} day(s), but only have ${balances.available} day(s) remaining out of your 18-day annual allowance. Proceed with application for manager review?`
+        `You are applying for ${calculatedDays} day(s), but only have ${balances.available} day(s) remaining out of your ${balances.total || 18}-day annual allowance. Proceed with application for manager review?`
       );
       if (!confirmExceed) return;
     }
@@ -79,18 +82,17 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
         isHalfDay,
         halfDayPeriod: isHalfDay ? halfDayPeriod : null,
         reason: reason.trim(),
-        backupEmployee,
         emergencyContact,
       });
 
       // Reset form
       setReason('');
-      setBackupEmployee('');
       setEmergencyContact('');
       setIsHalfDay(false);
       onClose();
     } catch (err) {
-      setErrorMsg(err.message || 'Failed to submit leave request.');
+      const serverMsg = err.response?.data?.message;
+      setErrorMsg(serverMsg || err.message || 'Failed to submit leave request.');
     } finally {
       setIsSubmitting(false);
     }
@@ -188,19 +190,18 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
             )}
           </div>
 
-          {/* Date Pickers */}
+          {/* Date Pickers strictly in DD/MM/YYYY */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
             <div>
               <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                 {isHalfDay ? 'Leave Date' : 'Start Date'} <span className="text-rose-500">*</span>
               </label>
-              <input
-                type="date"
+              <DatePickerDMY
                 value={startDate}
-                onChange={(e) => {
-                  setStartDate(e.target.value);
-                  if (isHalfDay || endDate < e.target.value) {
-                    setEndDate(e.target.value);
+                onChange={(newDate) => {
+                  setStartDate(newDate);
+                  if (isHalfDay || endDate < newDate) {
+                    setEndDate(newDate);
                   }
                 }}
                 className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-medium transition-all min-h-[44px]"
@@ -213,11 +214,10 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
                 <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
                   End Date <span className="text-rose-500">*</span>
                 </label>
-                <input
-                  type="date"
+                <DatePickerDMY
                   value={endDate}
                   min={startDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  onChange={(newDate) => setEndDate(newDate)}
                   className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2.5 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white font-mono font-medium transition-all min-h-[44px]"
                   required
                 />
@@ -265,40 +265,18 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
             )}
           </div>
 
-          {/* Handover / Backup Colleague */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Work Handover Colleague
-              </label>
-              <select
-                value={backupEmployee}
-                onChange={(e) => setBackupEmployee(e.target.value)}
-                className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:bg-white font-medium transition-all min-h-[44px] cursor-pointer"
-              >
-                <option value="">Select backup colleague</option>
-                {editors
-                  .filter((ed) => ed.email?.toLowerCase() !== user?.email?.toLowerCase())
-                  .map((ed) => (
-                    <option key={ed.id} value={ed.name}>
-                      {ed.name} ({ed.role})
-                    </option>
-                  ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                Emergency Contact (Optional)
-              </label>
-              <input
-                type="text"
-                placeholder="+91 98765 43210"
-                value={emergencyContact}
-                onChange={(e) => setEmergencyContact(e.target.value)}
-                className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:bg-white font-medium transition-all min-h-[44px]"
-              />
-            </div>
+          {/* Emergency Contact */}
+          <div>
+            <label className="block text-xs sm:text-sm font-bold text-slate-700 uppercase tracking-wider mb-1.5">
+              Emergency Contact (Optional)
+            </label>
+            <input
+              type="text"
+              placeholder="+91 98765 43210"
+              value={emergencyContact}
+              onChange={(e) => setEmergencyContact(e.target.value)}
+              className="w-full bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3.5 py-2.5 text-xs sm:text-sm focus:outline-none focus:border-indigo-500 focus:bg-white font-medium transition-all min-h-[44px]"
+            />
           </div>
 
           {/* Reason for Leave */}

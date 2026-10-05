@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { FiX, FiClock, FiUser, FiCalendar, FiFileText } from 'react-icons/fi';
 import { useJobs } from '../../context/JobContext';
+import DatePickerDMY from '../common/DatePickerDMY';
 
 const toLocalInput = (isoStr) => {
   if (!isoStr) return '';
@@ -139,11 +140,10 @@ export default function WorkSessionModal({ isOpen, onClose, editingSession }) {
               <label className="block text-slate-700 dark:text-slate-300 font-bold mb-1 flex items-center gap-1.5">
                 <FiCalendar className="w-3.5 h-3.5 text-indigo-500 shrink-0" /> Date
               </label>
-              <input
-                type="date"
+              <DatePickerDMY
                 required
                 value={formData.date}
-                onChange={(e) => setFormData({ ...formData, date: e.target.value })}
+                onChange={(newDate) => setFormData({ ...formData, date: newDate })}
                 className="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-xl px-3 py-2 text-base sm:text-xs min-h-[42px] sm:min-h-0 text-slate-900 dark:text-white font-mono focus:outline-none focus:border-indigo-500"
               />
             </div>

@@ -171,7 +171,7 @@ export default function ManagementPage() {
     e.preventDefault();
     const cleanName = empName.trim();
     if (!cleanName) return;
-    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@vistaeditz.com`;
+    const cleanEmail = empEmail.trim() || `${cleanName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employee'}@aszen.com`;
     const isDev = empRole === 'Developer';
     const finalPerms = isDev
       ? {
@@ -384,9 +384,6 @@ export default function ManagementPage() {
                   <h3 className="text-xs font-bold text-slate-800 uppercase tracking-wider">
                     Add New Employee Record (Created Once &amp; Persisted)
                   </h3>
-                  <span className="text-[11px] text-emerald-600 font-bold bg-emerald-50 px-2.5 py-0.5 rounded-full border border-emerald-200">
-                    Auto-Persisted to Cloud &amp; Local Store
-                  </span>
                 </div>
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                   <div>
@@ -410,10 +407,10 @@ export default function ManagementPage() {
                     >
                       <option value="Editor">Editor</option>
                       <option value="Senior Editor">Senior Editor</option>
-                      <option value="Pather">Pather</option>
+                      <option value="Path Editor">Path Editor</option>
+                      <option value="Manager">Manager</option>
                       <option value="QC Lead">QC Lead</option>
-                      <option value="Project Manager">Project Manager</option>
-                      <option value="Developer">Developer (Shift Attendance &amp; Leave Tracking)</option>
+                      <option value="Developer">Developer</option>
                     </select>
                   </div>
 
@@ -423,7 +420,7 @@ export default function ManagementPage() {
                     </label>
                     <input
                       type="email"
-                      placeholder="e.g. employee@vistaeditz.com"
+                      placeholder={empName ? `${empName.toLowerCase().replace(/[^a-z0-9]/g, '') || 'employeename'}@aszen.com` : 'employeename@aszen.com'}
                       value={empEmail}
                       onChange={(e) => setEmpEmail(e.target.value)}
                       className="w-full bg-white border border-slate-200 rounded-xl px-3 py-2 text-base sm:text-xs text-slate-800 focus:outline-none focus:border-indigo-500 min-h-[42px] sm:min-h-0"

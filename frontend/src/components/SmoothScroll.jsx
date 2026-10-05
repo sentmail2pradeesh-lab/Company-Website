@@ -25,10 +25,10 @@ export default function SmoothScroll({ children }) {
       }
       document.documentElement.classList.remove('lenis', 'lenis-smooth', 'lenis-stopped');
       document.body.classList.remove('lenis', 'lenis-smooth', 'lenis-stopped');
-      document.documentElement.style.overflowY = 'auto';
-      document.documentElement.style.overflowX = 'hidden';
-      document.body.style.overflowY = 'visible';
-      document.body.style.overflowX = 'hidden';
+      document.documentElement.style.overflowY = '';
+      document.documentElement.style.overflowX = '';
+      document.body.style.overflowY = '';
+      document.body.style.overflowX = '';
       return;
     }
 

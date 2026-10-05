@@ -94,11 +94,34 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(path1_stage.assignee, 'Sarah Path')
 
     def test_leave_request_flow(self):
-        token = self.get_admin_token()
-        headers = {'Authorization': f'Bearer {token}'}
+        admin_token = self.get_admin_token()
+        admin_headers = {'Authorization': f'Bearer {admin_token}'}
 
-        # 1. Apply for leave
-        res = self.client.post('/api/leaves', headers=headers, json={
+        # 1. Admin CANNOT apply for leave (403 forbidden)
+        admin_apply_res = self.client.post('/api/leaves', headers=admin_headers, json={
+            'leaveType': 'Leave',
+            'startDate': '2026-10-05',
+            'endDate': '2026-10-06',
+            'days': 2,
+            'reason': 'Admin personal leave'
+        })
+        self.assertEqual(admin_apply_res.status_code, 403)
+
+        # 2. Employee applies for leave
+        self.client.post('/api/auth/register', json={
+            'name': 'Employee Tester',
+            'email': 'emptester@aszen.com',
+            'password': 'Password@123',
+            'designation': 'Editor'
+        })
+        login_res = self.client.post('/api/auth/login', json={
+            'email': 'emptester@aszen.com',
+            'password': 'Password@123'
+        })
+        emp_token = login_res.get_json()['token']
+        emp_headers = {'Authorization': f'Bearer {emp_token}'}
+
+        res = self.client.post('/api/leaves', headers=emp_headers, json={
             'leaveType': 'Leave',
             'startDate': '2026-10-05',
             'endDate': '2026-10-06',
@@ -114,14 +137,14 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(leave['days'], 2)
         leave_id = leave['id']
 
-        # 2. List leaves
-        res_list = self.client.get('/api/leaves', headers=headers)
+        # 3. List leaves
+        res_list = self.client.get('/api/leaves', headers=admin_headers)
         self.assertEqual(res_list.status_code, 200)
         leaves_data = res_list.get_json()['leaveRequests']
         self.assertTrue(any(l['id'] == leave_id for l in leaves_data))
 
-        # 3. Approve leave
-        patch_res = self.client.patch(f'/api/leaves/{leave_id}/status', headers=headers, json={
+        # 4. Admin approves leave
+        patch_res = self.client.patch(f'/api/leaves/{leave_id}/status', headers=admin_headers, json={
             'status': 'Approved',
             'managerNotes': 'Approved, have a great time.'
         })
@@ -129,6 +152,22 @@ class BackendTestSuite(unittest.TestCase):
         updated_leave = patch_res.get_json()['leaveRequest']
         self.assertEqual(updated_leave['status'], 'Approved')
         self.assertEqual(updated_leave['managerNotes'], 'Approved, have a great time.')
+
+        # 5. Case-insensitive balance check
+        bal_res = self.client.get('/api/leaves/balances/EMPTESTER@ASZEN.COM', headers=emp_headers)
+        self.assertEqual(bal_res.status_code, 200)
+        bal_data = bal_res.get_json()['balances']
+        self.assertEqual(bal_data['used'], 2.0)
+        self.assertEqual(bal_data['available'], 16.0)
+
+        # 6. Date validation: End date earlier than start date returns 400
+        invalid_res = self.client.post('/api/leaves', headers=emp_headers, json={
+            'startDate': '2026-10-20',
+            'endDate': '2026-10-15',
+            'reason': 'Bad dates'
+        })
+        self.assertEqual(invalid_res.status_code, 400)
+        self.assertIn('earlier', invalid_res.get_json()['message'])
 
     def test_developer_role_and_permissions(self):
         admin_token = self.get_admin_token()

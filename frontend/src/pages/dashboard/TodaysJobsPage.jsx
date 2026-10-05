@@ -10,11 +10,14 @@ import {
   FiTrash2,
   FiRefreshCw,
   FiUserPlus,
+  FiCalendar,
 } from 'react-icons/fi';
+import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel } from '../../utils/dateUtils';
+import DatePickerDMY from '../../components/common/DatePickerDMY';
 
 export default function TodaysJobsPage() {
   const navigate = useNavigate();
-  const { jobs, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob, canUpdateStage, refreshData } = useJobs();
+  const { jobs, todaysJobs, operationalDate, setTimerModalState, setClientModalState, setAssignModalState, deleteJob, canAssignJob, canUpdateStage, refreshData } = useJobs();
 
   const [searchTerm, setSearchTerm] = useState('');
   const [entriesPerPage, setEntriesPerPage] = useState(10);
@@ -23,6 +26,10 @@ export default function TodaysJobsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [editModalState, setEditModalState] = useState(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Operational Shift Date filter (defaults to today's 6:00 AM - 5:59 AM operational day)
+  const [selectedDate, setSelectedDate] = useState(() => getOperationalDate());
+  const [viewMode, setViewMode] = useState('shift'); // 'shift' (single day) or 'all' (all history)
 
   const handleRefresh = async () => {
     setIsRefreshing(true);
@@ -46,8 +53,14 @@ export default function TodaysJobsPage() {
     return `${secs}s`;
   };
 
-  // Filter jobs based on search term, status filter (All, Pending, In-Progress, Complete), and stage dropdown (Blending -> FC)
+  // Filter jobs based on operational shift date, search term, status filter, and stage dropdown
   const filteredJobs = jobs.filter((job) => {
+    // 0. Operational Shift Date Filter (6:00 AM - 5:59 AM)
+    if (viewMode === 'shift') {
+      const jobOp = job.operationalDate || getOperationalDate(job.createdAt || job.clientEntryTime);
+      if (jobOp !== selectedDate) return false;
+    }
+
     const matchesSearch =
       job.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
       job.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -255,10 +268,52 @@ export default function TodaysJobsPage() {
           </div>
         </div>
 
-        {/* Jobs Data Table */}
-        <div className="overflow-x-auto mobile-touch-scroll">
+        {/* Operational Shift & Historical Date Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs sm:text-sm">
+          <div className="flex items-center gap-2.5">
+            <span className="font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+              <FiCalendar className="w-4 h-4 text-indigo-600" /> Shift Date:
+            </span>
+            <div className="w-36">
+              <DatePickerDMY
+                value={selectedDate}
+                onChange={(newDate) => {
+                  setSelectedDate(newDate);
+                  setViewMode('shift');
+                }}
+                className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setViewMode(viewMode === 'all' ? 'shift' : 'all')}
+              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                viewMode === 'all'
+                  ? 'bg-slate-900 text-white shadow-xs'
+                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+              }`}
+            >
+              {viewMode === 'all' ? 'Showing: All History' : 'Show All History'}
+            </button>
+          </div>
+
+          <div className="text-xs text-slate-500 font-medium">
+            {viewMode === 'shift' ? (
+              <span>
+                Viewing {filteredJobs.length} job(s) for <strong className="text-slate-800">{formatDateDMY(selectedDate)}</strong>
+              </span>
+            ) : (
+              <span>
+                Viewing <strong className="text-slate-800">All Historical Jobs</strong> ({filteredJobs.length} total)
+              </span>
+            )}
+          </div>
+        </div>
+
+        {/* Jobs Data Table with 2-axis scrolling (horizontal & vertical) */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[620px] custom-scrollbar touch-pan-x touch-pan-y rounded-xl border border-slate-200" data-lenis-prevent>
           <table className="w-full text-left text-xs sm:text-sm min-w-[950px]">
-            <thead className="bg-slate-900 text-white uppercase tracking-wider font-bold border-b border-slate-800 text-[11px] sm:text-xs">
+            <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-bold border-b border-slate-800 text-[11px] sm:text-xs shadow-xs">
               <tr>
                 <th className="py-3.5 px-3.5">ID #</th>
                 <th className="py-3.5 px-3.5">Client</th>

@@ -105,8 +105,6 @@ html.light {
   html {
     scroll-behavior: smooth;
     -webkit-text-size-adjust: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
   }
 
   html.lenis, html.lenis body {
@@ -125,16 +123,6 @@ html.light {
     overflow: hidden;
   }
 
-  html:not(.lenis) {
-    overflow-y: auto !important;
-    overflow-x: hidden;
-  }
-
-  html:not(.lenis) body {
-    overflow-y: visible !important;
-    overflow-x: hidden;
-  }
-
   .lenis.lenis-smooth iframe {
     pointer-events: none;
   }
@@ -143,8 +131,6 @@ html.light {
     font-family: var(--font-sans);
     background-color: var(--color-obsidian);
     color: var(--color-slate);
-    overflow-x: hidden;
-    overflow-y: visible;
     min-height: 100vh;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
@@ -316,6 +302,32 @@ html.light {
   .mobile-touch-scroll {
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+  }
+
+  .custom-scrollbar {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(148, 163, 184, 0.6) rgba(241, 245, 249, 0.4);
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-track {
+    background: rgba(241, 245, 249, 0.5);
+    border-radius: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: rgba(148, 163, 184, 0.6);
+    border-radius: 8px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+    background: rgba(99, 102, 241, 0.8);
   }
 
   /* Safe area padding for edge-to-edge mobile devices */

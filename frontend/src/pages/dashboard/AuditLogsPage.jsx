@@ -120,10 +120,10 @@ export default function AuditLogsPage() {
           <span className="text-xs font-bold text-slate-500 px-2 shrink-0">{filteredLogs.length} Records</span>
         </div>
 
-        {/* Logs Table */}
-        <div className="overflow-x-auto mobile-touch-scroll">
+        {/* Logs Table with 2-axis scrolling (horizontal & vertical) */}
+        <div className="overflow-x-auto overflow-y-auto max-h-[600px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
           <table className="w-full text-left text-xs text-slate-600 min-w-[700px]">
-            <thead className="bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200">
+            <thead className="sticky top-0 z-10 bg-slate-50 text-slate-500 font-bold uppercase tracking-wider text-[11px] border-b border-slate-200 shadow-2xs">
               <tr>
                 <th className="py-3.5 px-6">Timestamp</th>
                 <th className="py-3.5 px-4">Action</th>

@@ -10,13 +10,13 @@ export default function DashboardOverview() {
       {/* Two Column Layout matching exact user screenshot with My Activity included */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column (5/12): Jobs Metric Cards Box + Tasks Overview Box */}
-        <div className="lg:col-span-5 space-y-6">
+        <div className="lg:col-span-5 min-w-0 space-y-6">
           <StatCards />
           <TasksOverviewTable />
         </div>
 
         {/* Right Column (7/12): Today jobs Box + My Activity Box */}
-        <div className="lg:col-span-7 space-y-6">
+        <div className="lg:col-span-7 min-w-0 space-y-6">
           <TodaysJobsSummary />
           <MyActivitySection />
         </div>

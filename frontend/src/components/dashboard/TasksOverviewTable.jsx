@@ -2,9 +2,10 @@ import { useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
 
 export default function TasksOverviewTable() {
-  const { jobs, assignableEditors: rawAssignable, editors } = useJobs();
+  const { todaysJobs, jobs, assignableEditors: rawAssignable, editors, operationalDate } = useJobs();
+  const activeJobs = todaysJobs || jobs;
 
-  // Compute live workload matrix per editor matching screenshot (excludes developers)
+  // Compute live workload matrix per editor for today's operational shift (excludes developers)
   const editorWorkload = useMemo(() => {
     const productionStaff = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
     return productionStaff.map((editor) => {
@@ -13,7 +14,7 @@ export default function TasksOverviewTable() {
       let editingCount = 0;
       let lcFcCount = 0;
 
-      jobs.forEach((j) => {
+      activeJobs.forEach((j) => {
         const stages = j.stages || {};
 
         // Check Blending
@@ -58,26 +59,26 @@ export default function TasksOverviewTable() {
         lc: lcFcCount,
       };
     });
-  }, [jobs, editors]);
+  }, [activeJobs, editors, rawAssignable]);
 
   return (
     <div className="bg-white rounded-xl shadow-xs border border-slate-200/80 overflow-hidden">
       {/* Purple Header Banner */}
       <div className="bg-[#834BFF] text-white px-5 py-3.5 font-bold text-base flex justify-between items-center">
         <span>Tasks Overview</span>
-        <span className="text-xs font-medium text-purple-200">Active Workload</span>
+        <span className="text-xs font-medium text-purple-200">Today's Shift</span>
       </div>
 
-      {/* Clean Table Container with vertical scrolling for growing roster */}
-      <div className="overflow-x-auto overflow-y-auto max-h-[380px] mobile-touch-scroll">
-        <table className="w-full text-left text-xs min-w-[320px]">
-          <thead>
-            <tr className="border-b border-slate-200 text-slate-600 font-bold text-[11px] uppercase tracking-wider bg-slate-50/60">
-              <th className="py-2.5 px-4">Editor</th>
-              <th className="py-2.5 px-2 text-center">Blend</th>
-              <th className="py-2.5 px-2 text-center">Path</th>
-              <th className="py-2.5 px-2 text-center">Edit</th>
-              <th className="py-2.5 px-3 text-center">LC/FC</th>
+      {/* Clean Table Container with 2-axis scrolling (horizontal & vertical) */}
+      <div className="overflow-x-auto overflow-y-auto max-h-[380px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
+        <table className="w-full text-left text-xs min-w-[340px]">
+          <thead className="sticky top-0 z-10 bg-slate-50 border-b border-slate-200 shadow-2xs">
+            <tr className="text-slate-600 font-bold text-[11px] uppercase tracking-wider">
+              <th className="py-2.5 px-4 bg-slate-50">Editor</th>
+              <th className="py-2.5 px-2 text-center bg-slate-50">Blend</th>
+              <th className="py-2.5 px-2 text-center bg-slate-50">Path</th>
+              <th className="py-2.5 px-2 text-center bg-slate-50">Edit</th>
+              <th className="py-2.5 px-3 text-center bg-slate-50">LC/FC</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100 font-medium text-slate-700">

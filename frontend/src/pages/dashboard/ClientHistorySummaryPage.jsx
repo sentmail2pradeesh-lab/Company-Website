@@ -12,6 +12,7 @@ import {
   FiBriefcase,
   FiLayers,
 } from 'react-icons/fi';
+import DatePickerDMY from '../../components/common/DatePickerDMY';
 
 export default function ClientHistorySummaryPage() {
   const { jobs, editors, clients } = useJobs();
@@ -250,10 +251,9 @@ export default function ClientHistorySummaryPage() {
               <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                 Select Date
               </label>
-              <input
-                type="date"
+              <DatePickerDMY
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
+                onChange={(d) => setSelectedDate(d)}
                 className="w-full bg-slate-50 text-slate-800 font-bold border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
               />
             </div>
@@ -296,10 +296,9 @@ export default function ClientHistorySummaryPage() {
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                   Start Date
                 </label>
-                <input
-                  type="date"
+                <DatePickerDMY
                   value={startDate}
-                  onChange={(e) => setStartDate(e.target.value)}
+                  onChange={(d) => setStartDate(d)}
                   className="w-full bg-slate-50 text-slate-800 font-bold border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 />
               </div>
@@ -307,10 +306,10 @@ export default function ClientHistorySummaryPage() {
                 <label className="block text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">
                   End Date
                 </label>
-                <input
-                  type="date"
+                <DatePickerDMY
                   value={endDate}
-                  onChange={(e) => setEndDate(e.target.value)}
+                  min={startDate}
+                  onChange={(d) => setEndDate(d)}
                   className="w-full bg-slate-50 text-slate-800 font-bold border border-slate-200 rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-indigo-500"
                 />
               </div>
