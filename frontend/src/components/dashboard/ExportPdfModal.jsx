@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import {
   FiX,
   FiPrinter,
@@ -43,6 +43,16 @@ const PRESETS = {
   },
 };
 
+const escapeHtml = (str) => {
+  if (str === null || str === undefined) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 export default function ExportPdfModal({ isOpen, onClose, data = [], defaultTitle = '' }) {
   const [reportTitle, setReportTitle] = useState(
     defaultTitle || `September 2026`
@@ -52,6 +62,12 @@ export default function ExportPdfModal({ isOpen, onClose, data = [], defaultTitl
   const [orientation, setOrientation] = useState('landscape'); // 'landscape' | 'portrait'
   const [selectedColumns, setSelectedColumns] = useState(['inputDate', 'propertyName', 'service', 'numberOfImages', 'comments']);
   const [activePreset, setActivePreset] = useState('googleSheet');
+
+  useEffect(() => {
+    if (isOpen && defaultTitle) {
+      setReportTitle(defaultTitle);
+    }
+  }, [isOpen, defaultTitle]);
 
   if (!isOpen) return null;
 
@@ -256,7 +272,7 @@ export default function ExportPdfModal({ isOpen, onClose, data = [], defaultTitl
                   ${activeCols
                     .map((col) => {
                       const val = getCellValue(row, col.id);
-                      return `<td class="${col.align === 'center' ? 'text-center' : ''}">${val !== undefined && val !== null ? val : ''}</td>`;
+                      return `<td class="${col.align === 'center' ? 'text-center' : ''}">${escapeHtml(val !== undefined && val !== null ? val : '')}</td>`;
                     })
                     .join('')}
                 </tr>`
@@ -264,13 +280,25 @@ export default function ExportPdfModal({ isOpen, onClose, data = [], defaultTitl
                 .join('')}
             </tbody>
             <tfoot>
-              <tr>
-                <td colspan="${Math.max(1, activeCols.findIndex((c) => c.id === 'numberOfImages'))}">
-                  Total Summary
-                </td>
-                <td class="text-center font-bold">${totalImages}</td>
-                ${activeCols.length > activeCols.findIndex((c) => c.id === 'numberOfImages') + 1 ? `<td colspan="${activeCols.length - (activeCols.findIndex((c) => c.id === 'numberOfImages') + 1)}"></td>` : ''}
-              </tr>
+              ${(() => {
+                const imgColIdx = activeCols.findIndex((c) => c.id === 'numberOfImages');
+                if (imgColIdx !== -1) {
+                  const preColspan = imgColIdx;
+                  const postColspan = activeCols.length - imgColIdx - 1;
+                  return `
+                    <tr>
+                      ${preColspan > 0 ? `<td colspan="${preColspan}">Total Summary</td>` : `<td>Total</td>`}
+                      <td class="text-center font-bold">${totalImages}</td>
+                      ${postColspan > 0 ? `<td colspan="${postColspan}"></td>` : ''}
+                    </tr>
+                  `;
+                }
+                return `
+                  <tr>
+                    <td colspan="${activeCols.length}">Total Records: ${data.length}</td>
+                  </tr>
+                `;
+              })()}
             </tfoot>
           </table>
           <div class="footer-note">

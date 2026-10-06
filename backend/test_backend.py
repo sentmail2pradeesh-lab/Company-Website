@@ -236,7 +236,95 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(client['code'], 'LUX')
         self.assertEqual(client['name'], 'LUX')
 
+    def test_production_sheet_creation_and_import(self):
+        admin_token = self.get_admin_token()
+        headers = {'Authorization': f'Bearer {admin_token}'}
+
+        # 1. Create single production sheet entry
+        create_res = self.client.post('/api/jobs/production-sheets', headers=headers, json={
+            'date': '2026-10-06',
+            'inputDate': '2026-10-06',
+            'propertyName': '123 Ocean View Drive',
+            'service': 'Dusk Retouch',
+            'numberOfImages': 42,
+            'comments': 'Fast delivery requested',
+            'client': 'BE',
+            'editorName': 'Staff Editor',
+            'activeMinutes': 35
+        })
+        self.assertEqual(create_res.status_code, 201)
+        sheet = create_res.get_json().get('sheet') or create_res.get_json().get('entry')
+        self.assertEqual(sheet['propertyName'], '123 Ocean View Drive')
+        self.assertEqual(sheet['service'], 'Dusk Retouch')
+        self.assertEqual(sheet['numberOfImages'], 42)
+        self.assertEqual(sheet['comments'], 'Fast delivery requested')
+        self.assertEqual(sheet['client'], 'BE')
+
+        # 2. Batch import production sheets
+        import_res = self.client.post('/api/jobs/production-sheets/import', headers=headers, json={
+            'sheets': [
+                {
+                    'inputDate': '2026-09-15',
+                    'propertyName': '456 Hilltop Terrace Unit #12',
+                    'service': 'RE Editing',
+                    'numberOfImages': 55,
+                    'comments': 'Special exposure fix',
+                    'client': 'PR',
+                    'editorName': 'Alex'
+                },
+                {
+                    'inputDate': '2026-09-16',
+                    'propertyName': '789 Sunset Blvd',
+                    'service': 'Virtual Staging',
+                    'numberOfImages': 18,
+                    'comments': '',
+                    'client': 'CE',
+                    'editorName': 'Sam'
+                }
+            ]
+        })
+        self.assertEqual(import_res.status_code, 201)
+        import_data = import_res.get_json()
+        self.assertEqual(import_data['count'], 2)
+
+        # 3. Fetch all production sheets and verify fields
+        get_res = self.client.get('/api/jobs/production-sheets', headers=headers)
+        self.assertEqual(get_res.status_code, 200)
+        all_sheets = get_res.get_json()['productionSheets']
+        self.assertGreaterEqual(len(all_sheets), 3)
+
+        # Find the imported row with # in address to verify special character resilience
+        hilltop = next((s for s in all_sheets if '456 Hilltop' in (s.get('propertyName') or '')), None)
+        self.assertIsNotNone(hilltop)
+        self.assertEqual(hilltop['client'], 'PR')
+        self.assertEqual(hilltop['numberOfImages'], 55)
+        self.assertEqual(hilltop['comments'], 'Special exposure fix')
+
+    def test_work_session_tracking_and_stats(self):
+        admin_token = self.get_admin_token()
+        headers = {'Authorization': f'Bearer {admin_token}'}
+
+        # 1. Create a manual work session
+        ws_res = self.client.post('/api/work-hours/manual', headers=headers, json={
+            'user_name': 'Test Staff',
+            'user_email': 'teststaff@aszen.com',
+            'date': '2026-10-06',
+            'login_time': '2026-10-06T09:00:00.000Z',
+            'logout_time': '2026-10-06T17:30:00.000Z',
+            'notes': 'Full shift completed'
+        })
+        self.assertEqual(ws_res.status_code, 201)
+        ws_id = ws_res.get_json()['session']['id']
+
+        # 2. Get work sessions
+        list_res = self.client.get('/api/work-hours/all', headers=headers)
+        self.assertEqual(list_res.status_code, 200)
+        sessions = list_res.get_json()['sessions']
+        self.assertTrue(any(s['id'] == ws_id for s in sessions))
+
+
 
 if __name__ == '__main__':
     unittest.main()
+
 

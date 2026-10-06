@@ -273,27 +273,35 @@ export default function ProductionSheetsPage() {
     }
   };
 
+  const escapeCsvVal = (val) => {
+    if (val === null || val === undefined) return '""';
+    const str = String(val).replace(/"/g, '""');
+    return `"${str}"`;
+  };
+
   const exportToCSV = () => {
     const headers = ['Date', 'Employee', 'Email', 'Role', 'Login Time', 'Logout Time', 'Total Hours', 'Status', 'Notes'];
     const rows = filteredWorkSessions.map((s) => [
-      s.date,
-      s.user_name,
-      s.user_email,
-      s.user_role,
-      formatTime(s.login_time),
-      formatTime(s.logout_time),
-      s.total_hours,
-      s.status,
-      `"${s.notes || ''}"`,
+      escapeCsvVal(s.date || ''),
+      escapeCsvVal(s.user_name || ''),
+      escapeCsvVal(s.user_email || ''),
+      escapeCsvVal(s.user_role || ''),
+      escapeCsvVal(formatTime(s.login_time)),
+      escapeCsvVal(formatTime(s.logout_time)),
+      s.total_hours || 0,
+      escapeCsvVal(s.status || ''),
+      escapeCsvVal(s.notes || ''),
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.href = url;
     link.setAttribute('download', `working_hours_sheet_${new Date().toISOString().slice(0, 10)}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
 
   const exportProductionSheetsToCSV = () => {
@@ -316,27 +324,30 @@ export default function ProductionSheetsPage() {
       'Status',
     ];
     const rows = dataToExport.map((s) => [
-      `"${s.inputDate || s.date || ''}"`,
-      `"${s.propertyName || s.name || 'untitled folder'}"`,
-      `"${s.service || s.stage || 'RE Editing'}"`,
+      escapeCsvVal(s.inputDate || s.date || ''),
+      escapeCsvVal(s.propertyName || s.name || 'untitled folder'),
+      escapeCsvVal(s.service || s.stage || 'RE Editing'),
       s.numberOfImages !== undefined ? s.numberOfImages : s.filesProcessed || 0,
-      `"${s.comments || ''}"`,
-      s.jobId ? `#${s.jobId}` : '',
-      `"${s.client || ''}"`,
-      `"${s.editorName || ''}"`,
-      `"${s.role || s.stage || ''}"`,
+      escapeCsvVal(s.comments || ''),
+      escapeCsvVal(s.jobId ? `#${s.jobId}` : ''),
+      escapeCsvVal(s.client || ''),
+      escapeCsvVal(s.editorName || ''),
+      escapeCsvVal(s.role || s.stage || ''),
       s.activeMinutes || 0,
-      `"${s.status || 'Verified'}"`,
+      escapeCsvVal(s.status || 'Verified'),
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.href = url;
     link.setAttribute('download', `production_sheet_${fileLabel}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+
 
   return (
     <div className="space-y-6 animate-fadeIn">

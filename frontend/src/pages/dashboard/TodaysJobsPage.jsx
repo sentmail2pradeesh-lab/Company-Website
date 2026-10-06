@@ -62,35 +62,44 @@ export default function TodaysJobsPage() {
       'FC Assignee',
       'FC Status',
     ];
+    const escapeCsvVal = (val) => {
+      if (val === null || val === undefined) return '""';
+      const str = String(val).replace(/"/g, '""');
+      return `"${str}"`;
+    };
+
     const rows = filteredJobs.map((j) => [
-      `"${j.id}"`,
-      `"${j.client || ''}"`,
-      `"${j.name || ''}"`,
+      escapeCsvVal(j.id || ''),
+      escapeCsvVal(j.client || ''),
+      escapeCsvVal(j.name || ''),
       j.outputTarget || 0,
-      `"${j.stages?.blending?.assignee || ''}"`,
-      `"${j.stages?.blending?.status || ''}"`,
-      `"${j.stages?.path1?.assignee || ''}"`,
-      `"${j.stages?.path1?.status || ''}"`,
-      `"${j.stages?.path2?.assignee || ''}"`,
-      `"${j.stages?.path2?.status || ''}"`,
-      `"${j.stages?.editor1?.assignee || ''}"`,
-      `"${j.stages?.editor1?.status || ''}"`,
-      `"${j.stages?.editor2?.assignee || ''}"`,
-      `"${j.stages?.editor2?.status || ''}"`,
-      `"${j.stages?.lc?.assignee || ''}"`,
-      `"${j.stages?.lc?.status || ''}"`,
-      `"${j.stages?.fc?.assignee || ''}"`,
-      `"${j.stages?.fc?.status || ''}"`,
+      escapeCsvVal(j.stages?.blending?.assignee || ''),
+      escapeCsvVal(j.stages?.blending?.status || ''),
+      escapeCsvVal(j.stages?.path1?.assignee || ''),
+      escapeCsvVal(j.stages?.path1?.status || ''),
+      escapeCsvVal(j.stages?.path2?.assignee || ''),
+      escapeCsvVal(j.stages?.path2?.status || ''),
+      escapeCsvVal(j.stages?.editor1?.assignee || ''),
+      escapeCsvVal(j.stages?.editor1?.status || ''),
+      escapeCsvVal(j.stages?.editor2?.assignee || ''),
+      escapeCsvVal(j.stages?.editor2?.status || ''),
+      escapeCsvVal(j.stages?.lc?.assignee || ''),
+      escapeCsvVal(j.stages?.lc?.status || ''),
+      escapeCsvVal(j.stages?.fc?.assignee || ''),
+      escapeCsvVal(j.stages?.fc?.status || ''),
     ]);
-    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
-    const encodedUri = encodeURI(csvContent);
+    const csvContent = '\uFEFF' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\r\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
+    link.href = url;
     link.setAttribute('download', `jobs_shift_${selectedDate || 'all'}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
   };
+
 
   // Helper to format working time below stage name/pill
   const getStageWorkingTime = (stageObj) => {

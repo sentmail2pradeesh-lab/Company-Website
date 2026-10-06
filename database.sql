@@ -103,17 +103,21 @@ CREATE TABLE `job_stages` (
 CREATE TABLE `production_sheets` (
   `id` INT AUTO_INCREMENT PRIMARY KEY,
   `date` VARCHAR(10) NOT NULL,
-  `editor_name` VARCHAR(255) NOT NULL,
-  `role` VARCHAR(100) NOT NULL,
-  `job_id` VARCHAR(50) NOT NULL,
-  `client` VARCHAR(50) NOT NULL,
-  `stage` VARCHAR(50) NOT NULL,
+  `property_name` VARCHAR(255) DEFAULT '',
+  `service` VARCHAR(100) DEFAULT 'RE Editing',
+  `comments` TEXT DEFAULT NULL,
+  `editor_name` VARCHAR(255) DEFAULT 'Staff',
+  `role` VARCHAR(100) DEFAULT 'Editor',
+  `job_id` VARCHAR(50) DEFAULT '',
+  `client` VARCHAR(50) DEFAULT 'BE',
+  `stage` VARCHAR(50) DEFAULT 'RE Editing',
   `files_processed` INT DEFAULT 0,
   `active_minutes` INT DEFAULT 0,
   `pause_minutes` INT DEFAULT 0,
   `status` VARCHAR(50) DEFAULT 'Verified',
   `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP,
-  INDEX `idx_prod_date` (`date`)
+  INDEX `idx_prod_date` (`date`),
+  INDEX `idx_prod_client` (`client`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------------------

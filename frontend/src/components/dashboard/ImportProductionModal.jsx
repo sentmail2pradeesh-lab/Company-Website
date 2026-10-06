@@ -84,6 +84,22 @@ export default function ImportProductionModal({
 
   if (!isOpen) return null;
 
+  // Robust delimiter parser supporting Tabs and quoted CSV commas
+  const parseDelimitedLine = (line) => {
+    if (line.includes('\t')) {
+      return line.split('\t').map((p) => p.trim().replace(/^["']|["']$/g, ''));
+    }
+    // Regex supporting quoted CSV tokens with embedded commas
+    const regex = /(?:^|,)(?:"([^"]*(?:""[^"]*)*)"|([^,]*))/g;
+    const parts = [];
+    let match;
+    while ((match = regex.exec(line)) !== null) {
+      let val = match[1] !== undefined ? match[1].replace(/""/g, '"') : match[2];
+      parts.push((val || '').trim());
+    }
+    return parts;
+  };
+
   // Helper to parse pasted raw text (supports Tab-delimited from Google Sheets/Excel or Comma-delimited CSV)
   const parseRawText = (text, clientToUse = effectiveClient) => {
     setErrorMessage('');
@@ -97,9 +113,7 @@ export default function ImportProductionModal({
 
     for (let i = 0; i < lines.length; i++) {
       const line = lines[i];
-      // Detect delimiter: tab (Google Sheets copy) or comma
-      let parts = line.includes('\t') ? line.split('\t') : line.split(',');
-      parts = parts.map((p) => p.trim().replace(/^["']|["']$/g, ''));
+      const parts = parseDelimitedLine(line);
 
       // Check if header row
       const firstLower = (parts[0] || '').toLowerCase();
@@ -108,15 +122,32 @@ export default function ImportProductionModal({
       }
 
       if (parts.length >= 2) {
-        const rawDate = parts[0] || getOperationalDate();
-        const rawProperty = parts[1] || 'untitled folder';
-        const rawService = parts[2] || 'RE Editing';
-        let rawImages = Number(parts[3]) || 0;
-        let rawComments = parts[4] || '';
+        let rawDate = parts[0] || getOperationalDate();
+        let rawProperty = 'untitled folder';
+        let rawService = 'RE Editing';
+        let rawImages = 0;
+        let rawComments = '';
+        let rowClient = clientToUse || 'BE';
 
-        // If user swapped columns (e.g. Date, Property, Images, Service, Comments)
-        if (isNaN(rawImages) && !isNaN(Number(parts[2]))) {
-          rawImages = Number(parts[2]);
+        // Check if format has client column (e.g. Exported format: Date, Property, Service, Images, Comments, JobID, Client)
+        if (parts.length >= 7 && parts[6]) {
+          rawProperty = parts[1] || 'untitled folder';
+          rawService = parts[2] || 'RE Editing';
+          rawImages = Number(parts[3]) || 0;
+          rawComments = parts[4] || '';
+          rowClient = parts[6].trim().toUpperCase() || clientToUse || 'BE';
+        } else {
+          // Standard Google Sheet Format: Date, Property name, Service, Number Of Images, Comments
+          rawProperty = parts[1] || 'untitled folder';
+          rawService = parts[2] || 'RE Editing';
+          rawImages = Number(parts[3]) || 0;
+          rawComments = parts[4] || '';
+
+          // If columns were swapped: Date, Property, Images, Service, Comments
+          if (isNaN(rawImages) && !isNaN(Number(parts[2]))) {
+            rawImages = Number(parts[2]);
+            rawService = parts[3] || 'RE Editing';
+          }
         }
 
         newRows.push({
@@ -128,7 +159,7 @@ export default function ImportProductionModal({
           numberOfImages: rawImages,
           filesProcessed: rawImages,
           comments: rawComments,
-          client: clientToUse || 'BE',
+          client: rowClient,
           editorName: 'Staff',
           stage: rawService,
           status: 'Verified',

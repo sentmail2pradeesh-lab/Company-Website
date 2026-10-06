@@ -280,7 +280,7 @@ def create_production_sheet():
     )
     db.session.add(sheet)
     db.session.commit()
-    return jsonify({'message': 'Production sheet created', 'sheet': sheet.to_dict()}), 201
+    return jsonify({'message': 'Production sheet created', 'sheet': sheet.to_dict(), 'entry': sheet.to_dict()}), 201
 
 
 @jobs_bp.route('/production-sheets/import', methods=['POST'])
@@ -341,6 +341,7 @@ def import_production_sheets():
 
     return jsonify({
         'message': f'Successfully imported {len(created_sheets)} production sheet records',
+        'count': len(created_sheets),
         'productionSheets': [s.to_dict() for s in created_sheets]
     }), 201
 
