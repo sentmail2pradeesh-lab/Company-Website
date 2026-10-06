@@ -132,7 +132,10 @@ export function AuthProvider({ children }) {
 
 
   const logout = async () => {
-    // End active work session and calculate working hours
+    // 1. Capture token before clearing session
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+
+    // 2. End active work session and calculate working hours locally
     try {
       const nowIso = new Date().toISOString();
       const savedSessions = localStorage.getItem('aszen_work_sessions');
@@ -159,18 +162,37 @@ export function AuthProvider({ children }) {
       console.error('Work session logout error:', e);
     }
 
-    try {
-      await api.post('/auth/logout');
-    } catch (e) {
-      // Ignore API logout error in offline/demo mode
-    }
-
+    // 3. Instant UI & Session invalidation (Zero delay - user is immediately logged out)
     sessionStorage.removeItem('aszen_token');
     sessionStorage.removeItem('aszen_user');
     sessionStorage.removeItem('aszen_login_timestamp');
     localStorage.removeItem('aszen_token');
     localStorage.removeItem('aszen_user');
     setUser(null);
+
+    // 4. Background shift termination to backend via fetch keepalive (non-blocking)
+    if (token) {
+      try {
+        const rawApiUrl = import.meta.env.VITE_API_URL || '/api';
+        const baseURL = rawApiUrl.endsWith('/api')
+          ? rawApiUrl
+          : rawApiUrl.startsWith('http')
+            ? `${rawApiUrl.replace(/\/$/, '')}/api`
+            : rawApiUrl;
+
+        fetch(`${baseURL}/auth/logout`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          keepalive: true,
+        }).catch(() => {});
+      } catch (err) {
+        // Fallback fast timeout
+        api.post('/auth/logout', {}, { timeout: 2000 }).catch(() => {});
+      }
+    }
   };
 
 

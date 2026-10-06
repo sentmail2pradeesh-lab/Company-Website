@@ -226,11 +226,14 @@ class ProductionSheetEntry(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     date = db.Column(db.String(10), nullable=False, index=True)
-    editor_name = db.Column(db.String(255), nullable=False)
-    role = db.Column(db.String(100), nullable=False)
-    job_id = db.Column(db.String(50), nullable=False)
-    client = db.Column(db.String(50), nullable=False)
-    stage = db.Column(db.String(50), nullable=False)
+    property_name = db.Column(db.String(255), nullable=True)
+    service = db.Column(db.String(100), nullable=True)
+    comments = db.Column(db.Text, nullable=True)
+    editor_name = db.Column(db.String(255), nullable=True, default='Unassigned')
+    role = db.Column(db.String(100), nullable=True, default='Editor')
+    job_id = db.Column(db.String(50), nullable=True, default='')
+    client = db.Column(db.String(50), nullable=True, default='BE')
+    stage = db.Column(db.String(50), nullable=True, default='RE Editing')
     files_processed = db.Column(db.Integer, default=0)
     active_minutes = db.Column(db.Integer, default=0)
     pause_minutes = db.Column(db.Integer, default=0)
@@ -241,15 +244,20 @@ class ProductionSheetEntry(db.Model):
         return {
             'id': f"ps-{self.id}",
             'date': self.date,
-            'editorName': self.editor_name,
-            'role': self.role,
-            'jobId': self.job_id,
-            'client': self.client,
-            'stage': self.stage,
-            'filesProcessed': self.files_processed,
-            'activeMinutes': self.active_minutes,
-            'pauseMinutes': self.pause_minutes,
-            'status': self.status,
+            'inputDate': self.date,
+            'propertyName': self.property_name or '',
+            'service': self.service or self.stage or 'RE Editing',
+            'numberOfImages': self.files_processed or 0,
+            'comments': self.comments or '',
+            'editorName': self.editor_name or 'Unassigned',
+            'role': self.role or 'Editor',
+            'jobId': self.job_id or '',
+            'client': self.client or 'BE',
+            'stage': self.stage or self.service or 'RE Editing',
+            'filesProcessed': self.files_processed or 0,
+            'activeMinutes': self.active_minutes or 0,
+            'pauseMinutes': self.pause_minutes or 0,
+            'status': self.status or 'Verified',
             'created_at': to_utc_iso(self.created_at)
         }
 

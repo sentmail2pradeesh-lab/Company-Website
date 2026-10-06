@@ -13,7 +13,7 @@ export default function StatCards() {
       {/* 2-Column Metric Grid */}
       <div className="p-3.5 sm:p-5 grid grid-cols-2 gap-2.5 sm:gap-4">
         {/* 1. Total Jobs (Solid Blue) */}
-        <div className="bg-[#3892F6] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#3892F6] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default">
           <div className="text-xs sm:text-sm font-semibold text-white/95">
             Total Jobs
           </div>
@@ -23,7 +23,7 @@ export default function StatCards() {
         </div>
 
         {/* 2. Total Files (Pastel Ice Blue) */}
-        <div className="bg-[#E4F1FF] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#E4F1FF] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default border border-blue-100">
           <div className="text-xs sm:text-sm font-semibold text-slate-600">
             Total Files
           </div>
@@ -33,7 +33,7 @@ export default function StatCards() {
         </div>
 
         {/* 3. Completed Jobs (Pastel Mint Cyan) */}
-        <div className="bg-[#D6F7F3] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#D6F7F3] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default border border-teal-100">
           <div className="text-xs sm:text-sm font-semibold text-slate-600">
             Completed Jobs
           </div>
@@ -43,7 +43,7 @@ export default function StatCards() {
         </div>
 
         {/* 4. Pending Jobs (Pastel Coral Pink) */}
-        <div className="bg-[#FFE6EA] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#FFE6EA] text-slate-800 rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default border border-rose-100">
           <div className="text-xs sm:text-sm font-semibold text-slate-600">
             Pending Jobs
           </div>
@@ -53,7 +53,7 @@ export default function StatCards() {
         </div>
 
         {/* 5. QC Pending Jobs (Solid Coral Red) */}
-        <div className="bg-[#FF4D5A] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#FF4D5A] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default">
           <div className="text-xs sm:text-sm font-semibold text-white/95">
             QC Pending Jobs
           </div>
@@ -63,7 +63,7 @@ export default function StatCards() {
         </div>
 
         {/* 6. Path Pending Jobs (Solid Golden Orange) */}
-        <div className="bg-[#FF9F00] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs transition-transform hover:-translate-y-0.5">
+        <div className="bg-[#FF9F00] text-white rounded-2xl p-3.5 sm:p-5 flex flex-col justify-between h-28 sm:h-32 shadow-xs card-lift cursor-default">
           <div className="text-xs sm:text-sm font-semibold text-white/95">
             Path Pending Jobs
           </div>

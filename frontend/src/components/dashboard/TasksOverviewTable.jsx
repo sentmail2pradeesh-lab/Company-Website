@@ -96,17 +96,25 @@ export default function TasksOverviewTable() {
                       {item.name}
                     </span>
                   </td>
-                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                    {item.blend}
+                  <td className="py-2.5 px-2 text-center font-mono">
+                    <span className={item.blend > 0 ? "font-bold text-indigo-700 bg-indigo-50 px-1.5 py-0.5 rounded text-[11px]" : "text-slate-400 font-normal"}>
+                      {item.blend}
+                    </span>
                   </td>
-                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                    {item.path}
+                  <td className="py-2.5 px-2 text-center font-mono">
+                    <span className={item.path > 0 ? "font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded text-[11px]" : "text-slate-400 font-normal"}>
+                      {item.path}
+                    </span>
                   </td>
-                  <td className="py-2.5 px-2 text-center font-mono text-slate-600">
-                    {item.editing}
+                  <td className="py-2.5 px-2 text-center font-mono">
+                    <span className={item.editing > 0 ? "font-bold text-blue-700 bg-blue-50 px-1.5 py-0.5 rounded text-[11px]" : "text-slate-400 font-normal"}>
+                      {item.editing}
+                    </span>
                   </td>
-                  <td className="py-2.5 px-3 text-center font-mono font-bold text-indigo-600">
-                    {item.lc}
+                  <td className="py-2.5 px-3 text-center font-mono">
+                    <span className={item.lc > 0 ? "font-bold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded text-[11px]" : "text-slate-400 font-normal"}>
+                      {item.lc}
+                    </span>
                   </td>
                 </tr>
               ))

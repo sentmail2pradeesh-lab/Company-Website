@@ -3,6 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
 import { FiShield, FiArrowLeft, FiSearch, FiRefreshCw, FiClock, FiUser, FiActivity } from 'react-icons/fi';
+import TableSkeleton from '../../components/common/TableSkeleton';
+import EmptyState from '../../components/common/EmptyState';
+import CopyableText from '../../components/common/CopyableText';
 
 export default function AuditLogsPage() {
   const navigate = useNavigate();
@@ -133,16 +136,17 @@ export default function AuditLogsPage() {
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium">
               {loading ? (
-                <tr>
-                  <td colSpan="4" className="py-12 text-center text-slate-400">
-                    <FiActivity className="w-6 h-6 animate-spin mx-auto mb-2 text-indigo-500" />
-                    Loading audit trail...
-                  </td>
-                </tr>
+                <TableSkeleton rows={5} cols={4} />
               ) : filteredLogs.length === 0 ? (
                 <tr>
-                  <td colSpan="4" className="py-12 text-center text-slate-400">
-                    No audit records found matching your search.
+                  <td colSpan="4" className="py-6">
+                    <EmptyState
+                      icon="shield"
+                      title="No audit records found"
+                      description={searchTerm ? `No logs match "${searchTerm}".` : 'No audit records captured yet.'}
+                      actionLabel={searchTerm ? 'Clear Search' : undefined}
+                      onAction={searchTerm ? () => setSearchTerm('') : undefined}
+                    />
                   </td>
                 </tr>
               ) : (
@@ -166,7 +170,7 @@ export default function AuditLogsPage() {
                         </div>
                         <div>
                           <div className="font-bold text-slate-900 text-xs">{log.userName}</div>
-                          <div className="text-[10px] text-slate-400">{log.userEmail}</div>
+                          <CopyableText text={log.userEmail} className="text-[10px] text-slate-400" />
                         </div>
                       </div>
                     </td>

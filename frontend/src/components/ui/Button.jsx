@@ -50,7 +50,7 @@ export default function Button({
     if (el) el.style.transform = 'translate(0,0)';
   };
 
-  const classes = `group relative inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight transition-all duration-300 will-change-transform ${VARIANTS[variant]} ${SIZES[size]} ${className} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`;
+  const classes = `group relative inline-flex items-center justify-center gap-2 rounded-full font-semibold tracking-tight transition-all duration-200 will-change-transform ${VARIANTS[variant]} ${SIZES[size]} ${className} ${disabled ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer active:scale-[0.98] hover:-translate-y-0.5'}`;
 
   const inner = (
     <>

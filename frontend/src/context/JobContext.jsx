@@ -345,7 +345,17 @@ export function JobProvider({ children }) {
         if (data.productionSheets) setProductionSheets([...(data.productionSheets || [])]);
         if (data.editors) setEditors([...(data.editors || [])]);
         if (data.clients) setClients([...(data.clients || [])]);
-        if (data.workSessions) setWorkSessions([...(data.workSessions || [])]);
+        if (data.workSessions) {
+          setWorkSessions((prev) => {
+            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+            if (isManagerOrAdmin && prev.length > (data.workSessions || []).length) {
+              const map = new Map(prev.map((s) => [s.id || `${s.user_email}_${s.date}`, s]));
+              (data.workSessions || []).forEach((s) => map.set(s.id || `${s.user_email}_${s.date}`, s));
+              return Array.from(map.values());
+            }
+            return [...(data.workSessions || [])];
+          });
+        }
         if (data.activities) setActivities([...(data.activities || [])]);
         if (data.leaveRequests) setLeaveRequests([...(data.leaveRequests || [])]);
         if (data.annualLeaveAllowance) setAnnualLeaveAllowance(data.annualLeaveAllowance);
@@ -362,7 +372,7 @@ export function JobProvider({ children }) {
     return () => {
       channel.close();
     };
-  }, []);
+  }, [user]);
 
   // Listen for cross-window LocalStorage updates
   useEffect(() => {
@@ -371,7 +381,22 @@ export function JobProvider({ children }) {
       if (e.key === 'aszen_prod_sheets' && e.newValue) setProductionSheets(JSON.parse(e.newValue));
       if (e.key === 'aszen_editors' && e.newValue) setEditors(JSON.parse(e.newValue));
       if (e.key === 'aszen_clients' && e.newValue) setClients(JSON.parse(e.newValue));
-      if (e.key === 'aszen_work_sessions' && e.newValue) setWorkSessions(JSON.parse(e.newValue));
+      if (e.key === 'aszen_work_sessions' && e.newValue) {
+        try {
+          const parsed = JSON.parse(e.newValue);
+          if (Array.isArray(parsed)) {
+            setWorkSessions((prev) => {
+              const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+              if (isManagerOrAdmin && prev.length > parsed.length) {
+                const map = new Map(prev.map((s) => [s.id || `${s.user_email}_${s.date}`, s]));
+                parsed.forEach((s) => map.set(s.id || `${s.user_email}_${s.date}`, s));
+                return Array.from(map.values());
+              }
+              return parsed;
+            });
+          }
+        } catch {}
+      }
       if (e.key === 'aszen_activities' && e.newValue) setActivities(JSON.parse(e.newValue));
       if (e.key === 'aszen_leave_requests' && e.newValue) setLeaveRequests(JSON.parse(e.newValue));
       if (e.key === 'aszen_annual_leave_allowance' && e.newValue) setAnnualLeaveAllowance(Number(e.newValue) || 18);
@@ -379,7 +404,7 @@ export function JobProvider({ children }) {
     };
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
-  }, []);
+  }, [user]);
 
   // Persist state updates to LocalStorage, SQLite/Postgres Backend & broadcast real-time
   const updateJobsState = (newJobs, targetJobToSync = null, targetStageToSync = null) => {
@@ -413,6 +438,44 @@ export function JobProvider({ children }) {
     if (token && newEntryToSync) {
       api.post('/jobs/production-sheets', newEntryToSync).catch(() => {});
     }
+  };
+
+  const importProductionSheets = async (incomingSheets) => {
+    if (!Array.isArray(incomingSheets) || incomingSheets.length === 0) return [];
+
+    const normalized = incomingSheets.map((item, idx) => ({
+      id: item.id || `ps-imp-${Date.now()}-${idx}`,
+      date: item.inputDate || item.date || new Date().toISOString().slice(0, 10),
+      inputDate: item.inputDate || item.date || new Date().toISOString().slice(0, 10),
+      propertyName: item.propertyName || item.name || 'Untitled Folder',
+      service: item.service || item.stage || 'RE Editing',
+      numberOfImages: Number(item.numberOfImages !== undefined ? item.numberOfImages : item.filesProcessed) || 0,
+      filesProcessed: Number(item.numberOfImages !== undefined ? item.numberOfImages : item.filesProcessed) || 0,
+      comments: item.comments || '',
+      editorName: item.editorName || 'Unassigned',
+      role: item.role || 'Editor',
+      jobId: item.jobId ? String(item.jobId) : '',
+      client: item.client || 'BE',
+      stage: item.stage || item.service || 'RE Editing',
+      activeMinutes: Number(item.activeMinutes) || 0,
+      pauseMinutes: Number(item.pauseMinutes) || 0,
+      status: item.status || 'Verified',
+    }));
+
+    const merged = [...normalized, ...productionSheets];
+    setProductionSheets(merged);
+    localStorage.setItem('aszen_prod_sheets', JSON.stringify(merged));
+    broadcastSync(jobs, merged, editors, clients, workSessions);
+
+    const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
+    if (token) {
+      try {
+        await api.post('/jobs/production-sheets/import', { sheets: normalized });
+      } catch (err) {
+        console.error('Batch import sync error:', err);
+      }
+    }
+    return normalized;
   };
 
   const updateEditorsState = (newEditors) => {
@@ -1318,12 +1381,17 @@ export function JobProvider({ children }) {
       const newEntry = {
         id: `ps-${Date.now().toString().slice(-4)}`,
         date: new Date().toISOString().slice(0, 10),
+        inputDate: new Date().toISOString().slice(0, 10),
+        propertyName: updatedTargetJob.name || 'Untitled Folder',
+        service: updatedTargetJob.service || stageLabels[stageKey] || 'RE Editing',
+        numberOfImages: Number(outputFilesCount) || updatedTargetJob.outputTarget || 0,
+        comments: updatedTargetJob.notes || '',
         editorName: stageObj.assignee || user?.name || 'Employee',
         role: stageLabels[stageKey] || stageKey,
         jobId: updatedTargetJob.id,
         client: updatedTargetJob.client,
         stage: stageLabels[stageKey] || stageKey,
-        filesProcessed: Number(outputFilesCount) || updatedTargetJob.outputTarget,
+        filesProcessed: Number(outputFilesCount) || updatedTargetJob.outputTarget || 0,
         activeMinutes: Math.max(0, grossMinutes - pauseMins),
         pauseMinutes: pauseMins,
         status: 'Verified',
@@ -1414,15 +1482,20 @@ export function JobProvider({ children }) {
     }
   }, []);
 
-  // Periodic active-tab background sync (every 20s for seamless cross-workstation real-time updates)
+  // Smart background sync (every 45s if visible; sleeps when tab is hidden; refreshes on tab focus)
   useEffect(() => {
     if (!user) return;
-    const interval = setInterval(() => {
-      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+    const syncIfVisible = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
         refreshData();
       }
-    }, 20000);
-    return () => clearInterval(interval);
+    };
+    const interval = setInterval(syncIfVisible, 45000);
+    window.addEventListener('focus', syncIfVisible);
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('focus', syncIfVisible);
+    };
   }, [user, refreshData]);
 
   // Sync jobs from backend API on mount / user change
@@ -1432,20 +1505,8 @@ export function JobProvider({ children }) {
       .then((res) => {
         if (Array.isArray(res.data?.jobs)) {
           const normalized = normalizeJobs(res.data.jobs);
-          setJobs((prevJobs) => {
-            const mergedMap = new Map();
-            normalized.forEach((j) => mergedMap.set(String(j.jobNumber || j.id), j));
-            (prevJobs || []).forEach((local) => {
-              const key = String(local.jobNumber || local.id);
-              if (!mergedMap.has(key)) {
-                mergedMap.set(key, local);
-                api.post('/jobs', local).catch(() => {});
-              }
-            });
-            const finalJobs = Array.from(mergedMap.values());
-            localStorage.setItem('aszen_jobs', JSON.stringify(finalJobs));
-            return finalJobs;
-          });
+          setJobs(normalized);
+          localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
         }
       })
       .catch(() => {});
@@ -1457,16 +1518,8 @@ export function JobProvider({ children }) {
       .get('/jobs/production-sheets')
       .then((res) => {
         if (Array.isArray(res.data?.productionSheets)) {
-          setProductionSheets((prevSheets) => {
-            const merged = [...res.data.productionSheets];
-            (prevSheets || []).forEach((local) => {
-              if (!merged.some((m) => m.id === local.id || (m.job_id === local.job_id && m.stage === local.stage))) {
-                merged.push(local);
-              }
-            });
-            localStorage.setItem('aszen_prod_sheets', JSON.stringify(merged));
-            return merged;
-          });
+          setProductionSheets(res.data.productionSheets);
+          localStorage.setItem('aszen_prod_sheets', JSON.stringify(res.data.productionSheets));
         }
       })
       .catch(() => {});
@@ -1484,24 +1537,8 @@ export function JobProvider({ children }) {
             name: c.name,
             contact: c.contact,
           }));
-          setClients((prevClients) => {
-            const mergedMap = new Map();
-            mapped.forEach((c) => mergedMap.set((c.code || c.id).toString().toUpperCase(), c));
-            (prevClients || []).forEach((local) => {
-              const key = (local.code || local.id).toString().toUpperCase();
-              if (!mergedMap.has(key)) {
-                mergedMap.set(key, local);
-                api.post('/clients', {
-                  code: local.code,
-                  name: local.name || local.code,
-                  contact: local.contact || '',
-                }).catch(() => {});
-              }
-            });
-            const finalClients = Array.from(mergedMap.values());
-            localStorage.setItem('aszen_clients', JSON.stringify(finalClients));
-            return finalClients;
-          });
+          setClients(mapped);
+          localStorage.setItem('aszen_clients', JSON.stringify(mapped));
         }
       })
       .catch(() => {
@@ -1587,27 +1624,8 @@ export function JobProvider({ children }) {
                 permissions: u.permissions || {},
               }));
 
-            setEditors((prevEditors) => {
-              const mergedMap = new Map();
-              mapped.forEach((u) => mergedMap.set((u.email || u.id).toString().toLowerCase(), u));
-              (prevEditors || []).forEach((local) => {
-                const key = (local.email || local.id).toString().toLowerCase();
-                if (!mergedMap.has(key)) {
-                  mergedMap.set(key, local);
-                  api.post('/auth/users', {
-                    name: local.name,
-                    email: local.email,
-                    designation: local.designation || local.role || 'Editor',
-                    password: 'Aszen@123',
-                    is_approved: local.is_approved !== false,
-                    permissions: local.permissions || {},
-                  }).catch(() => {});
-                }
-              });
-              const finalEditors = Array.from(mergedMap.values());
-              localStorage.setItem('aszen_editors', JSON.stringify(finalEditors));
-              return finalEditors;
-            });
+            setEditors(mapped);
+            localStorage.setItem('aszen_editors', JSON.stringify(mapped));
           }
         })
         .catch(() => {
@@ -1624,8 +1642,21 @@ export function JobProvider({ children }) {
         .get('/work-hours/all')
         .then((res) => {
           if (Array.isArray(res.data?.sessions)) {
+            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
             setWorkSessions(res.data.sessions);
-            localStorage.setItem('aszen_work_sessions', JSON.stringify(res.data.sessions));
+            if (isManagerOrAdmin) {
+              localStorage.setItem('aszen_work_sessions', JSON.stringify(res.data.sessions));
+            } else {
+              // Employee tab: merge with cached sessions so we don't wipe out admin tab's view across tabs
+              try {
+                const cached = JSON.parse(localStorage.getItem('aszen_work_sessions') || '[]');
+                const myEmail = (user?.email || '').toLowerCase();
+                const others = cached.filter((s) => (s.user_email || '').toLowerCase() !== myEmail);
+                localStorage.setItem('aszen_work_sessions', JSON.stringify([...res.data.sessions, ...others]));
+              } catch {
+                localStorage.setItem('aszen_work_sessions', JSON.stringify(res.data.sessions));
+              }
+            }
           }
         })
         .catch(() => {});
@@ -1649,10 +1680,9 @@ export function JobProvider({ children }) {
 
   useEffect(() => {
     fetchLeaves();
-    const interval = setInterval(fetchLeaves, 10000); // 10s auto-refresh so approvals reflect immediately
+    // Re-sync leaves on focus (automatic periodic polling is handled in refreshData)
     window.addEventListener('focus', fetchLeaves);
     return () => {
-      clearInterval(interval);
       window.removeEventListener('focus', fetchLeaves);
     };
   }, [fetchLeaves, user]);
@@ -1940,6 +1970,7 @@ export function JobProvider({ children }) {
         customLeaveAllowances,
         updateAnnualLeaveAllowance,
         assignEmployeeLeaveDays,
+        importProductionSheets,
       }}
     >
       {children}

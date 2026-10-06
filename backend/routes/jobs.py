@@ -257,21 +257,92 @@ def get_production_sheets():
 def create_production_sheet():
     user = request.current_user
     data = request.get_json() or {}
+    files_cnt = 0
+    try:
+        files_cnt = int(data.get('numberOfImages') or data.get('filesProcessed') or 0)
+    except (ValueError, TypeError):
+        files_cnt = 0
+
     sheet = ProductionSheetEntry(
-        date=data.get('date') or datetime.utcnow().strftime('%Y-%m-%d'),
-        editor_name=data.get('editorName') or user.name or 'Employee',
-        role=data.get('role') or 'Editor',
-        job_id=str(data.get('jobId') or ''),
-        client=data.get('client') or 'BE',
-        stage=data.get('stage') or 'Editor',
-        files_processed=int(data.get('filesProcessed') or 0),
+        date=str(data.get('inputDate') or data.get('date') or datetime.utcnow().strftime('%Y-%m-%d')).strip(),
+        property_name=str(data.get('propertyName') or data.get('property_name') or '').strip(),
+        service=str(data.get('service') or data.get('stage') or 'RE Editing').strip(),
+        comments=str(data.get('comments') or '').strip(),
+        editor_name=str(data.get('editorName') or user.name or 'Employee').strip(),
+        role=str(data.get('role') or 'Editor').strip(),
+        job_id=str(data.get('jobId') or '').strip(),
+        client=str(data.get('client') or 'BE').strip(),
+        stage=str(data.get('stage') or 'RE Editing').strip(),
+        files_processed=files_cnt,
         active_minutes=int(data.get('activeMinutes') or 0),
         pause_minutes=int(data.get('pauseMinutes') or 0),
-        status=data.get('status') or 'Verified'
+        status=str(data.get('status') or 'Verified').strip()
     )
     db.session.add(sheet)
     db.session.commit()
     return jsonify({'message': 'Production sheet created', 'sheet': sheet.to_dict()}), 201
+
+
+@jobs_bp.route('/production-sheets/import', methods=['POST'])
+@token_required
+def import_production_sheets():
+    user = request.current_user
+    data = request.get_json() or {}
+    sheets_data = data.get('sheets', [])
+    if isinstance(data, list):
+        sheets_data = data
+
+    created_sheets = []
+    for item in sheets_data:
+        if not item or not isinstance(item, dict):
+            continue
+        
+        files_cnt = 0
+        try:
+            files_cnt = int(item.get('numberOfImages') or item.get('filesProcessed') or 0)
+        except (ValueError, TypeError):
+            files_cnt = 0
+
+        raw_date = str(item.get('inputDate') or item.get('date') or '').strip()
+        if not raw_date:
+            raw_date = datetime.utcnow().strftime('%Y-%m-%d')
+
+        sheet = ProductionSheetEntry(
+            date=raw_date,
+            property_name=str(item.get('propertyName') or item.get('property_name') or item.get('name') or '').strip(),
+            service=str(item.get('service') or item.get('stage') or 'RE Editing').strip(),
+            comments=str(item.get('comments') or '').strip(),
+            editor_name=str(item.get('editorName') or item.get('editor_name') or user.name or 'Staff').strip(),
+            role=str(item.get('role') or 'Editor').strip(),
+            job_id=str(item.get('jobId') or item.get('job_id') or '').strip(),
+            client=str(item.get('client') or 'BE').strip(),
+            stage=str(item.get('stage') or item.get('service') or 'RE Editing').strip(),
+            files_processed=files_cnt,
+            active_minutes=int(item.get('activeMinutes') or 0),
+            pause_minutes=int(item.get('pauseMinutes') or 0),
+            status=str(item.get('status') or 'Verified').strip()
+        )
+        db.session.add(sheet)
+        created_sheets.append(sheet)
+
+    db.session.commit()
+
+    try:
+        log = AuditLog(
+            user_email=user.email,
+            user_name=user.name,
+            action='IMPORT_PRODUCTION_SHEETS',
+            details=f"Imported {len(created_sheets)} historical production sheet records."
+        )
+        db.session.add(log)
+        db.session.commit()
+    except Exception:
+        pass
+
+    return jsonify({
+        'message': f'Successfully imported {len(created_sheets)} production sheet records',
+        'productionSheets': [s.to_dict() for s in created_sheets]
+    }), 201
 
 
 @jobs_bp.route('/audit-logs', methods=['GET'])

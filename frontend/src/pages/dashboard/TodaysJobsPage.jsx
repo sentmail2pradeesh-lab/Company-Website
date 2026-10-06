@@ -11,9 +11,13 @@ import {
   FiRefreshCw,
   FiUserPlus,
   FiCalendar,
+  FiDownload,
 } from 'react-icons/fi';
 import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel } from '../../utils/dateUtils';
 import DatePickerDMY from '../../components/common/DatePickerDMY';
+import CopyableText from '../../components/common/CopyableText';
+import TableSkeleton from '../../components/common/TableSkeleton';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function TodaysJobsPage() {
   const navigate = useNavigate();
@@ -35,6 +39,57 @@ export default function TodaysJobsPage() {
     setIsRefreshing(true);
     if (refreshData) await refreshData();
     setTimeout(() => setIsRefreshing(false), 500);
+  };
+
+  const exportJobsToCSV = () => {
+    const headers = [
+      'Job ID',
+      'Client',
+      'Folder Name',
+      'Output Target',
+      'Blending Assignee',
+      'Blending Status',
+      'Path 1 Assignee',
+      'Path 1 Status',
+      'Path 2 Assignee',
+      'Path 2 Status',
+      'Editor 1 Assignee',
+      'Editor 1 Status',
+      'Editor 2 Assignee',
+      'Editor 2 Status',
+      'LC Assignee',
+      'LC Status',
+      'FC Assignee',
+      'FC Status',
+    ];
+    const rows = filteredJobs.map((j) => [
+      `"${j.id}"`,
+      `"${j.client || ''}"`,
+      `"${j.name || ''}"`,
+      j.outputTarget || 0,
+      `"${j.stages?.blending?.assignee || ''}"`,
+      `"${j.stages?.blending?.status || ''}"`,
+      `"${j.stages?.path1?.assignee || ''}"`,
+      `"${j.stages?.path1?.status || ''}"`,
+      `"${j.stages?.path2?.assignee || ''}"`,
+      `"${j.stages?.path2?.status || ''}"`,
+      `"${j.stages?.editor1?.assignee || ''}"`,
+      `"${j.stages?.editor1?.status || ''}"`,
+      `"${j.stages?.editor2?.assignee || ''}"`,
+      `"${j.stages?.editor2?.status || ''}"`,
+      `"${j.stages?.lc?.assignee || ''}"`,
+      `"${j.stages?.lc?.status || ''}"`,
+      `"${j.stages?.fc?.assignee || ''}"`,
+      `"${j.stages?.fc?.status || ''}"`,
+    ]);
+    const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
+    const encodedUri = encodeURI(csvContent);
+    const link = document.createElement('a');
+    link.setAttribute('href', encodedUri);
+    link.setAttribute('download', `jobs_shift_${selectedDate || 'all'}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
   };
 
   // Helper to format working time below stage name/pill
@@ -187,12 +242,22 @@ export default function TodaysJobsPage() {
           </p>
         </div>
 
-        <button
-          onClick={() => navigate('/dashboard/create-job')}
-          className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
-        >
-          <FiPlus className="w-4 h-4" /> Create Job
-        </button>
+        <div className="flex items-center gap-2.5">
+          <button
+            type="button"
+            onClick={exportJobsToCSV}
+            className="px-4 py-2.5 rounded-xl bg-slate-900 hover:bg-slate-800 text-white text-xs sm:text-sm font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            title="Export Shift Jobs to CSV"
+          >
+            <FiDownload className="w-4 h-4 text-emerald-400" /> Export CSV
+          </button>
+          <button
+            onClick={() => navigate('/dashboard/create-job')}
+            className="px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold shadow-md shadow-indigo-600/20 flex items-center gap-2 transition-all hover:scale-[1.02] cursor-pointer"
+          >
+            <FiPlus className="w-4 h-4" /> Create Job
+          </button>
+        </div>
       </div>
 
       {/* Main Table Card */}
@@ -330,20 +395,32 @@ export default function TodaysJobsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 font-medium text-slate-700 bg-white">
-              {paginatedJobs.length === 0 ? (
+              {isRefreshing ? (
+                <TableSkeleton rows={entriesPerPage || 5} cols={12} />
+              ) : paginatedJobs.length === 0 ? (
                 <tr>
-                  <td colSpan={12} className="py-12 text-center text-slate-400 text-sm">
-                    No jobs match the current search filter.
+                  <td colSpan={12} className="py-8">
+                    <EmptyState
+                      icon="search"
+                      title="No jobs found"
+                      description={
+                        searchTerm
+                          ? `No jobs match "${searchTerm}". Try a different search term or clear the filter.`
+                          : 'No jobs recorded for this shift period.'
+                      }
+                      actionLabel={searchTerm ? 'Clear Search' : undefined}
+                      onAction={searchTerm ? () => setSearchTerm('') : undefined}
+                    />
                   </td>
                 </tr>
               ) : (
                 paginatedJobs.map((job) => (
                   <tr key={job.id} className="hover:bg-slate-50/80 transition-colors">
-                    <td className="py-3.5 px-3.5 font-mono font-bold text-indigo-600 text-xs sm:text-sm">
-                      #{job.id}
+                    <td className="py-3.5 px-3.5">
+                      <CopyableText text={job.id} prefix="#" className="text-indigo-600 font-bold text-xs sm:text-sm" />
                     </td>
-                    <td className="py-3.5 px-3.5 font-extrabold text-slate-900 text-xs sm:text-sm">
-                      {job.client}
+                    <td className="py-3.5 px-3.5">
+                      <CopyableText text={job.client} className="font-extrabold text-slate-900 text-xs sm:text-sm" />
                     </td>
                     <td className="py-3.5 px-3.5 text-slate-800">
                       <div className="line-clamp-2 font-medium">{job.name}</div>

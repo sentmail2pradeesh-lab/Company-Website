@@ -23,6 +23,9 @@ import {
 } from 'react-icons/fi';
 
 import { formatDateDMY, getTodayLocalDateStr } from '../../utils/dateUtils';
+import StatusChip from '../../components/common/StatusChip';
+import CopyableText from '../../components/common/CopyableText';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function LeaveManagementPage() {
   const {
@@ -542,18 +545,13 @@ export default function LeaveManagementPage() {
         {!isAdmin && activeTab === 'my-leaves' && (
           <div className="p-4 sm:p-5">
             {myRequests.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <FiCalendar className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-bold text-slate-700">No leave requests found</p>
-                <p className="text-xs text-slate-400 mt-1">You haven't submitted any leave applications yet.</p>
-                <button
-                  type="button"
-                  onClick={() => setIsApplyModalOpen(true)}
-                  className="mt-4 px-4 py-2 rounded-xl bg-indigo-50 text-indigo-600 font-bold text-xs sm:text-sm hover:bg-indigo-100 transition-colors cursor-pointer"
-                >
-                  + Apply for Leave
-                </button>
-              </div>
+              <EmptyState
+                icon="calendar"
+                title="No leave requests found"
+                description="You haven't submitted any leave applications yet."
+                actionLabel="+ Apply for Leave"
+                onAction={() => setIsApplyModalOpen(true)}
+              />
             ) : (
               <div className="overflow-x-auto overflow-y-auto max-h-[520px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
                 <table className="w-full text-left text-xs sm:text-sm min-w-[650px]">
@@ -573,7 +571,7 @@ export default function LeaveManagementPage() {
                     {myRequests.map((req) => (
                       <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3.5 px-3.5">
-                          <span className="font-mono font-bold text-indigo-600 block">#{req.id}</span>
+                          <CopyableText text={req.id} prefix="#" className="font-mono font-bold text-indigo-600 block" />
                           <span className="text-[11px] text-slate-400 font-mono">
                             {formatDateDMY(req.createdAt || req.appliedAt)}
                           </span>
@@ -636,11 +634,17 @@ export default function LeaveManagementPage() {
         {isAdmin && activeTab === 'approvals' && (
           <div className="p-4 sm:p-5">
             {teamRequests.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <FiCheckCircle className="w-10 h-10 mx-auto text-emerald-400 mb-2" />
-                <p className="text-sm font-bold text-slate-700">No requests in this queue</p>
-                <p className="text-xs text-slate-400 mt-1">All employee leave applications are currently processed.</p>
-              </div>
+              <EmptyState
+                icon="check"
+                title="No requests in this queue"
+                description={
+                  approvalFilter !== 'All'
+                    ? `No leave requests with status "${approvalFilter}".`
+                    : 'All employee leave applications are currently processed.'
+                }
+                actionLabel={approvalFilter !== 'All' ? 'View All Requests' : undefined}
+                onAction={approvalFilter !== 'All' ? () => setApprovalFilter('All') : undefined}
+              />
             ) : (
               <div className="overflow-x-auto overflow-y-auto max-h-[520px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
                 <table className="w-full text-left text-xs sm:text-sm min-w-[700px]">
@@ -869,11 +873,17 @@ export default function LeaveManagementPage() {
         {isAdmin && activeTab === 'all-records' && (
           <div className="p-4 sm:p-5">
             {teamRequests.length === 0 ? (
-              <div className="text-center py-12 text-slate-400">
-                <FiFileText className="w-10 h-10 mx-auto text-slate-300 mb-2" />
-                <p className="text-sm font-bold text-slate-700">No leave records</p>
-                <p className="text-xs text-slate-400 mt-1">No applications matching the selected criteria.</p>
-              </div>
+              <EmptyState
+                icon="document"
+                title="No leave records"
+                description={
+                  approvalFilter !== 'All'
+                    ? `No applications with status "${approvalFilter}".`
+                    : 'No leave applications recorded in the system yet.'
+                }
+                actionLabel={approvalFilter !== 'All' ? 'View All Records' : undefined}
+                onAction={approvalFilter !== 'All' ? () => setApprovalFilter('All') : undefined}
+              />
             ) : (
               <div className="overflow-x-auto overflow-y-auto max-h-[520px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
                 <table className="w-full text-left text-xs sm:text-sm min-w-[700px]">
@@ -892,7 +902,7 @@ export default function LeaveManagementPage() {
                     {teamRequests.map((req) => (
                       <tr key={req.id} className="hover:bg-slate-50/70 transition-colors">
                         <td className="py-3.5 px-3.5">
-                          <span className="font-mono font-bold text-indigo-600 block">#{req.id}</span>
+                          <CopyableText text={req.id} prefix="#" className="font-mono font-bold text-indigo-600 block" />
                           <span className="text-[11px] text-slate-400 font-mono">
                             {formatDateDMY(req.createdAt || req.appliedAt)}
                           </span>
@@ -1072,30 +1082,5 @@ export default function LeaveManagementPage() {
 }
 
 function StatusBadge({ status }) {
-  if (status === 'Approved') {
-    return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-        Approved
-      </span>
-    );
-  }
-  if (status === 'Rejected') {
-    return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-rose-50 text-rose-700 border border-rose-200">
-        Rejected
-      </span>
-    );
-  }
-  if (status === 'Cancelled') {
-    return (
-      <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-600 border border-slate-200">
-        Cancelled
-      </span>
-    );
-  }
-  return (
-    <span className="px-2.5 py-1 rounded-full text-xs font-bold bg-amber-50 text-amber-700 border border-amber-200 animate-pulse">
-      Pending
-    </span>
-  );
+  return <StatusChip status={status} size="sm" />;
 }

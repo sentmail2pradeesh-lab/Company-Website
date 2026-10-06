@@ -1,5 +1,7 @@
 import { useJobs } from '../../context/JobContext';
 import { FiCheckSquare, FiAlertCircle, FiClock, FiCheckCircle } from 'react-icons/fi';
+import CopyableText from '../../components/common/CopyableText';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function QCPendingPage() {
   const { jobs, setTimerModalState, canUpdateStage } = useJobs();
@@ -50,10 +52,12 @@ export default function QCPendingPage() {
       {/* QC Cards Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
         {qcJobs.length === 0 ? (
-          <div className="col-span-2 bg-white rounded-2xl p-12 text-center text-slate-500 text-sm border border-slate-200 shadow-xs">
-            <FiCheckCircle className="w-12 h-12 text-emerald-500 mx-auto mb-3" />
-            <h3 className="text-lg font-bold text-slate-900">All Quality Checks Cleared</h3>
-            <p className="mt-1 text-slate-500 text-sm">All LC and FC verification approvals are complete for active production jobs.</p>
+          <div className="col-span-2 bg-white rounded-2xl p-6 border border-slate-200 shadow-xs">
+            <EmptyState
+              icon="check"
+              title="All Quality Checks Cleared"
+              description="All LC and FC verification approvals are complete for active production jobs."
+            />
           </div>
         ) : (
           qcJobs.map((job) => {
@@ -61,15 +65,16 @@ export default function QCPendingPage() {
             return (
               <div
                 key={job.id}
-                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5 hover:border-slate-300 transition-all"
+                className="bg-white rounded-2xl p-6 border border-slate-200 shadow-xs space-y-5 hover:border-slate-300 transition-all card-lift"
               >
                 <div className="flex justify-between items-start gap-2">
                   <div>
                     <div className="flex items-center gap-2">
-                      <span className="text-xs sm:text-sm font-mono font-bold text-indigo-600">Job #{job.id}</span>
-                      <span className="px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-800">
-                        {job.client}
-                      </span>
+                      <CopyableText text={job.id} prefix="Job #" className="text-xs sm:text-sm font-mono font-bold text-indigo-600" />
+                      <CopyableText
+                        text={job.client}
+                        className="px-2.5 py-0.5 rounded-md text-[11px] font-extrabold uppercase tracking-wider bg-slate-100 text-slate-800"
+                      />
                     </div>
                     <h3 className="text-base sm:text-lg font-bold text-slate-900 mt-1.5">{job.name}</h3>
                   </div>

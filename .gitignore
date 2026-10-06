@@ -26,5 +26,12 @@ Thumbs.db
 # Logs
 *.log
 
+# Database (CRITICAL: Never commit local database files to live repo)
+*.db
+*.sqlite
+*.sqlite3
+backend/*.db
+
 # Video uploads (optional - remove if you want to track videos)
 frontend/public/videos/*.mp4
+

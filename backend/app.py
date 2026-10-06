@@ -54,6 +54,9 @@ def create_app(config_object=Config):
                     "ALTER TABLE users ADD COLUMN designation VARCHAR(100) DEFAULT 'Editor'",
                     "ALTER TABLE users ADD COLUMN is_approved BOOLEAN DEFAULT 1",
                     "ALTER TABLE users ADD COLUMN permissions_json TEXT DEFAULT '{}'",
+                    "ALTER TABLE production_sheets ADD COLUMN property_name VARCHAR(255)",
+                    "ALTER TABLE production_sheets ADD COLUMN service VARCHAR(100)",
+                    "ALTER TABLE production_sheets ADD COLUMN comments TEXT",
                 ]:
                     try:
                         conn.execute(text(col_sql))

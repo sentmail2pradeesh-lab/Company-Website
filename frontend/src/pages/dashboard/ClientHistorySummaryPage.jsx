@@ -13,6 +13,8 @@ import {
   FiLayers,
 } from 'react-icons/fi';
 import DatePickerDMY from '../../components/common/DatePickerDMY';
+import CopyableText from '../../components/common/CopyableText';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function ClientHistorySummaryPage() {
   const { jobs, editors, clients } = useJobs();
@@ -402,12 +404,12 @@ export default function ClientHistorySummaryPage() {
       {/* CLIENT & JOB AUDIT CARDS */}
       <div className="space-y-5">
         {filteredJobs.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 border border-slate-200 text-center space-y-2">
-            <FiPieChart className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-base font-bold text-slate-800">No Jobs Found Matching Criteria</h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
-              Try adjusting your date range, client, or employee filters to view turnaround audit logs.
-            </p>
+          <div className="bg-white rounded-3xl p-6 border border-slate-200">
+            <EmptyState
+              icon="chart"
+              title="No Jobs Found Matching Criteria"
+              description="Try adjusting your date range, client, or employee filters to view turnaround audit logs."
+            />
           </div>
         ) : (
           filteredJobs.map((job) => {
@@ -427,16 +429,19 @@ export default function ClientHistorySummaryPage() {
             return (
               <div
                 key={job.id}
-                className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4 sm:space-y-5"
+                className="bg-white rounded-2xl sm:rounded-3xl p-4 sm:p-6 border border-slate-200/80 shadow-sm space-y-4 sm:space-y-5 card-lift"
               >
                 {/* Job Top Row */}
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 pb-4 border-b border-slate-100">
                   <div>
                     <div className="flex items-center gap-2 text-xs font-mono font-bold text-indigo-600">
-                      Job #{job.id} <span className="text-slate-300">•</span> Date: {jobDate}
+                      <CopyableText text={job.id} prefix="Job #" className="text-xs font-mono font-bold text-indigo-600" />
+                      <span className="text-slate-300">•</span> Date: {jobDate}
                     </div>
-                    <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 font-display">
-                      Client <span className="text-indigo-600">{job.client}</span> — {job.name}
+                    <h3 className="text-base sm:text-lg font-extrabold text-slate-900 mt-0.5 font-display flex items-center gap-1.5 flex-wrap">
+                      <span>Client</span>
+                      <CopyableText text={job.client} className="text-indigo-600 font-extrabold" />
+                      <span>— {job.name}</span>
                     </h3>
                   </div>
 

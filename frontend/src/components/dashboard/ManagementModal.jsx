@@ -1,6 +1,8 @@
 import { useState, useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { FiX, FiPlus, FiTrash2, FiUsers, FiBriefcase } from 'react-icons/fi';
+import CopyableText from '../common/CopyableText';
+import EmptyState from '../common/EmptyState';
 
 export default function ManagementModal() {
   const {
@@ -193,7 +195,9 @@ export default function ManagementModal() {
                               {emp.designation === 'Developer' || emp.role === 'developer' ? '💻 Developer' : (emp.designation || emp.role || 'Editor')}
                             </span>
                           </div>
-                          <div className="text-[11px] text-slate-500 truncate">{emp.email || 'No Email'}</div>
+                          <div className="text-[11px] text-slate-500 truncate">
+                            {emp.email ? <CopyableText text={emp.email} className="text-[11px] text-slate-500" /> : 'No Email'}
+                          </div>
                         </div>
                         <button
                           onClick={() => deleteEmployee(emp.id)}
@@ -275,34 +279,40 @@ export default function ManagementModal() {
                   </h3>
                   <span className="text-[11px] text-slate-400">Primary: <strong>Client Code</strong></span>
                 </div>
-                <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
-                  {clients.map((c) => (
-                    <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-3">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <span className="w-9 h-9 rounded-lg bg-indigo-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0 tracking-wider">
-                          {c.code}
-                        </span>
-                        <div className="min-w-0">
-                          <div className="font-bold text-slate-900 truncate flex items-center gap-1.5">
-                            <span className="font-mono font-extrabold text-indigo-950">{c.code}</span>
-                            {c.name && c.name !== c.code && (
-                              <span className="text-slate-600 font-medium truncate">({c.name})</span>
-                            )}
+                {clients.length === 0 ? (
+                  <div className="p-6 text-center text-xs text-slate-400 bg-slate-50 rounded-xl border border-dashed border-slate-200">
+                    No clients registered yet.
+                  </div>
+                ) : (
+                  <div className="divide-y divide-slate-100 border border-slate-200 rounded-xl overflow-hidden bg-white">
+                    {clients.map((c) => (
+                      <div key={c.id} className="p-3 flex items-center justify-between hover:bg-slate-50 text-xs gap-3">
+                        <div className="flex items-center gap-2.5 min-w-0">
+                          <span className="w-9 h-9 rounded-lg bg-indigo-600 text-white font-mono font-bold flex items-center justify-center text-xs shrink-0 tracking-wider">
+                            {c.code}
+                          </span>
+                          <div className="min-w-0">
+                            <div className="font-bold text-slate-900 truncate flex items-center gap-1.5">
+                              <CopyableText text={c.code} className="font-mono font-extrabold text-indigo-950" />
+                              {c.name && c.name !== c.code && (
+                                <span className="text-slate-600 font-medium truncate">({c.name})</span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-500 truncate">{c.contact || 'No Contact Listed'}</div>
                           </div>
-                          <div className="text-[11px] text-slate-500 truncate">{c.contact || 'No Contact Listed'}</div>
                         </div>
+                        <button
+                          onClick={() => deleteClient(c.id)}
+                          className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0 cursor-pointer"
+                          title="Delete Client"
+                          aria-label="Delete client"
+                        >
+                          <FiTrash2 className="w-4 h-4" />
+                        </button>
                       </div>
-                      <button
-                        onClick={() => deleteClient(c.id)}
-                        className="w-8 h-8 flex items-center justify-center rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 transition-colors shrink-0 cursor-pointer"
-                        title="Delete Client"
-                        aria-label="Delete client"
-                      >
-                        <FiTrash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}

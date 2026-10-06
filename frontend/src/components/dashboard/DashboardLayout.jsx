@@ -9,6 +9,8 @@ import JobAssignmentModal from './JobAssignmentModal';
 import ChangePasswordModal from './ChangePasswordModal';
 import { FiPlus, FiSettings, FiLogOut, FiClock, FiKey, FiUser, FiMenu } from 'react-icons/fi';
 
+import { formatTime } from '../../utils/dateUtils';
+
 export default function DashboardLayout() {
   const navigate = useNavigate();
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
@@ -31,6 +33,7 @@ export default function DashboardLayout() {
 
   // Live timer for active session
   const [elapsedStr, setElapsedStr] = useState('0h 0m');
+  const [loginTimeStr, setLoginTimeStr] = useState('');
 
   const myEmail = (user?.email || '').toLowerCase();
   const activeSession = workSessions.find(
@@ -45,6 +48,7 @@ export default function DashboardLayout() {
         if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
           str = str.replace(' ', 'T') + 'Z';
         }
+        setLoginTimeStr(formatTime(str));
         const start = new Date(str).getTime();
         const now = Date.now();
         const diffMins = Math.max(0, Math.floor((now - start) / 60000));
@@ -52,6 +56,7 @@ export default function DashboardLayout() {
         const mins = diffMins % 60;
         setElapsedStr(`${hrs}h ${mins}m`);
       } else {
+        setLoginTimeStr('');
         setElapsedStr('Active');
       }
     };
@@ -145,6 +150,26 @@ export default function DashboardLayout() {
 
         {/* Right Side Quick User Profile & Action Links */}
         <div className="flex items-center gap-2 sm:gap-3">
+          {/* Active Work Session Live Badge (For everyone except Master Admin & Admin role) */}
+          {user?.role !== 'admin' && !['arun@aszen.com', 'gokul@aszen.com'].includes(user?.email?.toLowerCase()) && (
+            <div
+              className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] sm:text-xs font-semibold shadow-xs"
+              title="Active Work Shift Attendance & Working Hours"
+            >
+              <span className="relative flex h-2 w-2 shrink-0">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+              </span>
+              <FiClock className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+              {loginTimeStr && (
+                <span className="hidden xs:inline-block text-slate-600 font-medium">
+                  In: <strong className="text-slate-800 font-semibold">{loginTimeStr}</strong>
+                  <span className="mx-1.5 text-emerald-300">|</span>
+                </span>
+              )}
+              <span className="font-mono text-emerald-700 font-bold">Shift: {elapsedStr}</span>
+            </div>
+          )}
 
           {/* Admin / Personnel Control Page Link */}
           {(canManageClients || canManageEmployees || isDeveloper || user?.role === 'developer' || (user?.designation || '').toLowerCase() === 'developer') && (

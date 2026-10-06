@@ -168,3 +168,22 @@ export function parseDMYToISO(dmyStr) {
   return '';
 }
 
+/**
+ * Formats an ISO datetime string or Date object to a readable 12-hour local time (e.g., 09:30 AM).
+ */
+export function formatTime(isoStr) {
+  if (!isoStr) return '-';
+  try {
+    let str = String(isoStr).trim();
+    if (!str) return '-';
+    if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
+      str = str.replace(' ', 'T') + 'Z';
+    }
+    const d = new Date(str);
+    if (isNaN(d.getTime())) return isoStr;
+    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
+  } catch {
+    return isoStr;
+  }
+}
+

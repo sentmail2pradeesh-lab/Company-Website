@@ -337,6 +337,25 @@ html.light {
   .pt-safe {
     padding-top: env(safe-area-inset-top, 1rem);
   }
+
+  /* Tactile button & card micro-interactions (Phase 1 top-company standard) */
+  .tactile-press {
+    transition: transform 0.15s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.15s ease;
+  }
+  .tactile-press:hover {
+    transform: translateY(-1px);
+  }
+  .tactile-press:active {
+    transform: scale(0.97);
+  }
+
+  .card-lift {
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+  }
+  .card-lift:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+  }
 }
 
 /* ---------- Reduced motion ---------- */

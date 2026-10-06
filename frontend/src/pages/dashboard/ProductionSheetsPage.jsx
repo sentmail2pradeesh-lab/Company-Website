@@ -1,7 +1,9 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import WorkSessionModal from '../../components/dashboard/WorkSessionModal';
+import ExportPdfModal from '../../components/dashboard/ExportPdfModal';
+import ImportProductionModal from '../../components/dashboard/ImportProductionModal';
 import {
   FiFileText,
   FiCheckCircle,
@@ -14,14 +16,41 @@ import {
   FiUser,
   FiLock,
   FiDownload,
+  FiPrinter,
+  FiUploadCloud,
+  FiLayers,
+  FiBriefcase,
 } from 'react-icons/fi';
-import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel } from '../../utils/dateUtils';
+import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel, formatTime } from '../../utils/dateUtils';
 import DatePickerDMY from '../../components/common/DatePickerDMY';
+import StatusChip from '../../components/common/StatusChip';
+import CopyableText from '../../components/common/CopyableText';
+import EmptyState from '../../components/common/EmptyState';
 
 export default function ProductionSheetsPage() {
-  const { productionSheets, workSessions, deleteWorkSession, userRole, canManageWorkHours, operationalDate } = useJobs();
+  const {
+    productionSheets,
+    workSessions,
+    deleteWorkSession,
+    userRole,
+    canManageWorkHours,
+    operationalDate,
+    importProductionSheets,
+    clients,
+  } = useJobs();
   const { user } = useAuth();
   const [activeTab, setActiveTab] = useState('working-hours'); // 'output-sheets' or 'working-hours'
+
+  // Output Sheets Sub-Tab: 'all-sheets' | 'client-wise'
+  const [outputSubTab, setOutputSubTab] = useState('all-sheets');
+
+  // Client-Wise selection state
+  const [selectedClientCode, setSelectedClientCode] = useState(() => {
+    return (clients && clients.length > 0 ? clients[0].code : 'BE');
+  });
+
+  // Client filter for "All Production Sheet" tab
+  const [allTabClientFilter, setAllTabClientFilter] = useState('ALL');
 
   // Search & Filter state for Output Sheets
   const [searchTerm, setSearchTerm] = useState('');
@@ -35,73 +64,198 @@ export default function ProductionSheetsPage() {
   // Modal State
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSession, setEditingSession] = useState(null);
+  const [isExportPdfOpen, setIsExportPdfOpen] = useState(false);
+  const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 
   const isManagerOrAdmin = userRole === 'admin' || userRole === 'manager' || !!canManageWorkHours;
   const currentUserEmail = (user?.email || '').toLowerCase();
   const currentUserName = user?.name || (user?.email ? user.email.split('.')[0] : 'Employee');
 
-  // --- Output Sheets Filtering ---
-  const filteredSheets = productionSheets.filter((sheet) => {
-    const matchesSearch =
-      sheet.editorName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sheet.client.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      sheet.jobId.includes(searchTerm);
-    const matchesDate = !selectedDate || sheet.date === selectedDate;
-    return matchesSearch && matchesDate;
-  });
+  // Consolidated client list (merges registered clients with any ad-hoc clients present in sheets)
+  const availableClients = useMemo(() => {
+    const list = Array.isArray(clients) ? [...clients] : [];
+    const knownCodes = new Set(list.map((c) => (c.code || '').toUpperCase()));
 
-  const totalFiles = filteredSheets.reduce((acc, s) => acc + s.filesProcessed, 0);
-  const totalActiveMins = filteredSheets.reduce((acc, s) => acc + s.activeMinutes, 0);
-
-  // --- Working Hours Filtering ---
-  const filteredWorkSessions = workSessions.filter((session) => {
-    const sEmail = (session.user_email || '').toLowerCase();
-    const sName = (session.user_name || '').toLowerCase();
-
-    // Master Admin & Admin management authority accounts are excluded from working hours attendance records
-    if (['arun@aszen.com', 'gokul@aszen.com'].includes(sEmail) || (session.user_role || '').toLowerCase() === 'admin') return false;
-
-    // If logged in as employee, strictly filter to employee's own logs
-    if (!isManagerOrAdmin) {
-      if (sEmail !== currentUserEmail && !sName.includes(currentUserName.toLowerCase())) {
-        return false;
+    (productionSheets || []).forEach((s) => {
+      const code = (s.client || '').trim().toUpperCase();
+      if (code && !knownCodes.has(code)) {
+        knownCodes.add(code);
+        list.push({ id: `auto-${code}`, code: code, name: `Client ${code}` });
       }
-    } else {
-      // Manager/Admin can search by employee name
-      if (whSearchTerm && !sName.includes(whSearchTerm.toLowerCase()) && !sEmail.includes(whSearchTerm.toLowerCase())) {
-        return false;
-      }
+    });
+
+    if (list.length === 0) {
+      return [{ id: 1, code: 'BE', name: 'Bright Estate Media' }];
     }
+    return list;
+  }, [clients, productionSheets]);
 
-    const sessionOpDate = session.date || (session.login_time ? getOperationalDate(session.login_time) : '');
-    if (whDateFilter && sessionOpDate !== whDateFilter) return false;
-    if (whMonthFilter && sessionOpDate && !sessionOpDate.startsWith(whMonthFilter)) return false;
+  // Count logged output sheets per client for badge statistics
+  const clientSheetCounts = useMemo(() => {
+    const counts = {};
+    (productionSheets || []).forEach((s) => {
+      const c = (s.client || 'BE').toUpperCase();
+      counts[c] = (counts[c] || 0) + 1;
+    });
+    return counts;
+  }, [productionSheets]);
 
-    return true;
-  });
+  // Ensure selectedClientCode always falls back to a valid client
+  const activeClientCode = useMemo(() => {
+    if (selectedClientCode && availableClients.some((c) => c.code.toUpperCase() === selectedClientCode.toUpperCase())) {
+      return selectedClientCode;
+    }
+    return availableClients[0]?.code || 'BE';
+  }, [selectedClientCode, availableClients]);
 
-  // --- Employee Statistics Calculation ---
-  const mySessions = workSessions.filter((s) => {
-    const sEmail = (s.user_email || '').toLowerCase();
-    const sName = (s.user_name || '').toLowerCase();
-    return sEmail === currentUserEmail || sName.includes(currentUserName.toLowerCase());
-  });
+  // --- Output Sheets Filtering: All Sheets Tab ---
+  const allFilteredSheets = useMemo(() => {
+    return (productionSheets || []).filter((sheet) => {
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !term ||
+        (sheet.editorName || '').toLowerCase().includes(term) ||
+        (sheet.client || '').toLowerCase().includes(term) ||
+        (sheet.jobId || '').toLowerCase().includes(term) ||
+        (sheet.propertyName || '').toLowerCase().includes(term) ||
+        (sheet.service || '').toLowerCase().includes(term) ||
+        (sheet.comments || '').toLowerCase().includes(term);
 
-  const todayStr = getOperationalDate();
-  const currentMonthStr = todayStr.slice(0, 7);
-  const monthDisplayName = new Date().toLocaleDateString('default', { month: 'long', year: 'numeric' });
+      const sheetDate = sheet.inputDate || sheet.date || '';
+      const matchesDate = !selectedDate || sheetDate === selectedDate;
+
+      const matchesClient =
+        allTabClientFilter === 'ALL' ||
+        (sheet.client || '').toUpperCase() === allTabClientFilter.toUpperCase();
+
+      return matchesSearch && matchesDate && matchesClient;
+    });
+  }, [productionSheets, searchTerm, selectedDate, allTabClientFilter]);
+
+  // --- Output Sheets Filtering: Client-Wise Tab ---
+  const clientFilteredSheets = useMemo(() => {
+    return (productionSheets || []).filter((sheet) => {
+      const sheetClient = (sheet.client || 'BE').toUpperCase();
+      const matchesClient = sheetClient === activeClientCode.toUpperCase();
+      if (!matchesClient) return false;
+
+      const term = searchTerm.toLowerCase().trim();
+      const matchesSearch =
+        !term ||
+        (sheet.editorName || '').toLowerCase().includes(term) ||
+        (sheet.jobId || '').toLowerCase().includes(term) ||
+        (sheet.propertyName || '').toLowerCase().includes(term) ||
+        (sheet.service || '').toLowerCase().includes(term) ||
+        (sheet.comments || '').toLowerCase().includes(term);
+
+      const sheetDate = sheet.inputDate || sheet.date || '';
+      const matchesDate = !selectedDate || sheetDate === selectedDate;
+
+      return matchesSearch && matchesDate;
+    });
+  }, [productionSheets, activeClientCode, searchTerm, selectedDate]);
+
+  // Active sheets depending on active sub-tab
+  const activeDisplaySheets = outputSubTab === 'client-wise' ? clientFilteredSheets : allFilteredSheets;
+
+  // Aggregate Metrics for All Sheets Tab
+  const allTotalFiles = useMemo(
+    () =>
+      allFilteredSheets.reduce(
+        (acc, s) => acc + (Number(s.numberOfImages !== undefined ? s.numberOfImages : s.filesProcessed) || 0),
+        0
+      ),
+    [allFilteredSheets]
+  );
+  const allTotalActiveMins = useMemo(
+    () => allFilteredSheets.reduce((acc, s) => acc + (s.activeMinutes || 0), 0),
+    [allFilteredSheets]
+  );
+
+  // Aggregate Metrics for Client-Wise Tab
+  const clientTotalFiles = useMemo(
+    () =>
+      clientFilteredSheets.reduce(
+        (acc, s) => acc + (Number(s.numberOfImages !== undefined ? s.numberOfImages : s.filesProcessed) || 0),
+        0
+      ),
+    [clientFilteredSheets]
+  );
+  const clientTotalActiveMins = useMemo(
+    () => clientFilteredSheets.reduce((acc, s) => acc + (s.activeMinutes || 0), 0),
+    [clientFilteredSheets]
+  );
+
+  // Active summary KPI metrics to display
+  const displayTotalSheets = outputSubTab === 'client-wise' ? clientFilteredSheets.length : allFilteredSheets.length;
+  const displayTotalFiles = outputSubTab === 'client-wise' ? clientTotalFiles : allTotalFiles;
+  const displayTotalActiveMins = outputSubTab === 'client-wise' ? clientTotalActiveMins : allTotalActiveMins;
+
+  // Active client object for name display
+  const activeClientObj = useMemo(() => {
+    return availableClients.find((c) => c.code.toUpperCase() === activeClientCode.toUpperCase()) || {
+      code: activeClientCode,
+      name: `Client ${activeClientCode}`,
+    };
+  }, [availableClients, activeClientCode]);
+
+  // --- Working Hours Filtering (Memoized) ---
+  const filteredWorkSessions = useMemo(() => {
+    return workSessions.filter((session) => {
+      const sEmail = (session.user_email || '').toLowerCase();
+      const sName = (session.user_name || '').toLowerCase();
+
+      // Master Admin & Admin management authority accounts are excluded from working hours attendance records
+      if (['arun@aszen.com', 'gokul@aszen.com'].includes(sEmail) || (session.user_role || '').toLowerCase() === 'admin') return false;
+
+      // If logged in as employee, strictly filter to employee's own logs
+      if (!isManagerOrAdmin) {
+        if (sEmail !== currentUserEmail && !sName.includes(currentUserName.toLowerCase())) {
+          return false;
+        }
+      } else {
+        // Manager/Admin can search by employee name
+        if (whSearchTerm && !sName.includes(whSearchTerm.toLowerCase()) && !sEmail.includes(whSearchTerm.toLowerCase())) {
+          return false;
+        }
+      }
+
+      const sessionOpDate = session.date || (session.login_time ? getOperationalDate(session.login_time) : '');
+      if (whDateFilter && sessionOpDate !== whDateFilter) return false;
+      if (whMonthFilter && sessionOpDate && !sessionOpDate.startsWith(whMonthFilter)) return false;
+
+      return true;
+    });
+  }, [workSessions, isManagerOrAdmin, currentUserEmail, currentUserName, whSearchTerm, whDateFilter, whMonthFilter]);
+
+  // --- Employee Statistics Calculation (Memoized) ---
+  const mySessions = useMemo(() => {
+    return workSessions.filter((s) => {
+      const sEmail = (s.user_email || '').toLowerCase();
+      const sName = (s.user_name || '').toLowerCase();
+      return sEmail === currentUserEmail || sName.includes(currentUserName.toLowerCase());
+    });
+  }, [workSessions, currentUserEmail, currentUserName]);
+
+  const todayStr = useMemo(() => getOperationalDate(), []);
+  const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
+  const monthDisplayName = useMemo(() => new Date().toLocaleDateString('default', { month: 'long', year: 'numeric' }), []);
 
   // Today's hours (calculated strictly based on active operational shift: 06:00 AM - 05:59 AM)
-  const myTodaySessions = mySessions.filter((s) => (s.date || (s.login_time ? getOperationalDate(s.login_time) : '')) === todayStr);
-  const myTodayHours = myTodaySessions.reduce((acc, s) => acc + (s.total_hours || 0), 0);
+  const myTodaySessions = useMemo(() => {
+    return mySessions.filter((s) => (s.date || (s.login_time ? getOperationalDate(s.login_time) : '')) === todayStr);
+  }, [mySessions, todayStr]);
+  const myTodayHours = useMemo(() => myTodaySessions.reduce((acc, s) => acc + (s.total_hours || 0), 0), [myTodaySessions]);
 
   // Days worked in current month
-  const myMonthSessions = mySessions.filter((s) => (s.date || '').startsWith(currentMonthStr));
-  const myDaysWorkedMonth = new Set(myMonthSessions.map((s) => s.date)).size;
-  const myTotalMonthHours = myMonthSessions.reduce((acc, s) => acc + (s.total_hours || 0), 0);
+  const myMonthSessions = useMemo(() => {
+    return mySessions.filter((s) => (s.date || '').startsWith(currentMonthStr));
+  }, [mySessions, currentMonthStr]);
+  const myDaysWorkedMonth = useMemo(() => new Set(myMonthSessions.map((s) => s.date)).size, [myMonthSessions]);
+  const myTotalMonthHours = useMemo(() => myMonthSessions.reduce((acc, s) => acc + (s.total_hours || 0), 0), [myMonthSessions]);
 
   // Active shift for current user
-  const myActiveSession = mySessions.find((s) => s.status === 'Active');
+  const myActiveSession = useMemo(() => mySessions.find((s) => s.status === 'Active'), [mySessions]);
 
   const handleEdit = (session) => {
     setEditingSession(session);
@@ -143,23 +297,42 @@ export default function ProductionSheetsPage() {
   };
 
   const exportProductionSheetsToCSV = () => {
-    const headers = ['Date', 'Editor Name', 'Role/Stage', 'Job ID', 'Client', 'Files Processed', 'Active Minutes', 'Pause Minutes', 'Status'];
-    const rows = filteredSheets.map((s) => [
-      s.date,
+    const dataToExport = outputSubTab === 'client-wise' ? clientFilteredSheets : allFilteredSheets;
+    const fileLabel = outputSubTab === 'client-wise'
+      ? `client_${activeClientCode}_${selectedDate || 'all'}`
+      : `all_clients_${allTabClientFilter !== 'ALL' ? allTabClientFilter + '_' : ''}${selectedDate || 'all'}`;
+
+    const headers = [
+      'Input Date',
+      'Property name',
+      'Service',
+      'Number Of Images',
+      'Comments',
+      'Job ID',
+      'Client',
+      'Editor Name',
+      'Role/Stage',
+      'Active Minutes',
+      'Status',
+    ];
+    const rows = dataToExport.map((s) => [
+      `"${s.inputDate || s.date || ''}"`,
+      `"${s.propertyName || s.name || 'untitled folder'}"`,
+      `"${s.service || s.stage || 'RE Editing'}"`,
+      s.numberOfImages !== undefined ? s.numberOfImages : s.filesProcessed || 0,
+      `"${s.comments || ''}"`,
+      s.jobId ? `#${s.jobId}` : '',
+      `"${s.client || ''}"`,
       `"${s.editorName || ''}"`,
-      s.role || s.stage,
-      s.jobId,
-      s.client,
-      s.filesProcessed,
-      s.activeMinutes,
-      s.pauseMinutes || 0,
-      s.status,
+      `"${s.role || s.stage || ''}"`,
+      s.activeMinutes || 0,
+      `"${s.status || 'Verified'}"`,
     ]);
     const csvContent = 'data:text/csv;charset=utf-8,' + [headers.join(','), ...rows.map((e) => e.join(','))].join('\n');
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement('a');
     link.setAttribute('href', encodedUri);
-    link.setAttribute('download', `production_sheets_${new Date().toISOString().slice(0, 10)}.csv`);
+    link.setAttribute('download', `production_sheet_${fileLabel}.csv`);
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
@@ -184,8 +357,9 @@ export default function ProductionSheetsPage() {
         {/* View Switcher Tabs */}
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full sm:w-auto">
           <button
+            type="button"
             onClick={() => setActiveTab('working-hours')}
-            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] ${
+            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] cursor-pointer ${
               activeTab === 'working-hours'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -194,8 +368,9 @@ export default function ProductionSheetsPage() {
             <FiClock className="w-3.5 h-3.5" /> Working Hours & Attendance
           </button>
           <button
+            type="button"
             onClick={() => setActiveTab('output-sheets')}
-            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] ${
+            className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] cursor-pointer ${
               activeTab === 'output-sheets'
                 ? 'bg-indigo-600 text-white shadow-sm'
                 : 'text-slate-400 hover:text-slate-200'
@@ -301,13 +476,13 @@ export default function ProductionSheetsPage() {
               <div className="flex items-center gap-2">
                 <button
                   onClick={exportToCSV}
-                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5"
+                  className="px-3.5 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer"
                 >
                   <FiDownload className="w-4 h-4 text-indigo-600" /> Export CSV
                 </button>
                 <button
                   onClick={handleAdd}
-                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5"
+                  className="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
                 >
                   <FiPlus className="w-4 h-4" /> Add Manual Work Log
                 </button>
@@ -343,7 +518,7 @@ export default function ProductionSheetsPage() {
                     type="month"
                     value={whMonthFilter}
                     onChange={(e) => setWhMonthFilter(e.target.value)}
-                    className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none"
+                    className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs focus:outline-none cursor-pointer"
                   />
                 </div>
 
@@ -398,6 +573,7 @@ export default function ProductionSheetsPage() {
               </span>
               {whDateFilter !== getOperationalDate() && (
                 <button
+                  type="button"
                   onClick={() => setWhDateFilter(getOperationalDate())}
                   className="text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
                 >
@@ -416,7 +592,7 @@ export default function ProductionSheetsPage() {
               </div>
             )}
 
-            {/* Working Hours Table with 2-axis scrolling (horizontal & vertical) */}
+            {/* Working Hours Table with 2-axis scrolling */}
             <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
               <table className="w-full text-left text-xs min-w-[780px]">
                 <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800 shadow-xs">
@@ -434,8 +610,18 @@ export default function ProductionSheetsPage() {
                 <tbody className="divide-y divide-slate-100 font-medium text-slate-700 bg-white">
                   {filteredWorkSessions.length === 0 ? (
                     <tr>
-                      <td colSpan={isManagerOrAdmin ? 8 : 7} className="py-8 text-center text-slate-400 text-xs">
-                        No working hour session logs found for selected month / date filter.
+                      <td colSpan={isManagerOrAdmin ? 8 : 7} className="py-8">
+                        <EmptyState
+                          icon="clock"
+                          title="No working hours logged"
+                          description={
+                            whDateFilter
+                              ? `No active shift or session records found for ${formatDateDMY(whDateFilter)}.`
+                              : `No sessions recorded for month ${whMonthFilter}.`
+                          }
+                          actionLabel={whDateFilter !== getOperationalDate() ? "Reset to Today's Shift" : undefined}
+                          onAction={whDateFilter !== getOperationalDate() ? () => setWhDateFilter(getOperationalDate()) : undefined}
+                        />
                       </td>
                     </tr>
                   ) : (
@@ -460,15 +646,7 @@ export default function ProductionSheetsPage() {
                           )}
                         </td>
                         <td className="py-3 px-4 text-center">
-                          {session.status === 'Active' ? (
-                            <span className="px-2.5 py-1 rounded-md text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 font-bold inline-flex items-center gap-1">
-                              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-ping"></span> Active
-                            </span>
-                          ) : (
-                            <span className="px-2.5 py-1 rounded-md text-[11px] bg-slate-100 text-slate-700 border border-slate-200 inline-flex items-center gap-1">
-                              <FiCheckCircle className="w-3 h-3 text-slate-500" /> Completed
-                            </span>
-                          )}
+                          <StatusChip status={session.status === 'Active' ? 'Active' : 'Completed'} />
                         </td>
                         <td className="py-3 px-4 text-slate-500 text-[11px] max-w-xs truncate">
                           {session.notes || 'Shift Logged'}
@@ -477,14 +655,14 @@ export default function ProductionSheetsPage() {
                           <td className="py-3 px-4 text-right space-x-1">
                             <button
                               onClick={() => handleEdit(session)}
-                              className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors"
+                              className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 hover:bg-indigo-100 transition-colors cursor-pointer"
                               title="Edit Working Hour Log"
                             >
                               <FiEdit2 className="w-3.5 h-3.5" />
                             </button>
                             <button
                               onClick={() => handleDelete(session.id)}
-                              className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors"
+                              className="p-1.5 rounded-lg bg-rose-50 text-rose-600 hover:bg-rose-100 transition-colors cursor-pointer"
                               title="Delete Log"
                             >
                               <FiTrash2 className="w-3.5 h-3.5" />
@@ -504,16 +682,122 @@ export default function ProductionSheetsPage() {
       {/* ================= TAB 2: DAILY OUTPUT SHEETS ================= */}
       {activeTab === 'output-sheets' && (
         <div className="space-y-6">
-          {/* Daily Output Summary Cards */}
+          {/* Sub-Tabs: All Production Sheet vs. Client-Wise Production */}
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+            <div className="flex items-center gap-1.5 w-full sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setOutputSubTab('all-sheets')}
+                className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  outputSubTab === 'all-sheets'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+                }`}
+              >
+                <FiLayers className="w-4 h-4" /> All Production Sheet
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    outputSubTab === 'all-sheets' ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {productionSheets.length}
+                </span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setOutputSubTab('client-wise')}
+                className={`flex-1 sm:flex-initial px-5 py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  outputSubTab === 'client-wise'
+                    ? 'bg-indigo-600 text-white shadow-sm'
+                    : 'bg-transparent text-slate-600 hover:text-slate-900 hover:bg-slate-200/70'
+                }`}
+              >
+                <FiBriefcase className="w-4 h-4" /> Client-Wise Production
+                <span
+                  className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                    outputSubTab === 'client-wise' ? 'bg-indigo-700 text-indigo-100' : 'bg-slate-200 text-slate-700'
+                  }`}
+                >
+                  {availableClients.length} Clients
+                </span>
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500 px-3 py-1 font-medium hidden md:block">
+              {outputSubTab === 'all-sheets'
+                ? 'Consolidated view across all client output sheets'
+                : `Dedicated view & import for client [${activeClientCode}] - ${activeClientObj.name}`}
+            </div>
+          </div>
+
+          {/* CLIENT-WISE SUB-TAB: Interactive Client Workspace Pills */}
+          {outputSubTab === 'client-wise' && (
+            <div className="bg-white p-4.5 rounded-2xl border border-slate-200/90 shadow-xs space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <FiBriefcase className="w-4 h-4 text-indigo-600" />
+                  <span className="text-xs font-bold text-slate-800 uppercase tracking-wider">
+                    Select Client Workspace
+                  </span>
+                </div>
+                <span className="text-xs text-slate-400 font-medium hidden sm:inline">
+                  Click a client to view records, export dedicated reports, or import data
+                </span>
+              </div>
+
+              {/* Horizontal Scrollable Client Badges */}
+              <div className="flex items-center gap-2.5 overflow-x-auto pb-1.5 pt-0.5 custom-scrollbar">
+                {availableClients.map((c) => {
+                  const isSelected = activeClientCode.toUpperCase() === c.code.toUpperCase();
+                  const count = clientSheetCounts[c.code.toUpperCase()] || 0;
+                  return (
+                    <button
+                      key={c.code}
+                      type="button"
+                      onClick={() => setSelectedClientCode(c.code)}
+                      className={`px-3.5 py-2 rounded-xl text-xs font-bold transition-all flex items-center gap-2 shrink-0 cursor-pointer border ${
+                        isSelected
+                          ? 'bg-indigo-600 text-white border-indigo-600 shadow-sm'
+                          : 'bg-slate-50 text-slate-700 border-slate-200 hover:bg-slate-100 hover:border-slate-300'
+                      }`}
+                    >
+                      <span
+                        className={`w-6 h-6 rounded-lg text-[10px] font-black font-mono flex items-center justify-center ${
+                          isSelected ? 'bg-indigo-700 text-white' : 'bg-white text-indigo-700 border border-slate-200'
+                        }`}
+                      >
+                        {c.code}
+                      </span>
+                      <span>{c.name || `Client ${c.code}`}</span>
+                      <span
+                        className={`px-2 py-0.5 rounded-full text-[10px] font-mono font-bold ${
+                          isSelected ? 'bg-indigo-500/50 text-white' : 'bg-slate-200 text-slate-600'
+                        }`}
+                      >
+                        {count}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Daily Output Summary Cards (Dynamic Scoped Values) */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div className="bg-white rounded-2xl p-5 border border-slate-200/80 shadow-xs flex items-center gap-4">
               <div className="p-3.5 rounded-2xl bg-indigo-50 text-indigo-600">
                 <FiFileText className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Output Sheets</div>
-                <div className="text-2xl font-black font-mono text-slate-900">{filteredSheets.length}</div>
-                <div className="text-[11px] text-indigo-600 font-medium mt-0.5">Logged entries</div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  {outputSubTab === 'client-wise' ? `[${activeClientCode}] Sheets Logged` : 'Total Output Sheets'}
+                </div>
+                <div className="text-2xl font-black font-mono text-slate-900">{displayTotalSheets}</div>
+                <div className="text-[11px] text-indigo-600 font-medium mt-0.5">
+                  {outputSubTab === 'client-wise' ? `For ${activeClientObj.name}` : 'Across all clients'}
+                </div>
               </div>
             </div>
 
@@ -522,8 +806,10 @@ export default function ProductionSheetsPage() {
                 <FiCheckCircle className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Files Processed</div>
-                <div className="text-2xl font-black font-mono text-emerald-600">{totalFiles}</div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  {outputSubTab === 'client-wise' ? `[${activeClientCode}] Files Processed` : 'Files Processed'}
+                </div>
+                <div className="text-2xl font-black font-mono text-emerald-600">{displayTotalFiles}</div>
                 <div className="text-[11px] text-slate-500 font-medium mt-0.5">Total output count</div>
               </div>
             </div>
@@ -533,27 +819,59 @@ export default function ProductionSheetsPage() {
                 <FiClock className="w-6 h-6" />
               </div>
               <div>
-                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">Total Active Time</div>
-                <div className="text-2xl font-black font-mono text-purple-600">{totalActiveMins} mins</div>
-                <div className="text-[11px] text-slate-500 font-medium mt-0.5">{Math.round((totalActiveMins / 60) * 10) / 10} hours total</div>
+                <div className="text-xs text-slate-500 font-semibold uppercase tracking-wider">
+                  {outputSubTab === 'client-wise' ? `[${activeClientCode}] Active Time` : 'Total Active Time'}
+                </div>
+                <div className="text-2xl font-black font-mono text-purple-600">{displayTotalActiveMins} mins</div>
+                <div className="text-[11px] text-slate-500 font-medium mt-0.5">
+                  {Math.round((displayTotalActiveMins / 60) * 10) / 10} hours total
+                </div>
               </div>
             </div>
           </div>
 
+          {/* Filter Bar & Production Table */}
           <div className="bg-white rounded-2xl border border-slate-200/80 shadow-sm space-y-4 overflow-hidden">
-            <div className="p-5 pb-0 flex flex-col sm:flex-row items-center justify-between gap-4">
-              <div className="relative flex-1 w-full sm:max-w-md">
-                <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                <input
-                  type="text"
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  placeholder="Search by Editor, Client, or Job ID..."
-                  className="w-full bg-slate-50 text-slate-800 pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
-                />
+            <div className="p-5 pb-0 flex flex-col lg:flex-row items-center justify-between gap-4">
+              <div className="flex flex-col sm:flex-row items-center gap-3 w-full lg:max-w-xl">
+                <div className="relative flex-1 w-full">
+                  <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    placeholder={
+                      outputSubTab === 'client-wise'
+                        ? `Search within [${activeClientCode}] by Editor, Property, or Job ID...`
+                        : 'Search by Editor, Client, Property, or Job ID...'
+                    }
+                    className="w-full bg-slate-50 text-slate-800 pl-10 pr-4 py-2 rounded-xl border border-slate-200 text-xs focus:outline-none focus:border-indigo-500 focus:bg-white transition-all"
+                  />
+                </div>
+
+                {/* Client Dropdown Filter in All Sheets View */}
+                {outputSubTab === 'all-sheets' && (
+                  <div className="flex items-center gap-1.5 w-full sm:w-auto shrink-0">
+                    <FiBriefcase className="w-3.5 h-3.5 text-indigo-600 shrink-0" />
+                    <select
+                      value={allTabClientFilter}
+                      onChange={(e) => setAllTabClientFilter(e.target.value)}
+                      className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-2 text-xs font-bold focus:outline-none focus:border-indigo-500 shadow-2xs cursor-pointer w-full sm:w-auto"
+                      title="Filter All Production Sheets by Client"
+                    >
+                      <option value="ALL">All Clients ({productionSheets.length})</option>
+                      {availableClients.map((c) => (
+                        <option key={c.code} value={c.code}>
+                          [{c.code}] {c.name} ({clientSheetCounts[c.code.toUpperCase()] || 0})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
 
-              <div className="flex items-center gap-2 w-full sm:w-auto text-xs text-slate-500">
+              {/* Date & Action Buttons */}
+              <div className="flex flex-wrap items-center gap-2 w-full lg:w-auto text-xs text-slate-500 justify-start lg:justify-end">
                 <FiCalendar className="w-4 h-4 text-indigo-600" />
                 <div className="w-32">
                   <DatePickerDMY
@@ -576,80 +894,179 @@ export default function ProductionSheetsPage() {
                 </button>
                 {selectedDate && (
                   <button
+                    type="button"
                     onClick={() => setSelectedDate('')}
                     className="text-slate-500 hover:text-slate-800 text-xs font-semibold hover:underline px-1 cursor-pointer"
                   >
                     All History
                   </button>
                 )}
+
                 <button
+                  type="button"
+                  onClick={() => setIsImportModalOpen(true)}
+                  className="px-3.5 py-2 bg-slate-900 hover:bg-slate-800 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
+                  title={
+                    outputSubTab === 'client-wise'
+                      ? `Import previous data directly into Client [${activeClientCode}]`
+                      : 'Import previous production sheets'
+                  }
+                >
+                  <FiUploadCloud className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>
+                    Import {outputSubTab === 'client-wise' ? `[${activeClientCode}] Data` : 'Previous Data'}
+                  </span>
+                </button>
+
+                <button
+                  type="button"
+                  onClick={() => setIsExportPdfOpen(true)}
+                  className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs cursor-pointer shrink-0"
+                  title="Export selected columns to PDF"
+                >
+                  <FiPrinter className="w-3.5 h-3.5" /> Export PDF
+                </button>
+
+                <button
+                  type="button"
                   onClick={exportProductionSheetsToCSV}
-                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0"
-                  title="Export Daily Output Sheets to CSV"
+                  className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
+                  title="Export sheets to CSV"
                 >
                   <FiDownload className="w-3.5 h-3.5" /> Export CSV
                 </button>
               </div>
             </div>
 
-          {/* Daily Output Sheets Table with 2-axis scrolling (horizontal & vertical) */}
-          <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
-            <table className="w-full text-left text-xs min-w-[850px]">
-              <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800 shadow-xs">
-                <tr>
-                  <th className="py-3 px-4">Date</th>
-                  <th className="py-3 px-4">Employee</th>
-                  <th className="py-3 px-4">Role / Stage</th>
-                  <th className="py-3 px-4">Job ID</th>
-                  <th className="py-3 px-4">Client</th>
-                  <th className="py-3 px-4 text-center">Files Processed</th>
-                  <th className="py-3 px-4 text-center">Active Time</th>
-                  <th className="py-3 px-4 text-center">Pause Duration</th>
-                  <th className="py-3 px-4 text-right">Status</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 font-medium text-slate-700 bg-white">
-                {filteredSheets.length === 0 ? (
+            {/* Scope Information Bar */}
+            <div className="mx-5 px-3.5 py-2 rounded-xl bg-slate-50 border border-slate-200 text-slate-700 text-xs flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <span className="font-bold text-indigo-700">
+                  {outputSubTab === 'client-wise' ? `Client Workspace: [${activeClientCode}] ${activeClientObj.name}` : 'Consolidated All Clients View'}
+                </span>
+                <span className="text-slate-400">•</span>
+                <span>
+                  Showing <strong>{activeDisplaySheets.length}</strong> matching entries
+                  {selectedDate ? ` for date ${formatDateDMY(selectedDate)}` : ' (All Dates)'}
+                </span>
+              </div>
+              {outputSubTab === 'client-wise' && (
+                <button
+                  type="button"
+                  onClick={() => setOutputSubTab('all-sheets')}
+                  className="text-xs text-indigo-600 hover:text-indigo-800 font-bold hover:underline cursor-pointer"
+                >
+                  Switch to Consolidated View
+                </button>
+              )}
+            </div>
+
+            {/* Daily Output Sheets Table with 2-axis scrolling */}
+            <div className="overflow-x-auto overflow-y-auto max-h-[580px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
+              <table className="w-full text-left text-xs min-w-[1050px]">
+                <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-semibold border-b border-slate-800 shadow-xs text-[11px]">
                   <tr>
-                    <td colSpan={9} className="py-8 text-center text-slate-400 text-xs">
-                      No daily output logs found for selected date and filter.
-                    </td>
+                    <th className="py-3 px-4">Input Date</th>
+                    <th className="py-3 px-4 min-w-[160px]">Property name</th>
+                    <th className="py-3 px-4">Service</th>
+                    <th className="py-3 px-4 text-center">Number Of Images</th>
+                    <th className="py-3 px-4 min-w-[140px]">Comments</th>
+                    <th className="py-3 px-3">Job ID</th>
+                    <th className="py-3 px-3">Client</th>
+                    <th className="py-3 px-4">Editor Name</th>
+                    <th className="py-3 px-3 text-center">Active Time</th>
+                    <th className="py-3 px-4 text-right">Status</th>
                   </tr>
-                ) : (
-                  filteredSheets.map((sheet) => (
-                    <tr key={sheet.id} className="hover:bg-slate-50/80 transition-colors">
-                      <td className="py-3 px-4 font-mono text-slate-500">{sheet.date}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{sheet.editorName}</td>
-                      <td className="py-3 px-4 text-slate-600">
-                        <span className="px-2 py-0.5 rounded-md bg-slate-100 text-indigo-700 border border-slate-200 font-mono text-[11px]">
-                          {sheet.stage}
-                        </span>
-                      </td>
-                      <td className="py-3 px-4 font-mono font-bold text-indigo-600">#{sheet.jobId}</td>
-                      <td className="py-3 px-4 font-bold text-slate-900">{sheet.client}</td>
-                      <td className="py-3 px-4 text-center font-mono font-bold text-emerald-700">
-                        {sheet.filesProcessed}
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono text-slate-700">
-                        {sheet.activeMinutes} mins
-                      </td>
-                      <td className="py-3 px-4 text-center font-mono text-purple-700">
-                        {sheet.pauseMinutes} mins
-                      </td>
-                      <td className="py-3 px-4 text-right">
-                        <span className="px-2.5 py-1 rounded-md text-[11px] bg-emerald-50 text-emerald-700 border border-emerald-200 inline-flex items-center gap-1">
-                          <FiCheckCircle className="w-3 h-3" /> {sheet.status}
-                        </span>
+                </thead>
+                <tbody className="divide-y divide-slate-100 font-medium text-slate-700 bg-white">
+                  {activeDisplaySheets.length === 0 ? (
+                    <tr>
+                      <td colSpan={10} className="py-8">
+                        <EmptyState
+                          icon="document"
+                          title={
+                            outputSubTab === 'client-wise'
+                              ? `No output sheets for Client [${activeClientCode}]`
+                              : 'No daily output sheets found'
+                          }
+                          description={
+                            searchTerm
+                              ? `No records match "${searchTerm}". Try adjusting your search.`
+                              : outputSubTab === 'client-wise'
+                              ? `No output entries have been logged or imported for ${activeClientObj.name} yet.`
+                              : 'No daily production output logs found for this date.'
+                          }
+                          actionLabel={
+                            searchTerm
+                              ? 'Clear Search'
+                              : outputSubTab === 'client-wise'
+                              ? `Import [${activeClientCode}] Data`
+                              : undefined
+                          }
+                          onAction={
+                            searchTerm
+                              ? () => setSearchTerm('')
+                              : outputSubTab === 'client-wise'
+                              ? () => setIsImportModalOpen(true)
+                              : undefined
+                          }
+                        />
                       </td>
                     </tr>
-                  ))
-                )}
-              </tbody>
-            </table>
+                  ) : (
+                    activeDisplaySheets.map((sheet) => (
+                      <tr key={sheet.id} className="hover:bg-slate-50/80 transition-colors">
+                        <td className="py-3 px-4 font-mono text-slate-500 whitespace-nowrap">
+                          {sheet.inputDate || sheet.date}
+                        </td>
+                        <td className="py-3 px-4 font-bold text-slate-900">
+                          <CopyableText text={sheet.propertyName || sheet.name || 'untitled folder'} className="font-bold text-slate-900" />
+                        </td>
+                        <td className="py-3 px-4 text-slate-600">
+                          <span className="px-2 py-0.5 rounded-md bg-slate-100 text-indigo-700 border border-slate-200 font-mono text-[11px] font-semibold whitespace-nowrap">
+                            {sheet.service || sheet.stage || 'RE Editing'}
+                          </span>
+                        </td>
+                        <td className="py-3 px-4 text-center font-mono font-extrabold text-emerald-700 text-sm">
+                          {sheet.numberOfImages !== undefined ? sheet.numberOfImages : sheet.filesProcessed || 0}
+                        </td>
+                        <td className="py-3 px-4 text-slate-500 text-[11px] max-w-[180px] truncate" title={sheet.comments}>
+                          {sheet.comments || '—'}
+                        </td>
+                        <td className="py-3 px-3">
+                          {sheet.jobId ? (
+                            <CopyableText text={sheet.jobId} prefix="#" className="text-indigo-600 font-bold font-mono" />
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-3">
+                          {sheet.client ? (
+                            <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 font-mono text-[11px] font-bold border border-indigo-200">
+                              {sheet.client}
+                            </span>
+                          ) : (
+                            <span className="text-slate-400">—</span>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-slate-800 font-medium">
+                          {sheet.editorName || 'Staff'}
+                        </td>
+                        <td className="py-3 px-3 text-center font-mono text-slate-600 whitespace-nowrap">
+                          {sheet.activeMinutes || 0} mins
+                        </td>
+                        <td className="py-3 px-4 text-right">
+                          <StatusChip status={sheet.status || 'Verified'} />
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
-      </div>
-    )}
+      )}
 
       {/* Modal for adding/editing work sessions (Manager/Admin) */}
       <WorkSessionModal
@@ -657,28 +1074,40 @@ export default function ProductionSheetsPage() {
         onClose={() => setIsModalOpen(false)}
         editingSession={editingSession}
       />
+
+      {/* Modal for Exporting PDF with Selectable Fields */}
+      <ExportPdfModal
+        isOpen={isExportPdfOpen}
+        onClose={() => setIsExportPdfOpen(false)}
+        data={activeDisplaySheets}
+        defaultTitle={
+          outputSubTab === 'client-wise'
+            ? `Client [${activeClientCode}] - Production Sheet${selectedDate ? ` - ${formatDateDMY(selectedDate)}` : ''}`
+            : allTabClientFilter !== 'ALL'
+            ? `Client [${allTabClientFilter}] - Production Sheet${selectedDate ? ` - ${formatDateDMY(selectedDate)}` : ''}`
+            : `All Clients - Production Sheet${selectedDate ? ` - ${formatDateDMY(selectedDate)}` : ''}`
+        }
+      />
+
+      {/* Modal for Importing Previous Production Data */}
+      <ImportProductionModal
+        isOpen={isImportModalOpen}
+        onClose={() => setIsImportModalOpen(false)}
+        onImportSuccess={importProductionSheets}
+        defaultClientCode={
+          outputSubTab === 'client-wise'
+            ? activeClientCode
+            : allTabClientFilter !== 'ALL'
+            ? allTabClientFilter
+            : 'BE'
+        }
+        isClientLocked={outputSubTab === 'client-wise'}
+      />
     </div>
   );
 }
 
 // Helpers
-function formatTime(isoStr) {
-  if (!isoStr) return '-';
-  try {
-    let str = String(isoStr).trim();
-    if (!str) return '-';
-    // If string has date and time without 'Z' or offset, treat as UTC
-    if ((str.includes('T') || str.includes(' ')) && !str.endsWith('Z') && !/[+-]\d{2}:?\d{2}$/.test(str)) {
-      str = str.replace(' ', 'T') + 'Z';
-    }
-    const d = new Date(str);
-    if (isNaN(d.getTime())) return isoStr;
-    return d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', hour12: true });
-  } catch (e) {
-    return isoStr;
-  }
-}
-
 function roundHours(val) {
   return Math.round((val || 0) * 10) / 10;
 }
