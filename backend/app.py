@@ -57,12 +57,24 @@ def create_app(config_object=Config):
                     "ALTER TABLE production_sheets ADD COLUMN property_name VARCHAR(255)",
                     "ALTER TABLE production_sheets ADD COLUMN service VARCHAR(100)",
                     "ALTER TABLE production_sheets ADD COLUMN comments TEXT",
+                    "ALTER TABLE jobs ADD COLUMN client_entry_time VARCHAR(50)",
+                    "ALTER TABLE jobs ADD COLUMN client_target_time VARCHAR(50)",
+                    "ALTER TABLE jobs ADD COLUMN client_finish_time VARCHAR(50)",
+                    "ALTER TABLE jobs ADD COLUMN operational_date VARCHAR(20)",
+                    "ALTER TABLE job_stages ADD COLUMN paused_duration_seconds INTEGER DEFAULT 0",
+                    "ALTER TABLE job_stages ADD COLUMN current_pause_start VARCHAR(50)",
+                    "ALTER TABLE job_stages ADD COLUMN pause_logs_json TEXT DEFAULT '[]'",
                 ]:
                     try:
                         conn.execute(text(col_sql))
                         conn.commit()
                     except Exception:
                         pass
+                try:
+                    conn.execute(text("UPDATE users SET designation = 'Path Editor' WHERE LOWER(designation) = 'pather'"))
+                    conn.commit()
+                except Exception:
+                    pass
         except Exception as e:
             print("DB Migration notice:", e)
 
@@ -97,10 +109,11 @@ def seed_users():
     except Exception:
         pass
 
-    # 1. Master Admin accounts (Arun and Gokul sharing full identical admin functionality)
+    # 1. Master Admin accounts (Arun, Gokul, and Arun Selvam sharing full identical admin functionality)
     master_admins = [
         {"email": "arun@aszen.com", "name": "Arun"},
         {"email": "gokul@aszen.com", "name": "Gokul"},
+        {"email": "arunselvam@aszen.com", "name": "Arun Selvam"},
     ]
     admin_perms = {
         'can_create_job': True,

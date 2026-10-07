@@ -543,7 +543,7 @@ export default function CreateJobPage() {
                         onChange={(e) => setPath1Assignee(e.target.value)}
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
-                        <option value="">Choose Pather 1</option>
+                        <option value="">Choose Path Editor 1</option>
                         {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})
@@ -569,7 +569,7 @@ export default function CreateJobPage() {
                         onChange={(e) => setPath2Assignee(e.target.value)}
                         className="sm:col-span-2 bg-white border border-slate-200 rounded-xl px-4 py-3 text-sm sm:text-[14.5px] min-h-[46px] text-slate-900 font-medium focus:outline-none focus:border-indigo-500 cursor-pointer"
                       >
-                        <option value="">Choose Pather 2</option>
+                        <option value="">Choose Path Editor 2</option>
                         {assignableEditors.map((ed) => (
                           <option key={ed.id} value={ed.name}>
                             {ed.name} ({ed.role})

@@ -29,6 +29,7 @@ import ProductionSheetsPage from './pages/dashboard/ProductionSheetsPage';
 import ClientHistorySummaryPage from './pages/dashboard/ClientHistorySummaryPage';
 import AuditLogsPage from './pages/dashboard/AuditLogsPage';
 import LeaveManagementPage from './pages/dashboard/LeaveManagementPage';
+import EmployeesPage from './pages/dashboard/EmployeesPage';
 
 export default function App() {
   return (
@@ -54,6 +55,7 @@ export default function App() {
                   <Route index element={<DashboardOverview />} />
                   <Route path="create-job" element={<CreateJobPage />} />
                   <Route path="management" element={<ManagementPage />} />
+                  <Route path="employees" element={<EmployeesPage />} />
                   <Route path="jobs" element={<TodaysJobsPage />} />
                   <Route path="qc-pending" element={<QCPendingPage />} />
                   <Route path="assignments" element={<AssignmentsPage />} />

@@ -12,6 +12,7 @@ import {
   FiX,
   FiBarChart2,
   FiClock,
+  FiUsers,
 } from 'react-icons/fi';
 import { useJobs } from '../../context/JobContext';
 
@@ -187,6 +188,24 @@ export default function DashboardSidebar({ isCollapsed, setIsCollapsed, isMobile
               </div>
             ) : (
               <div className="my-2 border-t border-[#26283C] mx-3" />
+            )}
+
+            {/* Employees Directory (Direct Link) */}
+            {!isDeveloper && (
+              <NavLink
+                to="/dashboard/employees"
+                onClick={closeMobile}
+                className={({ isActive }) =>
+                  `flex items-center gap-3.5 px-4 py-2.5 rounded-lg text-xs font-semibold transition-all ${
+                    isActive
+                      ? 'bg-[#151623] text-white font-bold border-l-4 border-blue-500 shadow-sm'
+                      : 'text-slate-400 hover:text-white hover:bg-[#25273C]'
+                  }`
+                }
+              >
+                <FiUsers className="w-4 h-4 text-slate-400 shrink-0" />
+                {(!isCollapsed || isMobileOpen) && <span className="truncate">Employees</span>}
+              </NavLink>
             )}
 
             {/* Assignments Matrix (Direct Link - Clean & 1-Click) */}

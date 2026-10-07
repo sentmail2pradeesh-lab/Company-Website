@@ -198,9 +198,17 @@ export function JobProvider({ children }) {
       if (saved) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          const cleaned = parsed.filter(
-            (e) => !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim())
-          );
+          const cleaned = parsed
+            .filter((e) => !LEGACY_MOCK_EMAILS.includes((e.email || '').toLowerCase().trim()))
+            .map((e) => {
+              const desig = (e.designation || e.role || '').trim();
+              const isPather = desig.toLowerCase() === 'pather';
+              return {
+                ...e,
+                role: isPather ? 'Path Editor' : (e.role || 'Editor'),
+                designation: isPather ? 'Path Editor' : (e.designation || e.role || 'Editor'),
+              };
+            });
           return cleaned;
         }
       }
@@ -479,9 +487,18 @@ export function JobProvider({ children }) {
   };
 
   const updateEditorsState = (newEditors) => {
-    setEditors(newEditors);
-    localStorage.setItem('aszen_editors', JSON.stringify(newEditors));
-    broadcastSync(jobs, productionSheets, newEditors, clients, workSessions);
+    const normalized = (newEditors || []).map((e) => {
+      const desig = (e.designation || e.role || '').trim();
+      const isPather = desig.toLowerCase() === 'pather';
+      return {
+        ...e,
+        role: isPather ? 'Path Editor' : (e.role || 'Editor'),
+        designation: isPather ? 'Path Editor' : (e.designation || e.role || 'Editor'),
+      };
+    });
+    setEditors(normalized);
+    localStorage.setItem('aszen_editors', JSON.stringify(normalized));
+    broadcastSync(jobs, productionSheets, normalized, clients, workSessions);
   };
 
   const updateClientsState = (newClients) => {
@@ -985,6 +1002,9 @@ export function JobProvider({ children }) {
         }
       } catch (err) {
         console.error('Create job API error:', err);
+        const serverMsg = err.response?.data?.message || err.message || 'Server error creating job';
+        alert(`Server Error: ${serverMsg}. The job could not be saved to the database.`);
+        throw err;
       }
     }
 
@@ -1614,15 +1634,19 @@ export function JobProvider({ children }) {
                   u.role !== 'admin' &&
                   !LEGACY_MOCK_EMAILS.includes((u.email || '').toLowerCase().trim())
               )
-              .map((u) => ({
-                id: u.id,
-                name: u.name,
-                email: u.email,
-                role: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
-                designation: u.designation || (u.role === 'manager' ? 'Manager' : 'Editor'),
-                is_approved: u.is_approved !== false,
-                permissions: u.permissions || {},
-              }));
+              .map((u) => {
+                const rawDesig = (u.designation || (u.role === 'manager' ? 'Manager' : 'Editor')).trim();
+                const normalizedDesig = rawDesig.toLowerCase() === 'pather' ? 'Path Editor' : rawDesig;
+                return {
+                  id: u.id,
+                  name: u.name,
+                  email: u.email,
+                  role: normalizedDesig,
+                  designation: normalizedDesig,
+                  is_approved: u.is_approved !== false,
+                  permissions: u.permissions || {},
+                };
+              });
 
             setEditors(mapped);
             localStorage.setItem('aszen_editors', JSON.stringify(mapped));

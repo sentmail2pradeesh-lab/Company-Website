@@ -297,7 +297,7 @@ export default function LoginPopup() {
                     <option value="Developer">Developer</option>
                     <option value="Editor">Editor</option>
                     <option value="Senior Editor">Senior Editor</option>
-                    <option value="Pather">Pather</option>
+                    <option value="Path Editor">Path Editor</option>
                     <option value="QC Lead">QC Lead</option>
                     <option value="Project Manager">Project Manager</option>
                   </select>

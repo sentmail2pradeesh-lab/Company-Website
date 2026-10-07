@@ -59,7 +59,7 @@ class User(db.Model):
             'email': self.email,
             'name': self.name or self.email.split('@')[0].capitalize(),
             'role': self.role,
-            'designation': self.designation or ('Developer' if self.role == 'developer' else ('Manager' if self.role == 'manager' else 'Editor')),
+            'designation': 'Path Editor' if (self.designation or '').strip().lower() == 'pather' else (self.designation or ('Developer' if self.role == 'developer' else ('Manager' if self.role == 'manager' else 'Editor'))),
             'is_approved': getattr(self, 'is_approved', True),
             'permissions': self.permissions,
             'created_at': to_utc_iso(self.created_at),
@@ -160,6 +160,7 @@ class Job(db.Model):
     client_entry_time = db.Column(db.String(50), nullable=True)
     client_target_time = db.Column(db.String(50), nullable=True)
     client_finish_time = db.Column(db.String(50), nullable=True)
+    operational_date = db.Column(db.String(20), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     stages = db.relationship('JobStage', backref='job', cascade='all, delete-orphan')
@@ -181,6 +182,7 @@ class Job(db.Model):
             'clientEntryTime': self.client_entry_time or '',
             'clientTargetTime': self.client_target_time or '',
             'clientFinishTime': self.client_finish_time or '',
+            'operationalDate': self.operational_date or '',
             'createdAt': to_utc_iso(self.created_at),
             'stages': stages_dict
         }

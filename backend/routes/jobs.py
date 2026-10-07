@@ -42,7 +42,8 @@ def get_jobs():
 def create_job():
     user = request.current_user
     is_senior = (user.designation or '').strip().lower() == 'senior editor'
-    if user.role not in ['admin', 'manager'] and not is_senior and not user.has_permission('can_create_job'):
+    is_master_admin = (user.email or '').strip().lower() in ['arun@aszen.com', 'gokul@aszen.com', 'arunselvam@aszen.com']
+    if user.role not in ['admin', 'manager'] and not is_senior and not is_master_admin and not user.has_permission('can_create_job'):
         return jsonify({'message': 'Permission denied. You do not have permission to create jobs.'}), 403
 
     data = request.get_json() or {}
@@ -69,7 +70,8 @@ def create_job():
         status='In Progress',
         client_entry_time=data.get('clientEntryTime'),
         client_target_time=data.get('clientTargetTime'),
-        client_finish_time=data.get('clientFinishTime')
+        client_finish_time=data.get('clientFinishTime'),
+        operational_date=data.get('operationalDate') or data.get('operational_date')
     )
     db.session.add(job)
     db.session.flush()

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import api from '../../api/axios';
@@ -9,6 +9,7 @@ import {
   FiUsers,
   FiBriefcase,
   FiArrowLeft,
+  FiArrowRight,
   FiShield,
   FiKey,
   FiSliders,
@@ -350,7 +351,7 @@ export default function ManagementPage() {
                 : 'border-transparent text-slate-500 hover:text-slate-900'
             }`}
           >
-            <FiUsers className="w-4 h-4" /> Employee Personnel ({editors.length})
+            <FiSliders className="w-4 h-4" /> Feature Access &amp; Permissions ({editors.length})
           </button>
           <button
             onClick={() => setActiveTab('clients')}
@@ -378,6 +379,26 @@ export default function ManagementPage() {
         <div className="p-6 sm:p-8">
           {activeTab === 'employees' ? (
             <div className="space-y-6">
+              {/* Directory Navigation Banner */}
+              <div className="bg-indigo-50/70 border border-indigo-200/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex items-center gap-3">
+                  <div className="w-9 h-9 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+                    <FiUsers className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-extrabold text-slate-900">Looking for Employee Directory &amp; Roster?</div>
+                    <div className="text-[11px] text-slate-500">View official Employee IDs, designations, contact emails, and live shift attendance on the separate directory page.</div>
+                  </div>
+                </div>
+                <Link
+                  to="/dashboard/employees"
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold flex items-center gap-1.5 transition-all shadow-xs shrink-0 cursor-pointer"
+                >
+                  <span>Open Employee Directory</span>
+                  <FiArrowRight className="w-3.5 h-3.5" />
+                </Link>
+              </div>
+
               {/* Add Employee Form */}
               <form onSubmit={handleAddEmployee} className="bg-slate-50 p-5 rounded-2xl border border-slate-200/80">
                 <div className="flex items-center justify-between mb-3">
@@ -445,7 +466,7 @@ export default function ManagementPage() {
               <div className="space-y-3">
                 <div className="flex items-center justify-between">
                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Active Personnel Registry &amp; Permissions ({editors.length})
+                    Feature &amp; Role Permission Assignments ({editors.length})
                   </h3>
                   <span className="text-[11px] text-slate-400">
                     Click <strong>Permissions</strong> to toggle feature access for approved staff.
@@ -491,7 +512,7 @@ export default function ManagementPage() {
                                     </span>
                                   ) : (
                                     <span className="text-[11px] font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-md">
-                                      {emp.designation || emp.role}
+                                      {(emp.designation || emp.role) === 'Pather' ? 'Path Editor' : (emp.designation || emp.role)}
                                     </span>
                                   )}
                                 </div>

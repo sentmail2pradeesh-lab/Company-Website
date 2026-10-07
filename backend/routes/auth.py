@@ -31,6 +31,8 @@ def register():
     password = data.get('password') or ''
     name = (data.get('name') or '').strip()
     designation = (data.get('designation') or 'Editor').strip()
+    if designation.lower() == 'pather':
+        designation = 'Path Editor'
 
     if not email or not password:
         return jsonify({'message': 'Email and password are required'}), 400
@@ -282,6 +284,8 @@ def create_user():
     email = (data.get('email') or '').strip().lower()
     name = (data.get('name') or '').strip()
     designation = (data.get('designation') or 'Editor').strip()
+    if designation.lower() == 'pather':
+        designation = 'Path Editor'
     password = data.get('password') or 'Aszen@123'
     is_approved = bool(data.get('is_approved', True))
     
