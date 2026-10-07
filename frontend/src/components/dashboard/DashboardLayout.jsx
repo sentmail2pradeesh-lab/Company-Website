@@ -107,7 +107,7 @@ export default function DashboardLayout() {
           </Link>
 
           {/* Desktop Left Side Navigation Links */}
-          <div className={`hidden lg:flex items-center gap-8 transition-all duration-300 ${isSidebarCollapsed ? 'pl-20' : 'pl-60'}`}>
+          <div className={`hidden lg:flex items-center gap-8 transition-all duration-300 ${isSidebarCollapsed ? 'pl-20' : 'pl-64'}`}>
             <nav className="flex items-center gap-8 text-sm font-semibold">
               <NavLink
                 to="/dashboard"

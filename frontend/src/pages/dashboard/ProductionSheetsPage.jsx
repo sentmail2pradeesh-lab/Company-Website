@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
 import WorkSessionModal from '../../components/dashboard/WorkSessionModal';
@@ -39,7 +40,22 @@ export default function ProductionSheetsPage() {
     clients,
   } = useJobs();
   const { user } = useAuth();
-  const [activeTab, setActiveTab] = useState('working-hours'); // 'output-sheets' or 'working-hours'
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(() => (tabParam === 'output-sheets' ? 'output-sheets' : 'working-hours'));
+
+  // Sync tab state when URL query parameter changes
+  useEffect(() => {
+    if (tabParam === 'output-sheets' || tabParam === 'working-hours') {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
+
+  const handleTabChange = (tab) => {
+    setActiveTab(tab);
+    setSearchParams({ tab });
+  };
 
   // Output Sheets Sub-Tab: 'all-sheets' | 'client-wise'
   const [outputSubTab, setOutputSubTab] = useState('all-sheets');
@@ -369,7 +385,7 @@ export default function ProductionSheetsPage() {
         <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-slate-800/80 p-1.5 rounded-xl border border-slate-700 w-full sm:w-auto">
           <button
             type="button"
-            onClick={() => setActiveTab('working-hours')}
+            onClick={() => handleTabChange('working-hours')}
             className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] cursor-pointer ${
               activeTab === 'working-hours'
                 ? 'bg-indigo-600 text-white shadow-sm'
@@ -380,7 +396,7 @@ export default function ProductionSheetsPage() {
           </button>
           <button
             type="button"
-            onClick={() => setActiveTab('output-sheets')}
+            onClick={() => handleTabChange('output-sheets')}
             className={`px-4 py-2.5 sm:py-2 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-2 min-h-[40px] cursor-pointer ${
               activeTab === 'output-sheets'
                 ? 'bg-indigo-600 text-white shadow-sm'
