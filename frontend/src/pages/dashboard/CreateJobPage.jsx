@@ -5,7 +5,7 @@ import { FiArrowLeft, FiCheck, FiPlusCircle, FiClock, FiUsers } from 'react-icon
 
 export default function CreateJobPage() {
   const navigate = useNavigate();
-  const { createJob, assignableEditors: rawAssignable, editors, clients } = useJobs();
+  const { createJob, createJobs, assignableEditors: rawAssignable, editors, clients } = useJobs();
   const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   // Line 1: Client Details
@@ -99,56 +99,113 @@ export default function CreateJobPage() {
     }
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let jobName = name.trim();
-    if (Number(folderCount) > 1) {
-      const folderNames = folderTargets.map((f, i) => (f.name || `Folder ${i + 1}`).trim()).filter(Boolean);
-      if (!jobName) {
-        jobName = folderNames.join(', ');
-      } else {
-        jobName = `${jobName} (${folderNames.join(', ')})`;
-      }
-    } else {
-      if (!jobName && folderTargets[0]?.name) {
-        jobName = folderTargets[0].name.trim();
-      }
+    const count = Number(folderCount) || 1;
+    const rawBatchName = name.trim();
+    const firstFolderName = (folderTargets[0]?.name || '').trim();
+    // If the batch name was auto-synced from Folder 1, ignore it as a prefix so folder names remain clean
+    const isBatchNameAutoSynced = rawBatchName === firstFolderName;
+    const effectiveBatchName = isBatchNameAutoSynced ? '' : rawBatchName;
+
+    if (count > 1 && folderTargets.length > 1) {
+      const jobsToCreate = folderTargets.map((ft, idx) => {
+        const folderName = (ft.name || '').trim() || `Folder ${idx + 1}`;
+        let resolvedName = folderName;
+        if (effectiveBatchName && effectiveBatchName !== folderName && !folderName.toLowerCase().includes(effectiveBatchName.toLowerCase())) {
+          resolvedName = `${effectiveBatchName} - ${folderName}`;
+        }
+
+        const folderFiles = Number(ft.count) || 0;
+        const total = totalOutputs > 0 ? totalOutputs : 1;
+
+        const calcStageFiles = (assignee, stageFilesInput) => {
+          if (!assignee) return 0;
+          if (stageFilesInput !== undefined && stageFilesInput !== '' && Number(stageFilesInput) > 0) {
+            if (Number(stageFilesInput) === totalOutputs) {
+              return folderFiles;
+            }
+            return Math.round((Number(stageFilesInput) / total) * folderFiles) || folderFiles;
+          }
+          return folderFiles;
+        };
+
+        return {
+          client: client || (clients[0]?.code || 'BE'),
+          category: category || 'Photo Editing',
+          name: resolvedName,
+          level: level || 'Basic',
+          folderCount: 1,
+          folderTargets: [{ name: resolvedName, count: folderFiles }],
+          outputTarget: folderFiles,
+          instruction,
+          clientEntryTime: folderCreatedTime || new Date().toISOString().slice(0, 16),
+          clientTargetTime: targetTime,
+
+          blendingAssignee,
+          blendingFiles: calcStageFiles(blendingAssignee, blendingFiles),
+
+          path1Assignee,
+          path1Files: calcStageFiles(path1Assignee, path1Files),
+
+          path2Assignee,
+          path2Files: calcStageFiles(path2Assignee, path2Files),
+
+          editor1Assignee,
+          editor1Files: calcStageFiles(editor1Assignee, editor1Files),
+
+          editor2Assignee,
+          editor2Files: calcStageFiles(editor2Assignee, editor2Files),
+
+          lcAssignee,
+          lcFiles: calcStageFiles(lcAssignee, lcFiles),
+
+          fcAssignee,
+          fcFiles: calcStageFiles(fcAssignee, fcFiles),
+        };
+      });
+
+      await createJobs(jobsToCreate);
+      navigate('/dashboard/jobs');
+      return;
     }
 
-    createJob({
+    // Single folder
+    let singleJobName = (folderTargets[0]?.name || name || 'Untitled Job').trim();
+    const singleOutput = Number(folderTargets[0]?.count) || Number(totalOutputs) || 0;
+    await createJob({
       client: client || (clients[0]?.code || 'BE'),
       category: category || 'Photo Editing',
-      name: jobName || 'Untitled Job',
+      name: singleJobName,
       level: level || 'Basic',
-      folderCount: Number(folderCount) || 1,
-      folderTargets,
-      outputTarget: totalOutputs,
+      folderCount: 1,
+      folderTargets: [{ name: singleJobName, count: singleOutput }],
+      outputTarget: singleOutput,
       instruction,
       clientEntryTime: folderCreatedTime || new Date().toISOString().slice(0, 16),
       clientTargetTime: targetTime,
 
-      // All 6 Stages explicitly mapped
       blendingAssignee,
-      blendingFiles: Number(blendingFiles) || (blendingAssignee ? totalOutputs : 0),
+      blendingFiles: Number(blendingFiles) || (blendingAssignee ? singleOutput : 0),
 
       path1Assignee,
-      path1Files: Number(path1Files) || (path1Assignee ? totalOutputs : 0),
+      path1Files: Number(path1Files) || (path1Assignee ? singleOutput : 0),
 
       path2Assignee,
       path2Files: Number(path2Files) || 0,
 
       editor1Assignee,
-      editor1Files: Number(editor1Files) || (editor1Assignee ? totalOutputs : 0),
+      editor1Files: Number(editor1Files) || (editor1Assignee ? singleOutput : 0),
 
       editor2Assignee,
       editor2Files: Number(editor2Files) || 0,
 
       lcAssignee,
-      lcFiles: Number(lcFiles) || (lcAssignee ? totalOutputs : 0),
+      lcFiles: Number(lcFiles) || (lcAssignee ? singleOutput : 0),
 
       fcAssignee,
-      fcFiles: Number(fcFiles) || (fcAssignee ? totalOutputs : 0),
+      fcFiles: Number(fcFiles) || (fcAssignee ? singleOutput : 0),
     });
 
     navigate('/dashboard/jobs');
@@ -362,10 +419,10 @@ export default function CreateJobPage() {
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-indigo-100 pb-3">
                     <div>
                       <div className="text-sm font-extrabold text-indigo-950 uppercase tracking-wider flex items-center gap-1.5">
-                        📁 Multiple Folder Names &amp; Output Targets ({folderTargets.length} Folders)
+                        📁 Multiple Folders ({folderTargets.length} Separate Jobs)
                       </div>
                       <p className="text-xs text-slate-500 mt-0.5 font-medium">
-                        Please specify the unique folder name and target files count for each folder.
+                        Each folder will be automatically created as its own separate job in Todays Jobs table with assigned pipeline stages.
                       </p>
                     </div>
                     <button
@@ -744,7 +801,7 @@ export default function CreateJobPage() {
               type="submit"
               className="w-full sm:w-auto px-9 py-3.5 rounded-xl bg-[#00CBB8] hover:bg-[#00b5a4] text-white text-sm sm:text-base font-bold shadow-lg shadow-[#00CBB8]/25 transition-all flex items-center justify-center gap-2 min-h-[48px] cursor-pointer active:scale-95"
             >
-              <FiCheck className="w-5 h-5" /> Submit Job
+              <FiCheck className="w-5 h-5" /> {Number(folderCount) > 1 ? `Submit ${folderCount} Separate Jobs` : 'Submit Job'}
             </button>
           </div>
         </form>

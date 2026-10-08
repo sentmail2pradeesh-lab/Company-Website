@@ -30,7 +30,18 @@ export default function JobAssignmentModal() {
     };
   }, [assignModalState]);
 
-  if (!assignModalState || !job || !stage || !canAssignJob) return null;
+  const isStageActiveOrDone = (st) => {
+    return st && st.assignee && (st.status === 'In-Progress' || st.status === 'Paused' || st.status === 'Complete');
+  };
+
+  const isJobComplete = job?.stages?.fc?.status === 'Complete';
+  const isBypassed =
+    (stageKey === 'path2' && (job?.stages?.path1?.status === 'Complete' || isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2) || isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc))) ||
+    (stageKey === 'editor2' && (job?.stages?.editor1?.status === 'Complete' || isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc))) ||
+    (stageKey === 'path1' && (isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2) || isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc))) ||
+    (stageKey === 'blending' && (isStageActiveOrDone(job?.stages?.path1) || isStageActiveOrDone(job?.stages?.path2) || isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2) || isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc)));
+
+  if (!assignModalState || !job || !stage || !canAssignJob || isJobComplete || isBypassed) return null;
 
   const stageLabels = {
     blending: 'Blending (Exposure & Composite)',

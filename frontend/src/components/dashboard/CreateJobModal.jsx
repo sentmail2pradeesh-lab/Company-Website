@@ -3,7 +3,7 @@ import { useJobs } from '../../context/JobContext';
 import { FiPlusCircle, FiX, FiCheck } from 'react-icons/fi';
 
 export default function CreateJobModal() {
-  const { isCreateModalOpen, setIsCreateModalOpen, createJob, assignableEditors: rawAssignable, editors, clients } = useJobs();
+  const { isCreateModalOpen, setIsCreateModalOpen, createJob, createJobs, assignableEditors: rawAssignable, editors, clients } = useJobs();
   const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   const [client, setClient] = useState('');
@@ -87,39 +87,81 @@ export default function CreateJobModal() {
 
   if (!isCreateModalOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
 
-    let jobName = name.trim();
-    if (Number(folderCount) > 1) {
-      const folderNames = folderTargets.map((f, i) => (f.name || `Folder ${i + 1}`).trim()).filter(Boolean);
-      if (!jobName) {
-        jobName = folderNames.join(', ');
-      } else {
-        jobName = `${jobName} (${folderNames.join(', ')})`;
-      }
-    } else {
-      if (!jobName && folderTargets[0]?.name) {
-        jobName = folderTargets[0].name.trim();
-      }
+    const count = Number(folderCount) || 1;
+    const rawBatchName = name.trim();
+    const firstFolderName = (folderTargets[0]?.name || '').trim();
+    const isBatchNameAutoSynced = rawBatchName === firstFolderName;
+    const effectiveBatchName = isBatchNameAutoSynced ? '' : rawBatchName;
+
+    if (count > 1 && folderTargets.length > 1) {
+      const jobsToCreate = folderTargets.map((ft, idx) => {
+        const folderName = (ft.name || '').trim() || `Folder ${idx + 1}`;
+        let resolvedName = folderName;
+        if (effectiveBatchName && effectiveBatchName !== folderName && !folderName.toLowerCase().includes(effectiveBatchName.toLowerCase())) {
+          resolvedName = `${effectiveBatchName} - ${folderName}`;
+        }
+        const folderFiles = Number(ft.count) || 0;
+
+        return {
+          client: client || (clients[0]?.code || 'BE'),
+          name: resolvedName,
+          folderCount: 1,
+          folderTargets: [{ name: resolvedName, count: folderFiles }],
+          outputTarget: folderFiles,
+          clientEntryTime,
+          clientTargetTime,
+          blendingAssignee,
+          blendingFiles: blendingAssignee ? folderFiles : 0,
+          path1Assignee,
+          path1Files: path1Assignee ? folderFiles : 0,
+          path2Assignee,
+          path2Files: path2Assignee ? folderFiles : 0,
+          editor1Assignee,
+          editor1Files: editor1Assignee ? folderFiles : 0,
+          editor2Assignee,
+          editor2Files: editor2Assignee ? folderFiles : 0,
+          lcAssignee,
+          lcFiles: lcAssignee ? folderFiles : 0,
+          fcAssignee,
+          fcFiles: fcAssignee ? folderFiles : 0,
+          qcAssignee: fcAssignee,
+        };
+      });
+
+      await createJobs(jobsToCreate);
+      setIsCreateModalOpen(false);
+      return;
     }
 
-    createJob({
+    let singleJobName = (folderTargets[0]?.name || name || 'Untitled Job').trim();
+    const singleOutput = Number(folderTargets[0]?.count) || Number(outputTarget) || 0;
+
+    await createJob({
       client: client || (clients[0]?.code || 'BE'),
-      name: jobName || 'Untitled Job',
-      folderCount: Number(folderCount) || 1,
-      folderTargets,
-      outputTarget: Number(outputTarget) || 0,
+      name: singleJobName,
+      folderCount: 1,
+      folderTargets: [{ name: singleJobName, count: singleOutput }],
+      outputTarget: singleOutput,
       clientEntryTime,
       clientTargetTime,
       blendingAssignee,
+      blendingFiles: blendingAssignee ? singleOutput : 0,
       path1Assignee,
+      path1Files: path1Assignee ? singleOutput : 0,
       path2Assignee,
+      path2Files: path2Assignee ? singleOutput : 0,
       editor1Assignee,
+      editor1Files: editor1Assignee ? singleOutput : 0,
       editor2Assignee,
+      editor2Files: editor2Assignee ? singleOutput : 0,
       lcAssignee,
+      lcFiles: lcAssignee ? singleOutput : 0,
       fcAssignee,
-      qcAssignee: fcAssignee, // fallback compatibility
+      fcFiles: fcAssignee ? singleOutput : 0,
+      qcAssignee: fcAssignee,
     });
     setIsCreateModalOpen(false);
   };
@@ -512,7 +554,7 @@ export default function CreateJobModal() {
               type="submit"
               className="w-full sm:w-1/2 py-3 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1 transition-colors cursor-pointer min-h-[44px]"
             >
-              <FiCheck className="w-4 h-4" /> Create & Assign Job
+              <FiCheck className="w-4 h-4" /> {Number(folderCount) > 1 ? `Create & Assign ${folderCount} Jobs` : 'Create & Assign Job'}
             </button>
           </div>
         </form>

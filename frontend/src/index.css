@@ -368,4 +368,42 @@ html.light {
   }
 }
 
-@variant dark (&:where(.dark, .dark *));
+@variant dark (&:where(.dark, .dark *));
+
+/* =========================================================
+   PRINT STYLES FOR PROFESSIONAL EXECUTIVE REPORTS
+   ========================================================= */
+@media print {
+  nav,
+  aside,
+  header,
+  .no-print,
+  button,
+  input,
+  select {
+    display: none !important;
+  }
+
+  html, body, #root, main {
+    background: #ffffff !important;
+    color: #0f172a !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  tr,
+  .print-avoid-break {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  .print-only {
+    display: block !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+}

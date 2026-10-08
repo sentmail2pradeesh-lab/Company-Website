@@ -12,6 +12,7 @@ import {
   FiUserPlus,
   FiCalendar,
   FiDownload,
+  FiLock,
 } from 'react-icons/fi';
 import { getOperationalDate, formatDateDMY, formatOperationalShiftLabel } from '../../utils/dateUtils';
 import DatePickerDMY from '../../components/common/DatePickerDMY';
@@ -171,8 +172,60 @@ export default function TodaysJobsPage() {
   const totalPages = Math.ceil(filteredJobs.length / entriesPerPage) || 1;
   const paginatedJobs = filteredJobs.slice((currentPage - 1) * entriesPerPage, currentPage * entriesPerPage);
 
-  const renderStageBadge = (jobId, stageKey, stageObj) => {
+  const isStageActiveOrDone = (st) => {
+    return st && st.assignee && (st.status === 'In-Progress' || st.status === 'Paused' || st.status === 'Complete');
+  };
+
+  const renderStageBadge = (job, stageKey) => {
+    const stageObj = job?.stages?.[stageKey];
+    const jobId = job?.id;
+    const isJobCompleted = job?.stages?.fc?.status === 'Complete';
+
     if (!stageObj || !stageObj.assignee) {
+      // 1. If entire job is fully completed (FC is Complete), no more tasks can be assigned
+      if (isJobCompleted) {
+        return <span className="text-slate-300 font-bold select-none text-xs block text-center">—</span>;
+      }
+
+      // 2. Stage-specific bypass rules:
+      // If Path 1 is Complete or editing/QC has already started, Path 2 is no longer needed
+      if (stageKey === 'path2') {
+        const path1Done = job?.stages?.path1?.status === 'Complete';
+        const editingStarted = isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2);
+        const qcStarted = isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc);
+        if (path1Done || editingStarted || qcStarted) {
+          return <span className="text-slate-300 font-bold select-none text-xs block text-center" title="Path stage finished / Not required">—</span>;
+        }
+      }
+
+      // If Editor 1 is Complete or QC has already started, Editor 2 is no longer needed
+      if (stageKey === 'editor2') {
+        const editor1Done = job?.stages?.editor1?.status === 'Complete';
+        const qcStarted = isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc);
+        if (editor1Done || qcStarted) {
+          return <span className="text-slate-300 font-bold select-none text-xs block text-center" title="Editing stage finished / Not required">—</span>;
+        }
+      }
+
+      // If editing or QC has already started, Path 1 can no longer be unassigned
+      if (stageKey === 'path1') {
+        const editingStarted = isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2);
+        const qcStarted = isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc);
+        if (editingStarted || qcStarted) {
+          return <span className="text-slate-300 font-bold select-none text-xs block text-center" title="Path stage bypassed">—</span>;
+        }
+      }
+
+      // If path, editing, or QC has already started, Blending can no longer be unassigned
+      if (stageKey === 'blending') {
+        const pathStarted = isStageActiveOrDone(job?.stages?.path1) || isStageActiveOrDone(job?.stages?.path2);
+        const editingStarted = isStageActiveOrDone(job?.stages?.editor1) || isStageActiveOrDone(job?.stages?.editor2);
+        const qcStarted = isStageActiveOrDone(job?.stages?.lc) || isStageActiveOrDone(job?.stages?.fc);
+        if (pathStarted || editingStarted || qcStarted) {
+          return <span className="text-slate-300 font-bold select-none text-xs block text-center" title="Blending stage bypassed">—</span>;
+        }
+      }
+
       if (!canAssignJob) {
         return (
           <span className="px-2.5 py-1 rounded-lg text-[11px] bg-slate-100 text-slate-400 font-medium italic block text-center">
@@ -270,122 +323,125 @@ export default function TodaysJobsPage() {
       </div>
 
       {/* Main Table Card */}
-      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs space-y-4 overflow-hidden">
-        {/* Toolbar */}
-        <div className="p-5 pb-0 flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
-          {/* Search Input */}
-          <div className="relative flex-1 max-w-md">
-            <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search by Job ID, Client, or Folder Name..."
-              className="w-full bg-slate-50 text-slate-900 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all font-medium"
-            />
-          </div>
-
-          {/* Status Filter Pills */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
-            {[
-              { id: 'ALL', label: 'ALL' },
-              { id: 'PENDING', label: 'PENDING' },
-              { id: 'IN_PROGRESS', label: 'IN-PROGRESS' },
-              { id: 'COMPLETE', label: 'COMPLETE' },
-            ].map((st) => (
-              <button
-                key={st.id}
-                onClick={() => setFilterStatus(st.id)}
-                className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
-                  filterStatus === st.id
-                    ? 'bg-slate-900 text-white shadow-xs'
-                    : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
-                }`}
-              >
-                {st.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Stage Sub-Filter Dropdown (Blending -> FC) */}
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 shrink-0">
-            <span className="font-bold text-slate-700">Stage:</span>
-            <select
-              value={filterStage}
-              onChange={(e) => setFilterStage(e.target.value)}
-              className="bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
-            >
-              <option value="ALL">All Stages (Blending → FC)</option>
-              <option value="blending">Blending Stage</option>
-              <option value="path1">Path 1</option>
-              <option value="path2">Path 2</option>
-              <option value="editor1">Editor 1</option>
-              <option value="editor2">Editor 2</option>
-              <option value="lc">LC (Lighting & Color)</option>
-              <option value="fc">FC / QC (Final Check)</option>
-            </select>
-          </div>
-
-          {/* Show Entries Dropdown */}
-          <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 shrink-0">
-            <span>Show</span>
-            <select
-              value={entriesPerPage}
-              onChange={(e) => setEntriesPerPage(Number(e.target.value))}
-              className="bg-slate-50 text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-semibold focus:outline-none cursor-pointer"
-            >
-              <option value={5}>5</option>
-              <option value={10}>10</option>
-              <option value={20}>20</option>
-            </select>
-            <span>entries</span>
-          </div>
-        </div>
-
-        {/* Operational Shift & Historical Date Bar */}
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs sm:text-sm">
-          <div className="flex items-center gap-2.5">
-            <span className="font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
-              <FiCalendar className="w-4 h-4 text-indigo-600" /> Shift Date:
-            </span>
-            <div className="w-36">
-              <DatePickerDMY
-                value={selectedDate}
-                onChange={(newDate) => {
-                  setSelectedDate(newDate);
-                  setViewMode('shift');
-                }}
-                className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+      <div className="bg-white rounded-2xl border border-slate-200/80 shadow-xs overflow-hidden">
+        {/* Unified Controls & Filter Header Container */}
+        <div className="p-5 sm:p-6 space-y-4 border-b border-slate-100">
+          {/* Top Row: Search Input, Status Filter Pills, Stage Dropdown, Entries */}
+          <div className="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-4">
+            {/* Search Input */}
+            <div className="relative flex-1 max-w-md">
+              <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+              <input
+                type="text"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                placeholder="Search by Job ID, Client, or Folder Name..."
+                className="w-full bg-slate-50 text-slate-900 pl-10 pr-4 py-2.5 rounded-xl border border-slate-200 text-sm focus:outline-none focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/10 transition-all font-medium"
               />
             </div>
-            <button
-              type="button"
-              onClick={() => setViewMode(viewMode === 'all' ? 'shift' : 'all')}
-              className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
-                viewMode === 'all'
-                  ? 'bg-slate-900 text-white shadow-xs'
-                  : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
-              }`}
-            >
-              {viewMode === 'all' ? 'Showing: All History' : 'Show All History'}
-            </button>
+
+            {/* Status Filter Pills */}
+            <div className="flex items-center gap-1.5 overflow-x-auto pb-1 md:pb-0">
+              {[
+                { id: 'ALL', label: 'ALL' },
+                { id: 'PENDING', label: 'PENDING' },
+                { id: 'IN_PROGRESS', label: 'IN-PROGRESS' },
+                { id: 'COMPLETE', label: 'COMPLETE' },
+              ].map((st) => (
+                <button
+                  key={st.id}
+                  onClick={() => setFilterStatus(st.id)}
+                  className={`px-3.5 py-2 rounded-xl text-xs sm:text-sm font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    filterStatus === st.id
+                      ? 'bg-slate-900 text-white shadow-xs'
+                      : 'bg-slate-100 text-slate-600 hover:text-slate-900 hover:bg-slate-200'
+                  }`}
+                >
+                  {st.label}
+                </button>
+              ))}
+            </div>
+
+            {/* Stage Sub-Filter Dropdown (Blending -> FC) */}
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 shrink-0">
+              <span className="font-bold text-slate-700">Stage:</span>
+              <select
+                value={filterStage}
+                onChange={(e) => setFilterStage(e.target.value)}
+                className="bg-slate-50 text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-xs sm:text-sm font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer"
+              >
+                <option value="ALL">All Stages (Blending → FC)</option>
+                <option value="blending">Blending Stage</option>
+                <option value="path1">Path 1</option>
+                <option value="path2">Path 2</option>
+                <option value="editor1">Editor 1</option>
+                <option value="editor2">Editor 2</option>
+                <option value="lc">LC (Lighting & Color)</option>
+                <option value="fc">FC / QC (Final Check)</option>
+              </select>
+            </div>
+
+            {/* Show Entries Dropdown */}
+            <div className="flex items-center gap-2 text-xs sm:text-sm text-slate-500 shrink-0">
+              <span>Show</span>
+              <select
+                value={entriesPerPage}
+                onChange={(e) => setEntriesPerPage(Number(e.target.value))}
+                className="bg-slate-50 text-slate-700 border border-slate-200 rounded-lg px-2.5 py-1.5 text-xs sm:text-sm font-semibold focus:outline-none cursor-pointer"
+              >
+                <option value={5}>5</option>
+                <option value={10}>10</option>
+                <option value={20}>20</option>
+              </select>
+              <span>entries</span>
+            </div>
           </div>
 
-          <div className="text-xs text-slate-500 font-medium">
-            {viewMode === 'shift' ? (
-              <span>
-                Viewing {filteredJobs.length} job(s) for <strong className="text-slate-800">{formatDateDMY(selectedDate)}</strong>
+          {/* Operational Shift & Historical Date Bar */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pt-3 border-t border-slate-100 text-xs sm:text-sm">
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <span className="font-bold text-slate-700 flex items-center gap-1.5 shrink-0">
+                <FiCalendar className="w-4 h-4 text-indigo-600" /> Shift Date:
               </span>
-            ) : (
-              <span>
-                Viewing <strong className="text-slate-800">All Historical Jobs</strong> ({filteredJobs.length} total)
-              </span>
-            )}
+              <div className="w-36">
+                <DatePickerDMY
+                  value={selectedDate}
+                  onChange={(newDate) => {
+                    setSelectedDate(newDate);
+                    setViewMode('shift');
+                  }}
+                  className="bg-slate-50 text-slate-800 border border-slate-200 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500"
+                />
+              </div>
+              <button
+                type="button"
+                onClick={() => setViewMode(viewMode === 'all' ? 'shift' : 'all')}
+                className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer shrink-0 ${
+                  viewMode === 'all'
+                    ? 'bg-slate-900 text-white shadow-xs'
+                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
+                }`}
+              >
+                {viewMode === 'all' ? 'Showing: All History' : 'Show All History'}
+              </button>
+            </div>
+
+            <div className="text-xs text-slate-500 font-medium">
+              {viewMode === 'shift' ? (
+                <span>
+                  Viewing {filteredJobs.length} job(s) for <strong className="text-slate-800">{formatDateDMY(selectedDate)}</strong>
+                </span>
+              ) : (
+                <span>
+                  Viewing <strong className="text-slate-800">All Historical Jobs</strong> ({filteredJobs.length} total)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
         {/* Jobs Data Table with 2-axis scrolling (horizontal & vertical) */}
-        <div className="overflow-x-auto overflow-y-auto max-h-[620px] custom-scrollbar touch-pan-x touch-pan-y rounded-xl border border-slate-200" data-lenis-prevent>
+        <div className="overflow-x-auto overflow-y-auto max-h-[620px] custom-scrollbar touch-pan-x touch-pan-y" data-lenis-prevent>
           <table className="w-full text-left text-xs sm:text-sm min-w-[950px]">
             <thead className="sticky top-0 z-10 bg-slate-900 text-white uppercase tracking-wider font-bold border-b border-slate-800 text-[11px] sm:text-xs shadow-xs">
               <tr>
@@ -437,23 +493,32 @@ export default function TodaysJobsPage() {
                     <td className="py-3.5 px-3.5 text-center font-mono font-bold text-slate-900 text-sm">
                       {job.outputTarget}
                     </td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'blending', job.stages.blending)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'path1', job.stages.path1)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'path2', job.stages.path2)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'editor1', job.stages.editor1)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'editor2', job.stages.editor2)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'lc', job.stages.lc)}</td>
-                    <td className="py-3.5 px-3.5">{renderStageBadge(job.id, 'fc', job.stages.fc)}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'blending')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'path1')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'path2')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'editor1')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'editor2')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'lc')}</td>
+                    <td className="py-3.5 px-3.5">{renderStageBadge(job, 'fc')}</td>
                     <td className="py-3.5 px-3.5 text-center">
                       <div className="flex items-center justify-center gap-1.5">
                         {canAssignJob && (
-                          <button
-                            onClick={() => setEditModalState({ jobId: job.id })}
-                            className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-100 cursor-pointer"
-                            title="Modify / Edit Job Specifications"
-                          >
-                            <FiEdit2 className="w-4 h-4" />
-                          </button>
+                          job.stages?.fc?.status === 'Complete' ? (
+                            <span
+                              className="p-2 rounded-xl bg-slate-50 text-slate-300 border border-slate-100 cursor-not-allowed"
+                              title="Job Completed (FC Complete) — Specifications Locked"
+                            >
+                              <FiLock className="w-4 h-4" />
+                            </span>
+                          ) : (
+                            <button
+                              onClick={() => setEditModalState({ jobId: job.id })}
+                              className="p-2 rounded-xl bg-indigo-50 hover:bg-indigo-100 text-indigo-600 transition-colors border border-indigo-100 cursor-pointer"
+                              title="Modify / Edit Job Specifications"
+                            >
+                              <FiEdit2 className="w-4 h-4" />
+                            </button>
+                          )
                         )}
                         <button
                           onClick={() => setClientModalState({ jobId: job.id })}

@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, useCallback, useMemo } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import api from '../api/axios';
 import {
   INITIAL_EDITORS,
@@ -180,7 +180,7 @@ export function JobProvider({ children }) {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed)) {
           const cleaned = parsed.filter(
-            (j) => !['1001', '#1001', '1002', '#1002', '1003', '#1003', '1004', '#1004', '19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(String(j.id || j.jobNumber || '')) && !String(j.id || j.jobNumber || '').startsWith('1578')
+            (j) => !['19723', '19722', '19721', '19720', '19719', '19718', '19717'].includes(String(j.id || j.jobNumber || '')) && !String(j.id || j.jobNumber || '').startsWith('1578')
           );
           if (cleaned.length > 0) {
             return normalizeJobs(cleaned);
@@ -250,7 +250,7 @@ export function JobProvider({ children }) {
           const cleaned = parsed.filter(
             (a) =>
               !LEGACY_MOCK_EMAILS.includes((a.actorEmail || '').toLowerCase().trim()) &&
-              !['1001', '1002', '1003', '1004', 'LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
+              !['LR-101', 'LR-102', 'LR-103', 'LR-104'].includes(String(a.jobId || '')) &&
               !['act-1', 'act-2', 'act-3', 'act-4', 'act-5', 'act-6', 'act-7', 'act-8', 'act-9', 'act-10', 'act-11', 'act-12'].includes(String(a.id || ''))
           );
           if (cleaned.length > 0) {
@@ -314,37 +314,13 @@ export function JobProvider({ children }) {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isManagementModalOpen, setIsManagementModalOpen] = useState(false);
 
-  // Real-time BroadcastChannel for 0ms cross-window / cross-tab updates
-  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions, newActivities, newLeaves, newAnnualAllowance = null, newCustomAllowances = null) => {
-    try {
-      if ('BroadcastChannel' in window) {
-        const channel = new BroadcastChannel('aszen_dashboard_realtime');
-        channel.postMessage({
-          type: 'REALTIME_UPDATE',
-          jobs: newJobs,
-          productionSheets: newSheets,
-          editors: newEditors,
-          clients: newClients,
-          workSessions: newSessions,
-          activities: newActivities,
-          leaveRequests: newLeaves,
-          annualLeaveAllowance: newAnnualAllowance || annualLeaveAllowance,
-          customLeaveAllowances: newCustomAllowances || customLeaveAllowances,
-          timestamp: Date.now(),
-        });
-        setTimeout(() => {
-          try { channel.close(); } catch {}
-        }, 200);
-      }
-    } catch (e) {
-      console.error('BroadcastChannel sync error:', e);
-    }
-  }, [annualLeaveAllowance, customLeaveAllowances]);
+  // Persistent Real-time BroadcastChannel for 0ms cross-window / cross-tab updates
+  const broadcastChannelRef = useRef(null);
 
-  // Listen for real-time BroadcastChannel updates from other open windows/tabs
   useEffect(() => {
-    if (!('BroadcastChannel' in window)) return;
+    if (typeof window === 'undefined' || !('BroadcastChannel' in window)) return;
     const channel = new BroadcastChannel('aszen_dashboard_realtime');
+    broadcastChannelRef.current = channel;
 
     channel.onmessage = (event) => {
       const data = event.data;
@@ -378,9 +354,34 @@ export function JobProvider({ children }) {
     };
 
     return () => {
-      channel.close();
+      try {
+        channel.close();
+      } catch {}
+      broadcastChannelRef.current = null;
     };
   }, [user]);
+
+  const broadcastSync = useCallback((newJobs, newSheets, newEditors, newClients, newSessions, newActivities, newLeaves, newAnnualAllowance = null, newCustomAllowances = null) => {
+    try {
+      if (broadcastChannelRef.current) {
+        broadcastChannelRef.current.postMessage({
+          type: 'REALTIME_UPDATE',
+          jobs: newJobs,
+          productionSheets: newSheets,
+          editors: newEditors,
+          clients: newClients,
+          workSessions: newSessions,
+          activities: newActivities,
+          leaveRequests: newLeaves,
+          annualLeaveAllowance: newAnnualAllowance || annualLeaveAllowance,
+          customLeaveAllowances: newCustomAllowances || customLeaveAllowances,
+          timestamp: Date.now(),
+        });
+      }
+    } catch (e) {
+      console.error('BroadcastChannel sync error:', e);
+    }
+  }, [annualLeaveAllowance, customLeaveAllowances]);
 
   // Listen for cross-window LocalStorage updates
   useEffect(() => {
@@ -812,33 +813,35 @@ export function JobProvider({ children }) {
 
   const userRole = (user?.role || 'employee').toLowerCase();
   const userDesignation = user?.designation || 'Editor';
-  const isDeveloper = userRole === 'developer' || userDesignation.toLowerCase() === 'developer';
+  const isDeveloper = userRole === 'developer' || userDesignation.toLowerCase() === 'developer' || userDesignation.toLowerCase() === 'software developer';
   const isSeniorEditor = userDesignation.toLowerCase() === 'senior editor';
   const perms = user?.permissions || {};
   const isApproved = userRole === 'admin' || user?.is_approved !== false;
 
   // Role, Designation & Dynamic Permissions Matrix:
-  // Developer does NOT interfere with tasks like Blending, Editing, Jobs, etc.
-  // Developer is restricted strictly to Login/Logoff shift attendance and Leave management.
-  const canCreateJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_create_job);
-  const canAssignJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job);
+  // Developers are technical software development staff, participating normally in shift attendance and leave management.
+  // Creative/operational permissions follow role & RBAC permissions.
+  const canCreateJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_create_job);
+  const canAssignJob = isApproved && (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job);
   const canEditJob = canAssignJob;
-  const canDeleteJob = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_delete_job);
-  const canManageClients = !isDeveloper && isApproved && (userRole === 'admin' || !!perms.can_manage_clients);
-  const canManageEmployees = !isDeveloper && isApproved && (userRole === 'admin' || !!perms.can_create_employee);
-  const canManageWorkHours = !isDeveloper && isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_manage_work_hours);
+  const canDeleteJob = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_delete_job);
+  const canManageClients = isApproved && (userRole === 'admin' || !!perms.can_manage_clients);
+  const canManageEmployees = isApproved && (userRole === 'admin' || !!perms.can_create_employee);
+  const canManageWorkHours = isApproved && (userRole === 'admin' || userRole === 'manager' || !!perms.can_manage_work_hours);
 
-  // Check if current user can update a specific stage (Developers do not update or execute tasks like blending)
+  // Check if current user can update a specific stage
   const canUpdateStage = (assigneeName) => {
-    if (isDeveloper) return false;
     if (userRole === 'admin' || userRole === 'manager' || isSeniorEditor || !!perms.can_edit_job) return true;
     if (!user?.name || !assigneeName) return false;
     return user.name.toLowerCase() === assigneeName.toLowerCase();
   };
 
-  // Assignable editors for production pipeline tasks (Developers are strictly excluded from tasks like Blending, Editing, Pathing, QC)
+  // Assignable editors for creative production tasks (Software developers work on site/code, not blending/retouching)
   const assignableEditors = useMemo(() => {
-    return editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
+    return editors.filter((e) => {
+      const desig = (e.designation || e.role || '').toLowerCase();
+      return desig !== 'developer' && desig !== 'software developer';
+    });
   }, [editors]);
 
 
@@ -886,140 +889,229 @@ export function JobProvider({ children }) {
   }), [todaysJobs, jobs]);
 
   // Job Actions
-  const createJob = async (newJobData) => {
+  const createJobs = async (jobsDataList) => {
+    if (!Array.isArray(jobsDataList) || jobsDataList.length === 0) return [];
+
     const existingIds = jobs.map((j) => parseInt(String(j.id || j.jobNumber || 0), 10)).filter((n) => !isNaN(n));
-    const highestId = existingIds.length > 0 ? Math.max(1000, ...existingIds) : 1000;
-    const newId = (highestId + 1).toString();
+    let nextNum = existingIds.length > 0 ? Math.max(1000, ...existingIds) + 1 : 1001;
 
-    const path1Files = Number(newJobData.path1Files) || Number(newJobData.outputTarget) || 0;
-    const path2Files = Number(newJobData.path2Files) || 0;
-    const editor1Files = Number(newJobData.editor1Files) || Number(newJobData.outputTarget) || 0;
-    const editor2Files = Number(newJobData.editor2Files) || 0;
-    const blendingFiles = Number(newJobData.blendingFiles) || Number(newJobData.outputTarget) || 0;
-    const lcFiles = Number(newJobData.lcFiles) || Number(newJobData.outputTarget) || 0;
-    const fcFiles = Number(newJobData.fcFiles) || Number(newJobData.outputTarget) || 0;
+    const formattedJobs = jobsDataList.map((newJobData) => {
+      const assignedId = (nextNum++).toString();
+      const outputTarget = Number(newJobData.outputTarget) || 0;
+      const path1Files = Number(newJobData.path1Files) !== undefined && newJobData.path1Files !== '' ? Number(newJobData.path1Files) : (newJobData.path1Assignee ? outputTarget : 0);
+      const path2Files = Number(newJobData.path2Files) || 0;
+      const editor1Files = Number(newJobData.editor1Files) !== undefined && newJobData.editor1Files !== '' ? Number(newJobData.editor1Files) : (newJobData.editor1Assignee ? outputTarget : 0);
+      const editor2Files = Number(newJobData.editor2Files) || 0;
+      const blendingFiles = Number(newJobData.blendingFiles) !== undefined && newJobData.blendingFiles !== '' ? Number(newJobData.blendingFiles) : (newJobData.blendingAssignee ? outputTarget : 0);
+      const lcFiles = Number(newJobData.lcFiles) !== undefined && newJobData.lcFiles !== '' ? Number(newJobData.lcFiles) : (newJobData.lcAssignee ? outputTarget : 0);
+      const fcFiles = Number(newJobData.fcFiles) !== undefined && newJobData.fcFiles !== '' ? Number(newJobData.fcFiles) : (newJobData.fcAssignee ? outputTarget : 0);
 
-    const formattedJob = {
-      id: newId,
-      jobNumber: newId,
-      client: newJobData.client || 'BE',
-      category: newJobData.category || 'Photo Editing',
-      name: newJobData.name || 'Untitled Job',
-      level: newJobData.level || 'Level 1',
-      folderCount: Number(newJobData.folderCount) || 1,
-      folderTargets: newJobData.folderTargets || [],
-      outputTarget: Number(newJobData.outputTarget) || 0,
-      actualOutput: 0,
-      instruction: newJobData.instruction || '',
-      clientEntryTime: newJobData.clientEntryTime || new Date().toISOString().slice(0, 16),
-      clientTargetTime: newJobData.clientTargetTime || '',
-      clientFinishTime: null,
-      createdAt: newJobData.createdAt || new Date().toISOString(),
-      operationalDate: getOperationalDate(newJobData.createdAt || new Date()),
-      stages: {
-        blending: {
-          assignee: newJobData.blendingAssignee || '',
-          status: newJobData.blendingAssignee ? 'Pending' : 'Unassigned',
-          filesCount: blendingFiles,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
+      const jobName = (newJobData.name || 'Untitled Job').trim();
+      const folderTargets = newJobData.folderTargets || [{ name: jobName, count: outputTarget }];
+
+      return {
+        id: assignedId,
+        jobNumber: assignedId,
+        client: newJobData.client || 'BE',
+        category: newJobData.category || 'Photo Editing',
+        name: jobName,
+        level: newJobData.level || 'Basic',
+        folderCount: 1,
+        folderTargets,
+        outputTarget,
+        actualOutput: 0,
+        instruction: newJobData.instruction || '',
+        clientEntryTime: newJobData.clientEntryTime || new Date().toISOString().slice(0, 16),
+        clientTargetTime: newJobData.clientTargetTime || '',
+        clientFinishTime: null,
+        createdAt: newJobData.createdAt || new Date().toISOString(),
+        operationalDate: getOperationalDate(newJobData.createdAt || new Date()),
+        stages: {
+          blending: {
+            assignee: newJobData.blendingAssignee || '',
+            status: newJobData.blendingAssignee ? 'Pending' : 'Unassigned',
+            filesCount: blendingFiles,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          path1: {
+            assignee: newJobData.path1Assignee || '',
+            status: newJobData.path1Assignee ? 'Pending' : 'Unassigned',
+            filesCount: path1Files,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          path2: {
+            assignee: newJobData.path2Assignee || '',
+            status: newJobData.path2Assignee ? 'Pending' : 'Unassigned',
+            filesCount: path2Files,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          editor1: {
+            assignee: newJobData.editor1Assignee || '',
+            status: newJobData.editor1Assignee ? 'Pending' : 'Unassigned',
+            filesCount: editor1Files,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          editor2: {
+            assignee: newJobData.editor2Assignee || '',
+            status: newJobData.editor2Assignee ? 'Pending' : 'Unassigned',
+            filesCount: editor2Files,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          lc: {
+            assignee: newJobData.lcAssignee || '',
+            status: newJobData.lcAssignee ? 'Pending' : 'Unassigned',
+            filesCount: lcFiles,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
+          fc: {
+            assignee: newJobData.fcAssignee || '',
+            status: newJobData.fcAssignee ? 'Pending' : 'Unassigned',
+            filesCount: fcFiles,
+            startTime: null,
+            endTime: null,
+            pausedDurationSeconds: 0,
+            pauseLogs: [],
+            outputCount: 0,
+          },
         },
-        path1: {
-          assignee: newJobData.path1Assignee || '',
-          status: newJobData.path1Assignee ? 'Pending' : 'Unassigned',
-          filesCount: path1Files,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        path2: {
-          assignee: newJobData.path2Assignee || '',
-          status: newJobData.path2Assignee ? 'Pending' : 'Unassigned',
-          filesCount: path2Files,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        editor1: {
-          assignee: newJobData.editor1Assignee || '',
-          status: newJobData.editor1Assignee ? 'Pending' : 'Unassigned',
-          filesCount: editor1Files,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        editor2: {
-          assignee: newJobData.editor2Assignee || '',
-          status: newJobData.editor2Assignee ? 'Pending' : 'Unassigned',
-          filesCount: editor2Files,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        lc: {
-          assignee: newJobData.lcAssignee || '',
-          status: newJobData.lcAssignee ? 'Pending' : 'Unassigned',
-          filesCount: lcFiles,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-        fc: {
-          assignee: newJobData.fcAssignee || '',
-          status: newJobData.fcAssignee ? 'Pending' : 'Unassigned',
-          filesCount: fcFiles,
-          startTime: null,
-          endTime: null,
-          pausedDurationSeconds: 0,
-          pauseLogs: [],
-          outputCount: 0,
-        },
-      },
-    };
+      };
+    });
 
     const token = sessionStorage.getItem('aszen_token') || localStorage.getItem('aszen_token');
     if (token) {
       try {
-        const res = await api.post('/jobs', formattedJob);
-        if (res.data?.job) {
+        const res = await api.post('/jobs', { jobs: formattedJobs });
+        if (res.data?.jobs && Array.isArray(res.data.jobs)) {
+          const createdList = normalizeJobs(res.data.jobs);
+          const createdIds = new Set(createdList.map((j) => j.id));
+          updateJobsState([...createdList, ...jobs.filter((j) => !createdIds.has(j.id))]);
+          setIsCreateModalOpen(false);
+          createdList.forEach((j) => {
+            logActivity({
+              actionType: 'JOB_CREATED',
+              jobId: j.id,
+              actorName: user?.name || 'Staff',
+              actorRole: user?.designation || user?.role || 'Staff',
+              text: `Job #${j.id} :: Order and Job Created for "${j.name}" by ${user?.name || 'Staff'}`,
+            });
+          });
+          return createdList;
+        } else if (res.data?.job) {
           const createdJob = normalizeJobs([res.data.job])[0];
           updateJobsState([createdJob, ...jobs.filter((j) => j.id !== createdJob.id)]);
           setIsCreateModalOpen(false);
-          return createdJob;
+          logActivity({
+            actionType: 'JOB_CREATED',
+            jobId: createdJob.id,
+            actorName: user?.name || 'Staff',
+            actorRole: user?.designation || user?.role || 'Staff',
+            text: `Job #${createdJob.id} :: Order and Job Created for "${createdJob.name}" by ${user?.name || 'Staff'}`,
+          });
+          return [createdJob];
         }
       } catch (err) {
-        console.error('Create job API error:', err);
-        const serverMsg = err.response?.data?.message || err.message || 'Server error creating job';
-        alert(`Server Error: ${serverMsg}. The job could not be saved to the database.`);
+        console.error('Create jobs API error:', err);
+        const serverMsg = err.response?.data?.message || err.message || 'Server error creating jobs';
+        alert(`Server Error: ${serverMsg}. The jobs could not be saved to the database.`);
         throw err;
       }
     }
 
-    updateJobsState([formattedJob, ...jobs]);
+    updateJobsState([...formattedJobs, ...jobs]);
     setIsCreateModalOpen(false);
 
-    logActivity({
-      actionType: 'JOB_CREATED',
-      jobId: newId,
-      actorName: user?.name || 'Staff',
-      actorRole: user?.designation || user?.role || 'Staff',
-      text: `Job #${newId} :: Order and Job Created by ${user?.name || 'Staff'}`,
+    formattedJobs.forEach((job) => {
+      logActivity({
+        actionType: 'JOB_CREATED',
+        jobId: job.id,
+        actorName: user?.name || 'Staff',
+        actorRole: user?.designation || user?.role || 'Staff',
+        text: `Job #${job.id} :: Order and Job Created for "${job.name}" by ${user?.name || 'Staff'}`,
+      });
     });
 
-    return formattedJob;
+    return formattedJobs;
+  };
+
+  const createJob = async (newJobData) => {
+    if (Array.isArray(newJobData)) {
+      return createJobs(newJobData);
+    }
+
+    // If multiple folders provided in a single job payload, automatically expand to separate individual jobs
+    if (Number(newJobData.folderCount) > 1 && Array.isArray(newJobData.folderTargets) && newJobData.folderTargets.length > 1) {
+      const rawBatch = (newJobData.name || '').trim();
+      const firstFolderName = (newJobData.folderTargets[0]?.name || '').trim();
+      const isAutoSyncedBatch = rawBatch === firstFolderName;
+      const effectiveBatch = isAutoSyncedBatch ? '' : rawBatch;
+
+      const totalOutputs = Number(newJobData.outputTarget) || newJobData.folderTargets.reduce((acc, f) => acc + (Number(f.count) || 0), 0) || 1;
+
+      const jobsList = newJobData.folderTargets.map((ft, idx) => {
+        const folderName = (ft.name || '').trim() || `Folder ${idx + 1}`;
+        let resolvedName = folderName;
+        if (effectiveBatch && effectiveBatch !== folderName && !folderName.toLowerCase().includes(effectiveBatch.toLowerCase())) {
+          resolvedName = `${effectiveBatch} - ${folderName}`;
+        }
+        const folderFiles = Number(ft.count) || 0;
+
+        const calcStageFiles = (assignee, stageFilesInput) => {
+          if (!assignee) return 0;
+          if (stageFilesInput !== undefined && stageFilesInput !== '' && Number(stageFilesInput) > 0) {
+            if (Number(stageFilesInput) === totalOutputs) {
+              return folderFiles;
+            }
+            return Math.round((Number(stageFilesInput) / totalOutputs) * folderFiles) || folderFiles;
+          }
+          return folderFiles;
+        };
+
+        return {
+          ...newJobData,
+          name: resolvedName,
+          folderCount: 1,
+          folderTargets: [{ name: resolvedName, count: folderFiles }],
+          outputTarget: folderFiles,
+          blendingFiles: calcStageFiles(newJobData.blendingAssignee, newJobData.blendingFiles),
+          path1Files: calcStageFiles(newJobData.path1Assignee, newJobData.path1Files),
+          path2Files: calcStageFiles(newJobData.path2Assignee, newJobData.path2Files),
+          editor1Files: calcStageFiles(newJobData.editor1Assignee, newJobData.editor1Files),
+          editor2Files: calcStageFiles(newJobData.editor2Assignee, newJobData.editor2Files),
+          lcFiles: calcStageFiles(newJobData.lcAssignee, newJobData.lcFiles),
+          fcFiles: calcStageFiles(newJobData.fcAssignee, newJobData.fcFiles),
+        };
+      });
+
+      const created = await createJobs(jobsList);
+      return created[0] || null;
+    }
+
+    const created = await createJobs([newJobData]);
+    return created[0] || null;
   };
 
   const deleteJob = async (jobId) => {
@@ -1476,8 +1568,19 @@ export function JobProvider({ children }) {
       ]);
       if (jobsRes.status === 'fulfilled' && Array.isArray(jobsRes.value.data?.jobs)) {
         const normalized = normalizeJobs(jobsRes.value.data.jobs);
-        setJobs(normalized);
-        localStorage.setItem('aszen_jobs', JSON.stringify(normalized));
+        setJobs((prevJobs) => {
+          const serverJobIds = new Set(normalized.map((j) => String(j.id || j.jobNumber)));
+          const now = Date.now();
+          // Keep recently created local jobs (within 2 minutes) not yet returned by backend
+          const pendingLocalJobs = (prevJobs || []).filter((j) => {
+            if (serverJobIds.has(String(j.id || j.jobNumber))) return false;
+            const created = new Date(j.createdAt || 0).getTime();
+            return (now - created) < 120000;
+          });
+          const merged = [...pendingLocalJobs, ...normalized];
+          localStorage.setItem('aszen_jobs', JSON.stringify(merged));
+          return merged;
+        });
       }
       if (sheetsRes.status === 'fulfilled' && Array.isArray(sheetsRes.value.data?.productionSheets)) {
         setProductionSheets(sheetsRes.value.data.productionSheets);
@@ -1954,6 +2057,7 @@ export function JobProvider({ children }) {
         isApproved,
         updateJobsState,
         createJob,
+        createJobs,
         deleteJob,
         assignStage,
         startStageTimer,

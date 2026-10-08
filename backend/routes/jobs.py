@@ -46,60 +46,98 @@ def create_job():
     if user.role not in ['admin', 'manager'] and not is_senior and not is_master_admin and not user.has_permission('can_create_job'):
         return jsonify({'message': 'Permission denied. You do not have permission to create jobs.'}), 403
 
-    data = request.get_json() or {}
-    job_number = str(data.get('jobNumber') or data.get('id') or f"{int(datetime.utcnow().timestamp())}")
-    client_code = (data.get('client') or data.get('clientCode') or 'BE').strip().upper()
-    service = (data.get('name') or data.get('service') or 'Untitled Job').strip()
-    files_count = safe_int(data.get('files') or data.get('outputTarget'), 0)
-    output_target = safe_int(data.get('outputTarget'), files_count)
+    payload = request.get_json() or {}
+    if isinstance(payload, list):
+        jobs_payload = payload
+        is_batch = True
+    elif isinstance(payload, dict) and isinstance(payload.get('jobs'), list):
+        jobs_payload = payload['jobs']
+        is_batch = True
+    else:
+        jobs_payload = [payload]
+        is_batch = False
 
-    existing = Job.query.filter_by(job_number=job_number).first()
-    if existing:
-        try:
-            max_id = db.session.query(db.func.max(Job.id)).scalar() or 1000
-            job_number = str(max_id + 1)
-        except Exception:
-            job_number = str(int(datetime.utcnow().timestamp()))
+    if not jobs_payload:
+        return jsonify({'message': 'No job data provided'}), 400
 
-    job = Job(
-        job_number=job_number,
-        client_code=client_code,
-        service=service,
-        files_count=files_count,
-        output_target=output_target,
-        status='In Progress',
-        client_entry_time=data.get('clientEntryTime'),
-        client_target_time=data.get('clientTargetTime'),
-        client_finish_time=data.get('clientFinishTime'),
-        operational_date=data.get('operationalDate') or data.get('operational_date')
-    )
-    db.session.add(job)
-    db.session.flush()
+    claimed_numbers = set()
 
-    # Create all 8 possible stages
-    stages_data = data.get('stages') or {}
-    for key in STAGE_KEYS:
-        st = stages_data.get(key) or {}
-        assignee = st.get('assignee') or data.get(f'{key}Assignee') or ''
-        files_for_stage = safe_int(st.get('filesCount') or data.get(f'{key}Files'), output_target if assignee else 0)
-        stage = JobStage(
-            job_id=job.id,
-            stage_key=key,
-            assignee=assignee,
-            status=st.get('status') or ('Pending' if assignee else 'Unassigned'),
-            files_count=files_for_stage,
-            output_count=safe_int(st.get('outputCount'), 0),
-            start_time=st.get('startTime'),
-            end_time=st.get('endTime'),
-            paused_duration_seconds=safe_int(st.get('pausedDurationSeconds'), 0),
-            current_pause_start=st.get('currentPauseStart'),
-            pause_logs_json=json.dumps(st.get('pauseLogs') or [])
+    def get_next_job_number():
+        all_jobs = Job.query.with_entities(Job.job_number, Job.id).all()
+        max_val = 1000
+        for j_num, j_id in all_jobs:
+            if j_num and str(j_num).isdigit():
+                max_val = max(max_val, int(j_num))
+            if j_id:
+                max_val = max(max_val, int(j_id))
+        for c in claimed_numbers:
+            if c and str(c).isdigit():
+                max_val = max(max_val, int(c))
+        return str(max_val + 1)
+
+    created_jobs = []
+
+    for data in jobs_payload:
+        desired_number = str(data.get('jobNumber') or data.get('id') or '').strip()
+        if not desired_number or desired_number in claimed_numbers or Job.query.filter_by(job_number=desired_number).first():
+            job_number = get_next_job_number()
+        else:
+            job_number = desired_number
+        claimed_numbers.add(job_number)
+
+        client_code = (data.get('client') or data.get('clientCode') or 'BE').strip().upper()
+        service = (data.get('name') or data.get('service') or 'Untitled Job').strip()
+        files_count = safe_int(data.get('files') or data.get('outputTarget'), 0)
+        output_target = safe_int(data.get('outputTarget'), files_count)
+
+        job = Job(
+            job_number=job_number,
+            client_code=client_code,
+            service=service,
+            files_count=files_count,
+            output_target=output_target,
+            status='In Progress',
+            client_entry_time=data.get('clientEntryTime'),
+            client_target_time=data.get('clientTargetTime'),
+            client_finish_time=data.get('clientFinishTime'),
+            operational_date=data.get('operationalDate') or data.get('operational_date')
         )
-        db.session.add(stage)
+        db.session.add(job)
+        db.session.flush()
+
+        # Create all 8 possible stages
+        stages_data = data.get('stages') or {}
+        for key in STAGE_KEYS:
+            st = stages_data.get(key) or {}
+            assignee = (st.get('assignee') or data.get(f'{key}Assignee') or '').strip()
+            files_for_stage = safe_int(st.get('filesCount') or data.get(f'{key}Files'), output_target if assignee else 0)
+            stage = JobStage(
+                job_id=job.id,
+                stage_key=key,
+                assignee=assignee,
+                status=st.get('status') or ('Pending' if assignee else 'Unassigned'),
+                files_count=files_for_stage,
+                output_count=safe_int(st.get('outputCount'), 0),
+                start_time=st.get('startTime'),
+                end_time=st.get('endTime'),
+                paused_duration_seconds=safe_int(st.get('pausedDurationSeconds'), 0),
+                current_pause_start=st.get('currentPauseStart'),
+                pause_logs_json=json.dumps(st.get('pauseLogs') or [])
+            )
+            db.session.add(stage)
+
+        created_jobs.append(job)
 
     db.session.commit()
-    log_audit(user, 'JOB_CREATED', f"Created Job #{job_number} for client {client_code}")
-    return jsonify({'message': 'Job created successfully', 'job': job.to_dict()}), 201
+    for job in created_jobs:
+        log_audit(user, 'JOB_CREATED', f"Created Job #{job.job_number} for client {job.client_code}")
+
+    res_data = {
+        'message': f"{len(created_jobs)} jobs created successfully" if is_batch else 'Job created successfully',
+        'jobs': [j.to_dict() for j in created_jobs],
+        'job': created_jobs[0].to_dict() if created_jobs else None
+    }
+    return jsonify(res_data), 201
 
 
 @jobs_bp.route('/<string:job_identifier>/stages/<string:stage_key>', methods=['PATCH'])

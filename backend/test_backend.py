@@ -93,6 +93,43 @@ class BackendTestSuite(unittest.TestCase):
         self.assertEqual(path1_stage.status, 'Pending')
         self.assertEqual(path1_stage.assignee, 'Sarah Path')
 
+    def test_batch_job_creation(self):
+        token = self.get_admin_token()
+        headers = {'Authorization': f'Bearer {token}'}
+
+        # Create 2 separate jobs in one batch request (e.g. 2 folders)
+        batch_res = self.client.post('/api/jobs', headers=headers, json={
+            'jobs': [
+                {
+                    'jobNumber': '20021',
+                    'client': 'XE',
+                    'name': 'Granitz - Camden 26 pics',
+                    'outputTarget': 26,
+                    'stages': {
+                        'path1': {'assignee': 'Shwetha', 'status': 'Pending'},
+                        'editor1': {'assignee': 'Karan', 'status': 'Pending'}
+                    }
+                },
+                {
+                    'jobNumber': '20022',
+                    'client': 'XE',
+                    'name': 'Jendal - Lilac 26 pics',
+                    'outputTarget': 26,
+                    'stages': {
+                        'path1': {'assignee': 'Shwetha', 'status': 'Pending'},
+                        'editor1': {'assignee': 'Karan', 'status': 'Pending'}
+                    }
+                }
+            ]
+        })
+        self.assertEqual(batch_res.status_code, 201)
+        data = batch_res.get_json()
+        self.assertIn('jobs', data)
+        self.assertEqual(len(data['jobs']), 2)
+        job_names = [j['name'] for j in data['jobs']]
+        self.assertIn('Granitz - Camden 26 pics', job_names)
+        self.assertIn('Jendal - Lilac 26 pics', job_names)
+
     def test_leave_request_flow(self):
         admin_token = self.get_admin_token()
         admin_headers = {'Authorization': f'Bearer {admin_token}'}

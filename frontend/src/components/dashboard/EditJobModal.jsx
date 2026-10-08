@@ -3,7 +3,7 @@ import { useJobs } from '../../context/JobContext';
 import { FiX, FiCheck, FiEdit } from 'react-icons/fi';
 
 export default function EditJobModal({ editModalState, setEditModalState }) {
-  const { jobs, updateJobsState, assignableEditors: rawAssignable, editors, clients, canAssignJob } = useJobs();
+  const { jobs, updateJobsState, assignableEditors: rawAssignable, editors, clients, canAssignJob, deleteJob, createJobs } = useJobs();
   const assignableEditors = rawAssignable || editors.filter((e) => (e.designation || e.role || '').toLowerCase() !== 'developer');
 
   const [client, setClient] = useState('');
@@ -117,8 +117,15 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
     }
   };
 
+  const isCompletedJob = job?.stages?.fc?.status === 'Complete';
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    if (isCompletedJob) {
+      alert('This job is already completed (FC Verified). Completed jobs cannot be modified.');
+      setEditModalState(null);
+      return;
+    }
     try {
       const totOutput = Number(outputTarget) || job.outputTarget || 0;
 
@@ -178,6 +185,48 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
     } catch (err) {
       console.error('Error updating job:', err);
     }
+  };
+
+  const handleSplitIntoSeparateJobs = async () => {
+    if (!job || folderTargets.length <= 1) return;
+    if (!window.confirm(`Split this task into ${folderTargets.length} separate jobs (one for each folder)? Combined job #${job.id} will be replaced with individual tasks.`)) {
+      return;
+    }
+
+    const jobsToCreate = folderTargets.map((ft, idx) => {
+      const folderName = (ft.name || '').trim() || `Folder ${idx + 1}`;
+      const folderFiles = Number(ft.count) || 0;
+      return {
+        client: client || job.client || 'BE',
+        category: job.category || 'Photo Editing',
+        name: folderName,
+        level: job.level || 'Basic',
+        folderCount: 1,
+        folderTargets: [{ name: folderName, count: folderFiles }],
+        outputTarget: folderFiles,
+        instruction: job.instruction || '',
+        clientEntryTime: job.clientEntryTime || new Date().toISOString().slice(0, 16),
+        clientTargetTime: job.clientTargetTime || '',
+        blendingAssignee,
+        blendingFiles: blendingAssignee ? folderFiles : 0,
+        path1Assignee,
+        path1Files: path1Assignee ? folderFiles : 0,
+        path2Assignee,
+        path2Files: path2Assignee ? folderFiles : 0,
+        editor1Assignee,
+        editor1Files: editor1Assignee ? folderFiles : 0,
+        editor2Assignee,
+        editor2Files: editor2Assignee ? folderFiles : 0,
+        lcAssignee,
+        lcFiles: lcAssignee ? folderFiles : 0,
+        fcAssignee,
+        fcFiles: fcAssignee ? folderFiles : 0,
+      };
+    });
+
+    await deleteJob(job.id);
+    await createJobs(jobsToCreate);
+    setEditModalState(null);
   };
 
   return (
@@ -576,6 +625,26 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
             </div>
           </div>
 
+          {folderTargets.length > 1 && !isCompletedJob && (
+            <div className="p-3 bg-purple-50/80 border border-purple-200 rounded-2xl flex flex-col sm:flex-row items-center justify-between gap-3">
+              <div>
+                <div className="text-xs font-bold text-purple-900">
+                  Multiple Folders Detected ({folderTargets.length} Folders)
+                </div>
+                <div className="text-[11px] text-purple-600">
+                  Split this combined job into {folderTargets.length} separate jobs in Todays Jobs table.
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={handleSplitIntoSeparateJobs}
+                className="w-full sm:w-auto px-4 py-2 rounded-xl bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-all shadow-xs shrink-0 cursor-pointer"
+              >
+                ⚡ Split into {folderTargets.length} Separate Jobs
+              </button>
+            </div>
+          )}
+
           <div className="flex flex-col-reverse sm:flex-row gap-2 pt-4 border-t border-slate-100">
             <button
               type="button"
@@ -586,7 +655,12 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
             </button>
             <button
               type="submit"
-              className="w-full sm:w-1/2 py-3 sm:py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold shadow-xs flex items-center justify-center gap-1 transition-all cursor-pointer min-h-[44px]"
+              disabled={isCompletedJob}
+              className={`w-full sm:w-1/2 py-3 sm:py-2.5 rounded-xl text-xs font-bold shadow-xs flex items-center justify-center gap-1 transition-all min-h-[44px] ${
+                isCompletedJob
+                  ? 'bg-slate-200 text-slate-400 cursor-not-allowed'
+                  : 'bg-indigo-600 hover:bg-indigo-700 text-white cursor-pointer'
+              }`}
             >
               <FiCheck className="w-4 h-4" /> Save Changes
             </button>

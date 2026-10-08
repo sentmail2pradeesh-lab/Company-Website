@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { useJobs } from '../../context/JobContext';
+import { useAuth } from '../../context/AuthContext';
 import { getProductionShiftDate } from '../../utils/pipelineHelper';
 import {
   FiPieChart,
@@ -11,12 +12,14 @@ import {
   FiCheckCircle,
   FiBriefcase,
   FiLayers,
+  FiDownload,
 } from 'react-icons/fi';
 import DatePickerDMY from '../../components/common/DatePickerDMY';
 import CopyableText from '../../components/common/CopyableText';
 import EmptyState from '../../components/common/EmptyState';
 
 export default function ClientHistorySummaryPage() {
+  const { user } = useAuth();
   const { jobs, editors, clients } = useJobs();
 
   const todayStr = getProductionShiftDate(new Date());
