@@ -42,7 +42,15 @@ def create_app(config_object=Config):
         return {'status': 'ok'}
 
     with app.app_context():
-        db.create_all()
+        try:
+            db.create_all()
+        except Exception as db_err:
+            print('=' * 60)
+            print('DATABASE CONNECTION ERROR:')
+            print(f'Failed to connect to database: {db_err}')
+            print('If using Hostinger MySQL, ensure Remote MySQL is enabled in hPanel with IP %')
+            print('=' * 60)
+            raise db_err
 
         # Ensure missing columns (name, role, is_approved, permissions_json) exist in legacy SQLite / MySQL database
         try:

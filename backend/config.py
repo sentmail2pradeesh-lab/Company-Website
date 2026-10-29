@@ -24,10 +24,29 @@ class Config:
             _raw_db_url = _raw_db_url.replace("postgres://", "postgresql://", 1)
         elif _raw_db_url.startswith("mysql://") and "mysql+pymysql://" not in _raw_db_url:
             _raw_db_url = _raw_db_url.replace("mysql://", "mysql+pymysql://", 1)
+
+        # Force IPv4 resolution to prevent IPv6 routing failures on Render/Docker environments
+        try:
+            import socket
+            import re
+            match = re.search(r"@([^:/@?]+)", _raw_db_url)
+            if match:
+                db_host = match.group(1)
+                if db_host not in ("localhost", "127.0.0.1") and not re.match(r"^\d+\.\d+\.\d+\.\d+$", db_host):
+                    ipv4 = socket.gethostbyname(db_host)
+                    if ipv4:
+                        _raw_db_url = _raw_db_url.replace(f"@{db_host}", f"@{ipv4}", 1)
+        except Exception:
+            pass
+
         SQLALCHEMY_DATABASE_URI = _raw_db_url
     else:
         SQLALCHEMY_DATABASE_URI = f"sqlite:///{os.path.join(basedir, 'aszen.db')}"
     SQLALCHEMY_TRACK_MODIFICATIONS = False
+    SQLALCHEMY_ENGINE_OPTIONS = {
+        "pool_recycle": 280,
+        "pool_pre_ping": True,
+    }
     JWT_SECRET = os.environ.get('JWT_SECRET', 'aszen-jwt-secret-change-in-production')
     JWT_EXPIRY_HOURS = int(os.environ.get('JWT_EXPIRY_HOURS', 12))  # 12-hour shift duration for secure session lifecycle
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
