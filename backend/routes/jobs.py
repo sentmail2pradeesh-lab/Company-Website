@@ -32,6 +32,7 @@ def log_audit(user, action, details=""):
 
 
 @jobs_bp.route('', methods=['GET'])
+@token_required
 def get_jobs():
     jobs = Job.query.order_by(Job.created_at.desc()).all()
     return jsonify({'jobs': [j.to_dict() for j in jobs]})
@@ -42,8 +43,7 @@ def get_jobs():
 def create_job():
     user = request.current_user
     is_senior = (user.designation or '').strip().lower() == 'senior editor'
-    is_master_admin = (user.email or '').strip().lower() in ['arun@aszen.com', 'gokul@aszen.com', 'arunselvam@aszen.com']
-    if user.role not in ['admin', 'manager'] and not is_senior and not is_master_admin and not user.has_permission('can_create_job'):
+    if user.role not in ['admin', 'manager'] and not is_senior and not user.is_master_admin and not user.has_permission('can_create_job'):
         return jsonify({'message': 'Permission denied. You do not have permission to create jobs.'}), 403
 
     payload = request.get_json() or {}
@@ -287,6 +287,7 @@ def delete_job(job_identifier):
 
 # Production Sheets Endpoints
 @jobs_bp.route('/production-sheets', methods=['GET'])
+@token_required
 def get_production_sheets():
     sheets = ProductionSheetEntry.query.order_by(ProductionSheetEntry.created_at.desc()).all()
     return jsonify({'productionSheets': [s.to_dict() for s in sheets]})

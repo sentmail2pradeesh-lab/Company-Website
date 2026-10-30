@@ -47,7 +47,13 @@ class Config:
         "pool_recycle": 280,
         "pool_pre_ping": True,
     }
-    JWT_SECRET = os.environ.get('JWT_SECRET', 'aszen-jwt-secret-change-in-production')
+    # Production (MySQL/Postgres or FLASK_ENV=production) must set JWT_SECRET; never fall back to a public value
+    _is_production = os.environ.get('FLASK_ENV') == 'production' or bool(os.environ.get('DATABASE_URL'))
+    JWT_SECRET = os.environ.get('JWT_SECRET')
+    if not JWT_SECRET:
+        if _is_production:
+            raise RuntimeError('JWT_SECRET environment variable must be set in production')
+        JWT_SECRET = 'local-dev-only-secret'
     JWT_EXPIRY_HOURS = int(os.environ.get('JWT_EXPIRY_HOURS', 12))  # 12-hour shift duration for secure session lifecycle
     MAIL_SERVER = os.environ.get('MAIL_SERVER', 'smtp.gmail.com')
     MAIL_PORT = int(os.environ.get('MAIL_PORT', 587))

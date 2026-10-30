@@ -74,7 +74,7 @@ export function AuthProvider({ children }) {
       sessionStorage.setItem('aszen_login_timestamp', shiftLoginTime);
 
       // Initialize or sync work session log in localStorage if not master Admin or Admin role
-      if (!['arun@aszen.com', 'gokul@aszen.com'].includes(fullEmail.toLowerCase()) && userData.role !== 'admin') {
+      if (!userData.is_master_admin && userData.role !== 'admin') {
         try {
           const savedSessions = localStorage.getItem('aszen_work_sessions');
           const list = savedSessions ? JSON.parse(savedSessions) : [];
@@ -139,7 +139,7 @@ export function AuthProvider({ children }) {
     try {
       const nowIso = new Date().toISOString();
       const savedSessions = localStorage.getItem('aszen_work_sessions');
-      if (savedSessions && user && user.role !== 'admin' && !['arun@aszen.com', 'gokul@aszen.com'].includes(user.email?.toLowerCase())) {
+      if (savedSessions && user && user.role !== 'admin' && !user.is_master_admin) {
         const list = JSON.parse(savedSessions);
         const updatedList = list.map((s) => {
           if (s.user_email?.toLowerCase() === (user.email || '').toLowerCase() && s.status === 'Active') {

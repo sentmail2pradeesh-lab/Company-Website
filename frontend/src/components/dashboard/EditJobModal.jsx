@@ -156,9 +156,10 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
         finalName = folderTargets.map((ft, i) => ft.name.trim() || `Folder ${i + 1}`).join(', ');
       }
 
+      let targetJobToSync = null;
       const updatedJobs = jobs.map((j) => {
         if (j.id === job.id) {
-          return {
+          const updatedJob = {
             ...j,
             client: client || j.client,
             name: finalName || j.name,
@@ -176,11 +177,13 @@ export default function EditJobModal({ editModalState, setEditModalState }) {
               fc: createStageObject(j.stages?.fc, fcAssignee, fcFiles),
             },
           };
+          targetJobToSync = updatedJob;
+          return updatedJob;
         }
         return j;
       });
 
-      updateJobsState(updatedJobs);
+      updateJobsState(updatedJobs, targetJobToSync);
       setEditModalState(null);
     } catch (err) {
       console.error('Error updating job:', err);

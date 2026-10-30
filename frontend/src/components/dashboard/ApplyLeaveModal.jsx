@@ -41,7 +41,7 @@ export default function ApplyLeaveModal({ isOpen, onClose }) {
   }, [getLeaveBalances, user]);
 
   const userRole = (user?.role || 'employee').toLowerCase();
-  const isAdmin = userRole === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes(user?.email?.toLowerCase());
+  const isAdmin = userRole === 'admin' || user?.is_master_admin;
 
   if (!isOpen || isAdmin) return null;
 

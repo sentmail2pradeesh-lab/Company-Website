@@ -151,7 +151,7 @@ export default function DashboardLayout() {
         {/* Right Side Quick User Profile & Action Links */}
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Active Work Session Live Badge (For everyone except Master Admin & Admin role) */}
-          {user?.role !== 'admin' && !['arun@aszen.com', 'gokul@aszen.com'].includes(user?.email?.toLowerCase()) && (
+          {user?.role !== 'admin' && !user?.is_master_admin && (
             <div
               className="flex items-center gap-1.5 sm:gap-2 px-2.5 sm:px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-800 border border-emerald-200/80 text-[11px] sm:text-xs font-semibold shadow-xs"
               title="Active Work Shift Attendance & Working Hours"

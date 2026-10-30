@@ -35,3 +35,6 @@ backend/*.db
 # Video uploads (optional - remove if you want to track videos)
 frontend/public/videos/*.mp4
 
+
+# Persistent user backup (contains password hashes; never commit)
+backend/data/users_store.json

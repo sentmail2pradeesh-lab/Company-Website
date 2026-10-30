@@ -331,7 +331,7 @@ export function JobProvider({ children }) {
         if (data.clients) setClients([...(data.clients || [])]);
         if (data.workSessions) {
           setWorkSessions((prev) => {
-            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.is_master_admin;
             if (isManagerOrAdmin && prev.length > (data.workSessions || []).length) {
               const map = new Map(prev.map((s) => [s.id || `${s.user_email}_${s.date}`, s]));
               (data.workSessions || []).forEach((s) => map.set(s.id || `${s.user_email}_${s.date}`, s));
@@ -395,7 +395,7 @@ export function JobProvider({ children }) {
           const parsed = JSON.parse(e.newValue);
           if (Array.isArray(parsed)) {
             setWorkSessions((prev) => {
-              const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+              const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.is_master_admin;
               if (isManagerOrAdmin && prev.length > parsed.length) {
                 const map = new Map(prev.map((s) => [s.id || `${s.user_email}_${s.date}`, s]));
                 parsed.forEach((s) => map.set(s.id || `${s.user_email}_${s.date}`, s));
@@ -428,11 +428,36 @@ export function JobProvider({ children }) {
         // Granular PATCH updates only the specific stage to prevent overwriting other concurrent editors
         api
           .patch(`/jobs/${targetStageToSync.jobId}/stages/${targetStageToSync.stageKey}`, targetStageToSync.data)
+          .then((res) => {
+            if (res.data?.job) {
+              const patched = normalizeJobs([res.data.job])[0];
+              setJobs((prev) => {
+                const updatedList = prev.map((j) => (j.id === patched.id ? patched : j));
+                localStorage.setItem('aszen_jobs', JSON.stringify(updatedList));
+                return updatedList;
+              });
+            }
+          })
           .catch((err) => {
             console.error('Stage patch error:', err);
           });
-      } else if (targetJobToSync) {
-        api.put(`/jobs/${targetJobToSync.id || targetJobToSync.jobNumber}`, targetJobToSync).catch(() => {});
+      }
+      if (targetJobToSync) {
+        api
+          .put(`/jobs/${targetJobToSync.id || targetJobToSync.jobNumber}`, targetJobToSync)
+          .then((res) => {
+            if (res.data?.job) {
+              const putJob = normalizeJobs([res.data.job])[0];
+              setJobs((prev) => {
+                const updatedList = prev.map((j) => (j.id === putJob.id ? putJob : j));
+                localStorage.setItem('aszen_jobs', JSON.stringify(updatedList));
+                return updatedList;
+              });
+            }
+          })
+          .catch((err) => {
+            console.error('Job PUT error:', err);
+          });
       }
     }
   };
@@ -577,7 +602,7 @@ export function JobProvider({ children }) {
 
   const applyLeave = async (leaveData) => {
     const role = (user?.role || '').toLowerCase();
-    if (role === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase())) {
+    if (role === 'admin' || user?.is_master_admin) {
       throw new Error('Admins are not permitted to submit leave requests. Leave applications are reserved for employees.');
     }
 
@@ -651,7 +676,7 @@ export function JobProvider({ children }) {
 
   const updateLeaveStatus = async (leaveId, status, managerNotes = '') => {
     const role = (user?.role || '').toLowerCase();
-    const isAuthAdmin = role === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+    const isAuthAdmin = role === 'admin' || user?.is_master_admin;
     if (status !== 'Cancelled' && !isAuthAdmin) {
       throw new Error('Permission denied. Only administrators can approve or reject leave requests.');
     }
@@ -1605,20 +1630,55 @@ export function JobProvider({ children }) {
     }
   }, []);
 
-  // Smart background sync (every 45s if visible; sleeps when tab is hidden; refreshes on tab focus)
+  // High-frequency live jobs polling (every 4s for active window to eliminate lag)
+  const syncJobsLive = useCallback(async () => {
+    try {
+      const res = await api.get('/jobs');
+      if (Array.isArray(res.data?.jobs)) {
+        const normalized = normalizeJobs(res.data.jobs);
+        setJobs((prevJobs) => {
+          const serverJobIds = new Set(normalized.map((j) => String(j.id || j.jobNumber)));
+          const now = Date.now();
+          const pendingLocalJobs = (prevJobs || []).filter((j) => {
+            if (serverJobIds.has(String(j.id || j.jobNumber))) return false;
+            const created = new Date(j.createdAt || 0).getTime();
+            return (now - created) < 120000;
+          });
+          const merged = [...pendingLocalJobs, ...normalized];
+          localStorage.setItem('aszen_jobs', JSON.stringify(merged));
+          return merged;
+        });
+      }
+    } catch {}
+  }, []);
+
+  // Real-time background sync:
+  // 1. High-frequency live jobs sync (every 4s when tab is active/visible, and immediately on window focus)
   useEffect(() => {
     if (!user) return;
     const syncIfVisible = () => {
       if (typeof document !== 'undefined' && !document.hidden) {
-        refreshData();
+        syncJobsLive();
       }
     };
-    const interval = setInterval(syncIfVisible, 45000);
+    const interval = setInterval(syncIfVisible, 4000);
     window.addEventListener('focus', syncIfVisible);
     return () => {
       clearInterval(interval);
       window.removeEventListener('focus', syncIfVisible);
     };
+  }, [user, syncJobsLive]);
+
+  // 2. Full ecosystem sync (production sheets, leaves, clients) every 30s
+  useEffect(() => {
+    if (!user) return;
+    const syncFull = () => {
+      if (typeof document !== 'undefined' && !document.hidden) {
+        refreshData();
+      }
+    };
+    const interval = setInterval(syncFull, 30000);
+    return () => clearInterval(interval);
   }, [user, refreshData]);
 
   // Sync jobs from backend API on mount / user change
@@ -1769,7 +1829,7 @@ export function JobProvider({ children }) {
         .get('/work-hours/all')
         .then((res) => {
           if (Array.isArray(res.data?.sessions)) {
-            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || ['arun@aszen.com', 'gokul@aszen.com'].includes((user?.email || '').toLowerCase());
+            const isManagerOrAdmin = user?.role === 'admin' || user?.role === 'manager' || user?.is_master_admin;
             setWorkSessions(res.data.sessions);
             if (isManagerOrAdmin) {
               localStorage.setItem('aszen_work_sessions', JSON.stringify(res.data.sessions));

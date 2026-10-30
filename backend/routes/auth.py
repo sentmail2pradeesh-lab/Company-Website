@@ -9,6 +9,17 @@ from utils.user_store import save_user_to_store, remove_user_from_store, load_st
 
 auth_bp = Blueprint('auth', __name__)
 
+# Titles that grant elevated powers. Only an admin may assign these.
+PRIVILEGED_DESIGNATIONS = ['developer', 'manager', 'project manager', 'senior editor', 'admin / system manager']
+NO_PERMISSIONS = {
+    'can_create_job': False,
+    'can_edit_job': False,
+    'can_delete_job': False,
+    'can_create_employee': False,
+    'can_manage_clients': False,
+    'can_manage_work_hours': False,
+}
+
 
 def log_audit(user_email, user_name, action, details=""):
     try:
@@ -40,61 +51,30 @@ def register():
     if User.query.filter_by(email=email).first():
         return jsonify({'message': 'Email already registered'}), 409
 
-    desig_lower = designation.lower()
-    if desig_lower == 'developer':
-        role = 'developer'
-        default_perms = {
-            'can_create_job': False,
-            'can_edit_job': False,
-            'can_delete_job': False,
-            'can_create_employee': False,
-            'can_manage_clients': False,
-            'can_manage_work_hours': False,
-        }
-    elif desig_lower in ['manager', 'project manager']:
-        role = 'manager'
-        default_perms = {
-            'can_create_job': True,
-            'can_edit_job': True,
-            'can_delete_job': False,
-            'can_create_employee': False,
-            'can_manage_clients': False,
-            'can_manage_work_hours': True,
-        }
-    else:
-        role = 'employee'
-        default_perms = {
-            'can_create_job': False,
-            'can_edit_job': False,
-            'can_delete_job': False,
-            'can_create_employee': False,
-            'can_manage_clients': False,
-            'can_manage_work_hours': False,
-        }
+    # Self sign-ups are always regular employees who wait for admin approval.
+    # Privileged titles are replaced with 'Editor'; an admin must assign them later.
+    if designation.lower() in PRIVILEGED_DESIGNATIONS:
+        designation = 'Editor'
 
     display_name = name or email.split('@')[0].capitalize()
 
     user = User(
         email=email,
         name=display_name,
-        role=role,
+        role='employee',
         designation=designation,
-        is_approved=True,
-        permissions_json=json.dumps(default_perms)
+        is_approved=False,
+        permissions_json=json.dumps(NO_PERMISSIONS)
     )
     user.set_password(password)
     db.session.add(user)
     db.session.commit()
 
-    # Save to persistent JSON backup store
-    save_user_to_store(user, raw_password=password)
-    log_audit(user.email, user.name, 'USER_REGISTERED', f"New employee registered: {user.name} ({user.designation})")
+    save_user_to_store(user)
+    log_audit(user.email, user.name, 'USER_REGISTERED', f"New employee registered, awaiting approval: {user.name} ({user.designation})")
 
-    token = create_token(user.id)
     return jsonify({
-        'message': 'Registration successful! Your account is created.',
-        'token': token,
-        'user': user.to_dict()
+        'message': 'Registration successful! Your account is waiting for admin approval.',
     }), 201
 
 
@@ -114,7 +94,7 @@ def login():
     # Shift & Attendance Session Management (Exclude master Admin & management authority accounts)
     active_session = None
     is_reconnected = False
-    if user.email.lower() not in ['arun@aszen.com', 'gokul@aszen.com'] and user.role != 'admin':
+    if not user.is_master_admin and user.role != 'admin':
         now = datetime.utcnow()
         # Align calendar shift date to India Standard Time (UTC+5:30)
         ist_now = now + timedelta(hours=5, minutes=30)
@@ -286,13 +266,16 @@ def create_user():
     designation = (data.get('designation') or 'Editor').strip()
     if designation.lower() == 'pather':
         designation = 'Path Editor'
+    if current.role != 'admin' and designation.lower() in PRIVILEGED_DESIGNATIONS:
+        return jsonify({'message': 'Only an admin can assign this designation.'}), 403
+
     password = data.get('password') or 'Aszen@123'
     is_approved = bool(data.get('is_approved', True))
     
     desig_lower = designation.lower()
     if desig_lower == 'developer':
         role = 'developer'
-        perms = data.get('permissions') or {
+        perms = (data.get('permissions') if current.role == 'admin' else None) or {
             'can_create_job': False,
             'can_edit_job': False,
             'can_delete_job': False,
@@ -302,7 +285,7 @@ def create_user():
         }
     elif desig_lower in ['manager', 'project manager']:
         role = 'manager'
-        perms = data.get('permissions') or {
+        perms = (data.get('permissions') if current.role == 'admin' else None) or {
             'can_create_job': True,
             'can_edit_job': True,
             'can_delete_job': False,
@@ -312,7 +295,7 @@ def create_user():
         }
     else:
         role = 'employee'
-        perms = data.get('permissions') or {
+        perms = (data.get('permissions') if current.role == 'admin' else None) or {
             'can_create_job': False,
             'can_edit_job': False,
             'can_delete_job': False,
@@ -348,7 +331,7 @@ def create_user():
     db.session.commit()
 
     # Save to persistent storage
-    save_user_to_store(new_user, raw_password=password)
+    save_user_to_store(new_user)
     log_audit(current.email, current.name, 'USER_CREATED', f"Created employee {new_user.name} ({new_user.email})")
 
     return jsonify({'message': 'User created successfully', 'user': new_user.to_dict()}), 201
@@ -369,6 +352,10 @@ def update_user_permissions(user_id):
         return jsonify({'message': 'Cannot modify master Admin account permissions.'}), 400
 
     data = request.get_json() or {}
+
+    # Only an admin can change titles or permissions (a developer could otherwise grant themselves more power)
+    if current.role != 'admin' and ('permissions' in data or 'designation' in data):
+        return jsonify({'message': 'Only an admin can change designations or permissions.'}), 403
 
     if 'is_approved' in data:
         target.is_approved = bool(data['is_approved'])
@@ -436,14 +423,14 @@ def sync_users():
                 role='manager' if (item.get('designation') or item.get('role', '')).lower() == 'manager' else 'employee',
                 designation=item.get('designation') or item.get('role') or 'Editor',
                 is_approved=item.get('is_approved', True),
-                permissions_json=json.dumps(item.get('permissions') or {})
+                permissions_json=json.dumps((item.get('permissions') if current.role == 'admin' else None) or {})
             )
             new_u.set_password(item.get('password') or 'Aszen@123')
             db.session.add(new_u)
-            save_user_to_store(new_u, raw_password='Aszen@123')
+            save_user_to_store(new_u)
             synced_count += 1
         else:
-            if item.get('permissions'):
+            if item.get('permissions') and current.role == 'admin':
                 existing.permissions_json = json.dumps(item['permissions'])
             if 'is_approved' in item:
                 existing.is_approved = item['is_approved']
@@ -513,6 +500,10 @@ def admin_reset_password(user_id):
     target = User.query.get(user_id)
     if not target:
         return jsonify({'message': 'User not found'}), 404
+
+    # Developers may not reset an admin's password; that would give them full control of the system
+    if target.role == 'admin' and current.role != 'admin':
+        return jsonify({'message': 'Only an admin can reset an admin password.'}), 403
 
     data = request.get_json() or {}
     new_password = data.get('password') or 'Aszen@123'

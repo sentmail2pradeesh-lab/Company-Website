@@ -1,3 +1,5 @@
+import os
+import secrets
 from flask import Flask
 from flask_cors import CORS
 from config import Config
@@ -10,6 +12,7 @@ from routes.clients import clients_bp
 from routes.jobs import jobs_bp
 from routes.leaves import leaves_bp
 from utils.mail import mail
+from utils.user_store import scrub_raw_passwords
 
 
 def create_app(config_object=Config):
@@ -89,6 +92,7 @@ def create_app(config_object=Config):
         seed_users()
         seed_clients()
         seed_blogs()
+        scrub_raw_passwords()
 
     return app
 
@@ -117,11 +121,10 @@ def seed_users():
     except Exception:
         pass
 
-    # 1. Master Admin accounts (Arun, Gokul, and Arun Selvam sharing full identical admin functionality)
+    # 1. Master Admin accounts: Arun and Gokul only
     master_admins = [
         {"email": "arun@aszen.com", "name": "Arun"},
         {"email": "gokul@aszen.com", "name": "Gokul"},
-        {"email": "arunselvam@aszen.com", "name": "Arun Selvam"},
     ]
     admin_perms = {
         'can_create_job': True,
@@ -131,10 +134,24 @@ def seed_users():
         'can_manage_clients': True,
         'can_manage_work_hours': True,
     }
+    # Former admin accounts are demoted to regular employees (their data is kept)
+    for former_email in ['arunselvam@aszen.com', 'pradeesh@aszen.com']:
+        former = User.query.filter_by(email=former_email).first()
+        if former and former.role == 'admin':
+            former.role = 'employee'
+            db.session.commit()
+            save_user_to_store(former)
+
+    # Initial password comes from ADMIN_INITIAL_PASSWORD and is only used when the account is first created.
+    # Existing admins keep whatever password they have; it is never reset on startup.
+    initial_admin_password = os.environ.get('ADMIN_INITIAL_PASSWORD')
     for adm in master_admins:
         admin_email = adm["email"]
         admin = User.query.filter_by(email=admin_email).first()
         if not admin:
+            password = initial_admin_password or secrets.token_urlsafe(12)
+            if not initial_admin_password:
+                print(f"NOTICE: created {admin_email} with a random password (set ADMIN_INITIAL_PASSWORD to choose one): {password}")
             admin = User(
                 email=admin_email,
                 name=adm["name"],
@@ -143,7 +160,7 @@ def seed_users():
                 is_approved=True,
                 permissions_json=json.dumps(admin_perms)
             )
-            admin.set_password("Aszen@123")
+            admin.set_password(password)
             db.session.add(admin)
         else:
             admin.name = adm["name"]
@@ -151,7 +168,6 @@ def seed_users():
             admin.designation = "Admin / System Manager"
             admin.is_approved = True
             admin.permissions_json = json.dumps(admin_perms)
-            admin.set_password("Aszen@123")
         db.session.commit()
         save_user_to_store(admin)
 

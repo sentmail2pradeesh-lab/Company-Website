@@ -33,9 +33,10 @@ def load_stored_users():
     return []
 
 
-def save_user_to_store(user_obj, raw_password=None):
+def save_user_to_store(user_obj):
     """
     Saves or updates a user in the persistent users_store.json file.
+    Only the password hash is stored, never the plain-text password.
     """
     try:
         from flask import current_app
@@ -60,8 +61,6 @@ def save_user_to_store(user_obj, raw_password=None):
             'permissions': user_obj.permissions if hasattr(user_obj, 'permissions') else {},
             'password_hash': user_obj.password_hash,
         }
-        if raw_password:
-            user_entry['raw_password'] = raw_password
 
         if idx >= 0:
             users[idx] = user_entry
@@ -72,6 +71,31 @@ def save_user_to_store(user_obj, raw_password=None):
             json.dump(users, f, indent=2)
     except Exception as e:
         print("Error saving user to store:", e)
+
+
+def scrub_raw_passwords():
+    """
+    Removes plain-text passwords left in the store by older versions.
+    Call only after those users have been restored with their password hash.
+    """
+    try:
+        from flask import current_app
+        if current_app and current_app.config.get('TESTING'):
+            return
+    except Exception:
+        pass
+    users = load_stored_users()
+    changed = False
+    for u in users:
+        if 'raw_password' in u:
+            u.pop('raw_password')
+            changed = True
+    if changed:
+        try:
+            with open(STORE_FILE, 'w', encoding='utf-8') as f:
+                json.dump(users, f, indent=2)
+        except Exception as e:
+            print("Error scrubbing stored passwords:", e)
 
 
 def remove_user_from_store(email):

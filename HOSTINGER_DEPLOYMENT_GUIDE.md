@@ -39,7 +39,7 @@ All test data has been removed from the system:
    - Click the **Import** tab in the top navigation.
    - Choose the file [`database.sql`](file:///d:/Company-Website/database.sql) from your workspace.
    - Click **Go** at the bottom.
-   - *Result: All 8 production tables will be created cleanly with Master Admin `arun@aszen.com` (Password: `Aszen@123`).*
+   - *Result: All 8 production tables will be created cleanly with Master Admin `arun@aszen.com` (Password: the value you set in `ADMIN_INITIAL_PASSWORD`).*
 
 ---
 
@@ -92,7 +92,9 @@ All test data has been removed from the system:
    ```env
    FLASK_ENV=production
    SECRET_KEY=vistaeditz-production-super-secret-key-2026!
-   JWT_SECRET_KEY=vistaeditz-jwt-secret-key-998877!
+   JWT_SECRET=<long random string, e.g. output of: python -c "import secrets; print(secrets.token_urlsafe(48))">
+   ADMIN_INITIAL_PASSWORD=<strong password for the first admin account>
+   FLASK_ENV=production
    DATABASE_URL=mysql+pymysql://u123456789_admin:YOUR_MYSQL_PASSWORD@localhost/u123456789_vistaeditz
    ```
 5. In the Hostinger Python app manager or SSH Terminal, install dependencies:
@@ -116,7 +118,7 @@ All test data has been removed from the system:
 2. Click **Login** / **Admin Panel**.
 3. Sign in with Master Admin Credentials:
    - **Email**: `arun@aszen.com`
-   - **Password**: `Aszen@123`
+   - **Password**: the value you set in `ADMIN_INITIAL_PASSWORD`
 4. In the **Admin Control Panel**:
    - Change your default admin password via **Change Password**.
    - Add your actual employee personnel (e.g. Editors, Managers, QC Leads).

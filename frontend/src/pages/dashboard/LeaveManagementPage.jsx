@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
+import { MASTER_ADMIN_EMAILS } from '../../lib/roles';
 import ApplyLeaveModal from '../../components/dashboard/ApplyLeaveModal';
 import {
   FiCalendar,
@@ -45,7 +46,7 @@ export default function LeaveManagementPage() {
 
   const userRole = (user?.role || 'employee').toLowerCase();
   const myEmail = (user?.email || '').toLowerCase().trim();
-  const isAdmin = userRole === 'admin' || ['arun@aszen.com', 'gokul@aszen.com'].includes(myEmail);
+  const isAdmin = userRole === 'admin' || user?.is_master_admin;
 
   // Admin cannot apply for leave; admin starts directly in approvals or quota assignment
   const [activeTab, setActiveTab] = useState(isAdmin ? 'approvals' : 'my-leaves');
@@ -70,7 +71,7 @@ export default function LeaveManagementPage() {
     return (editors || []).filter((emp) => {
       const email = (emp.email || '').toLowerCase().trim();
       const role = (emp.role || '').toLowerCase();
-      return role !== 'admin' && !['arun@aszen.com', 'gokul@aszen.com'].includes(email);
+      return role !== 'admin' && !MASTER_ADMIN_EMAILS.includes(email);
     });
   }, [editors]);
 

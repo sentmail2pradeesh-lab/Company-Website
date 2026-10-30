@@ -11,6 +11,10 @@ def to_utc_iso(dt):
     return iso if (iso.endswith('Z') or '+' in iso) else f"{iso}Z"
 
 
+# Single source of truth for the master admins (full control, exempt from shift tracking)
+MASTER_ADMIN_EMAILS = ['arun@aszen.com', 'gokul@aszen.com']
+
+
 class User(db.Model):
     __tablename__ = 'users'
 
@@ -45,6 +49,10 @@ class User(db.Model):
     def permissions(self, val):
         self.permissions_json = json.dumps(val or {})
 
+    @property
+    def is_master_admin(self):
+        return (self.email or '').strip().lower() in MASTER_ADMIN_EMAILS
+
     def has_permission(self, perm_key):
         if self.role == 'admin':
             return True
@@ -61,6 +69,7 @@ class User(db.Model):
             'role': self.role,
             'designation': 'Path Editor' if (self.designation or '').strip().lower() == 'pather' else (self.designation or ('Developer' if self.role == 'developer' else ('Manager' if self.role == 'manager' else 'Editor'))),
             'is_approved': getattr(self, 'is_approved', True),
+            'is_master_admin': self.is_master_admin,
             'permissions': self.permissions,
             'created_at': to_utc_iso(self.created_at),
         }

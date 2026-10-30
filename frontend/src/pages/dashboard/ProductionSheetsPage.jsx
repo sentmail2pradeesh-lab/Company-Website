@@ -2,6 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { useJobs } from '../../context/JobContext';
 import { useAuth } from '../../context/AuthContext';
+import { MASTER_ADMIN_EMAILS } from '../../lib/roles';
 import WorkSessionModal from '../../components/dashboard/WorkSessionModal';
 import ExportPdfModal from '../../components/dashboard/ExportPdfModal';
 import ImportProductionModal from '../../components/dashboard/ImportProductionModal';
@@ -222,7 +223,7 @@ export default function ProductionSheetsPage() {
       const sName = (session.user_name || '').toLowerCase();
 
       // Master Admin & Admin management authority accounts are excluded from working hours attendance records
-      if (['arun@aszen.com', 'gokul@aszen.com'].includes(sEmail) || (session.user_role || '').toLowerCase() === 'admin') return false;
+      if (MASTER_ADMIN_EMAILS.includes(sEmail) || (session.user_role || '').toLowerCase() === 'admin') return false;
 
       // If logged in as employee, strictly filter to employee's own logs
       if (!isManagerOrAdmin) {

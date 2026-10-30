@@ -115,7 +115,7 @@ npm run build
 2. Click **Sign In** (or navigate to `https://visaeditz.com/dashboard`).
 3. Sign in with the master administrator credentials:
    - **Email / Username**: `arun@aszen.com` (or simply `arun`)
-   - **Password**: `Aszen@123`
+   - **Password**: the value you set in `ADMIN_INITIAL_PASSWORD` (set it in the Render environment settings)
 4. You will be redirected into the **ASZEN Production Dashboard**:
    - **Dashboard Overview**: Stat cards, workload overview table, and today's jobs summary.
    - **Todays Jobs (`/dashboard/jobs`)**: 7-stage production tracking table (Blending, Path 1, Path 2, Editor 1, Editor 2, LC, FC).

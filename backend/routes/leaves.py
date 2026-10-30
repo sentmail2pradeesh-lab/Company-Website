@@ -8,7 +8,6 @@ from utils.jwt import token_required
 leaves_bp = Blueprint('leaves', __name__)
 
 ANNUAL_LEAVE_DAYS = 18.0
-MASTER_ADMINS = ['arun@aszen.com', 'gokul@aszen.com']
 
 
 def calculate_working_days(start_str, end_str, is_half_day=False):
@@ -67,7 +66,7 @@ def get_leaves():
     user_email_lower = (current_user.email or '').strip().lower()
     is_admin_or_manager = (
         current_user.role in ['admin', 'manager']
-        or user_email_lower in MASTER_ADMINS
+        or current_user.is_master_admin
         or current_user.has_permission('can_create_employee')
     )
 
@@ -88,7 +87,7 @@ def get_leaves():
 @token_required
 def create_leave():
     current_user = request.current_user
-    if current_user.role == 'admin' or (current_user.email and current_user.email.lower() in MASTER_ADMINS):
+    if current_user.role == 'admin' or current_user.is_master_admin:
         return jsonify({'message': 'Admins are not permitted to submit leave requests. Leave applications are reserved for employees.'}), 403
 
     data = request.get_json() or {}
@@ -177,13 +176,13 @@ def update_leave_status(leave_id):
 
     if new_status == 'Cancelled':
         # Applicant can cancel their own pending request
-        if leave.user_email.lower() != current_user.email.lower() and current_user.role != 'admin' and current_user.email.lower() not in MASTER_ADMINS:
+        if leave.user_email.lower() != current_user.email.lower() and current_user.role != 'admin' and not current_user.is_master_admin:
             return jsonify({'message': 'Permission denied'}), 403
     else:
         # Admin alone can approve or reject leaves
         is_authorized_admin = (
             current_user.role == 'admin'
-            or (current_user.email and current_user.email.lower() in MASTER_ADMINS)
+            or current_user.is_master_admin
         )
         if not is_authorized_admin:
             return jsonify({'message': 'Permission denied. Only administrators can review and approve/reject leave requests.'}), 403
